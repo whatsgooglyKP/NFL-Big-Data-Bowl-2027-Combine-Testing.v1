@@ -325,3 +325,58 @@ UDFA: Tyrus Wheat (Edge, 2023, 1.59, 8.1%, +0.022, 123 snaps).
 Abdullah and Baron are new relative to the earlier split-group lists, because the residual is now fit on all DL and “strong” is within-subtype. Zeek Biggers (Interior, 2025 R7 #253, 1.74, 5.4%, 130 snaps) drops off: residual is now −0.006 vs the all-DL slot fit (it was a thin +0.005 vs the interior-only fit).
 
 Coach line is unchanged in spirit: *the names are useful scouting cards — especially Cedric Johnson on the edge and Adebawore / Dorlus inside — but late-round strong testers do not, as a group, reliably outproduce late-round weak testers. Do not turn the shortlist into a draft rule. And do not read the all-DL pressure result as a within-Edge or within-Interior rule.*
+
+---
+
+## 2026-11-11 (America/New_York) — Combine gems, all rounds (no early/late split)
+
+Kevin's change: stop designating late rounds (4–7) vs early rounds (1–3). The earlier late-round shortlist is replaced by an all-rounds **Combine gems** list covering every eligible drafted player (rounds 1–7) plus undrafted players. UDFAs are flagged in a column, not held out as a separate tier.
+
+Script: `combine_gems.py` (git mv from `late_round_gems.py`). Outputs: `out/combine_gems.csv`, `out/combine_gems_tests.csv`, `out/figs/fig8_combine_gems.png`, `COMBINE_GEMS.md`. This supersedes `LATE_ROUND_GEMS.md` and Figure 8's late-round framing.
+
+### 1. Definitions
+
+- **Strong** = top third of the position on a pre-declared Combine measure. For DL, top third *within Edge* and *within Interior* (within-subtype z of the official 10-yard split).
+- **Overperformed** = positive residual of the primary gameplay outcome vs log draft pick, fit on every eligible player in the group. **UDFA = pick 260**, the slot after a seven-round draft, used consistently in that fit.
+- **Group test** = one-sided Mann-Whitney (strong > weak) on the **year+pick residual**, across all eligible players including UDFAs. Raw-outcome medians are a companion.
+
+Because rounds are no longer split, measure selection no longer uses an early-round hold-out. Each group has a **pre-declared** measure, locked to the earlier writeup: official 40 time (WR), broad jump (CB), gauntlet drill top speed (S), official 10-yard split (DL). Full-sample correlations are reported for transparency. **Selection caveat:** these measures were chosen with knowledge of the earlier shortlist exercise; the correlations are descriptive, not a confirmatory test, and were not used to pick a different primary here.
+
+A weak-link flag means the pre-declared measure’s oriented year+pick Spearman ρ is < 0.20 or p ≥ 0.10 on the full eligible sample.
+
+### 2. Pre-declared measures, full-sample
+
+| Group | Measure | n | Oriented year+pick ρ | p | Weak link? |
+|---|---|---:|---:|---:|---|
+| WR | Official 40 time | 70 | +0.12 | 0.326 | Yes |
+| CB | Broad jump | 32 | +0.34 | 0.056 | No |
+| S | Gauntlet drill top speed | 33 | −0.36 | 0.037 | Yes (wrong-signed) |
+| DL | Official 10-yard split | 72 | +0.45 | 7.8e-05 | No |
+
+The safety gauntlet relationship on the full sample is actually negative (faster gauntlet, lower tackle involvement after year and pick). That is a hard weak-link flag: the four safety names below are not a group-level recommendation.
+
+### 3. Group-level test: strong vs weak, all eligible players
+
+| Group | n (strong / mid / weak) | Median outcome strong / weak | Median year+pick residual strong / weak | MW p (resid) | Notes |
+|---|---|---|---|---:|---|
+| WR | 70 (25 / 23 / 22) | 1.21 / 0.94 ypr | +0.099 / −0.087 | 0.141 | weak link; lean only |
+| CB | 32 (13 / 9 / 10) | 7.9% / 7.7% | −0.001 / −0.010 | 0.050 | modest lean, not a claim |
+| S | 33 (12 / 10 / 11) | 9.5% / 9.3% | −0.006 / −0.009 | 0.779 | weak link; null |
+| DL | 72 (26 / 22 / 24) | 8.5% / 7.2% | +0.008 / −0.001 | 0.205 | null |
+| DL Edge | 39 (13 / 13 / 13) | 11.5% / 7.9% | +0.028 / +0.017 | 0.062 | lean only |
+| DL Interior | 33 (13 / 9 / 11) | 5.9% / 5.3% | −0.010 / −0.022 | 0.343 | null |
+
+**No new group-level finding.** CB and Edge lean the expected way (p=0.050 and 0.062) but we will not promote them. The names are the deliverable.
+
+### 4. Named shortlists (top residual), plus Chop Robinson
+
+A gem is eligible, in the top third on the pre-declared measure, with a positive draft-slot residual. UDFAs can make the same list.
+
+- **WR (official 40, weak link):** Luther Burden (2025 R2 #39, 4.41, 2.80 ypr, residual +1.305, 233 routes); Devontez Walker (2024 R4 #113, 4.36, 2.12 ypr, +0.937, 74 routes — limited sample); Brian Thomas (2024 R1 #23, 4.33, 2.08 ypr, +0.438, 954 routes); Marvin Mims (2023 R2 #63, 4.38, 1.75 ypr, +0.395, 687); Ladd McConkey (2024 R2 #34, 4.39, 1.92 ypr, +0.389, 1,008); Jaylin Noel (2025 R3 #79, 4.39, 1.48 ypr, +0.194, 197); Adonai Mitchell (2024 R2 #52, 4.34, 1.57 ypr, +0.164, 486); Jacob Cowing (2024 R4 #135, 4.38, 1.29 ypr, +0.157, 62). Also on the full list: Troy Franklin, Ricky Pearsall, Jaylin Lane, Tai Felton (only 20 routes — early look), and UDFA Isaiah Bond (residual only +0.009).
+- **CB (broad jump):** Cam Smith (2023 R2 #51, 134-inch broad, 12.5% tackle rate, residual +0.045, 144 snaps — smaller sample); Andru Phillips (2024 R3 #70, 135 inches, 10.7%, +0.026, 1,277 snaps); Julius Brents (2023 R2 #44, 138 inches, 9.2%, +0.012, 655); Mike Sainristil (2024 R2 #50, 131 inches, 8.7%, +0.007, 1,919); Renardo Green (2024 R2 #64, 130 inches, 8.4%, +0.003, 1,433).
+- **S (gauntlet, weak link, wrong-signed full-sample ρ):** Chamarri Conner (2023 R4 #119, 18.49 mph, 11.4% tackle rate, residual +0.011, 1,805 snaps); Brian Branch (2023 R2 #45, 18.97 mph, 11.4%, +0.011, 2,270); Tyler Nubin (2024 R2 #47, 18.27 mph, 11.3%, +0.010, 1,522); Evan Williams (2024 R4 #111, 18.57 mph, 10.4%, +0.002, 1,306). Names only; the group test is null and the measure itself goes the wrong way after year and pick.
+- **DL (official 10-yard, within-subtype strong):** Cedric Johnson (Edge, 2024 R6 #214, 1.61, 14.6% pressure, residual +0.083, 192 snaps); Jalyx Hunt (Edge, 2024 R3 #94, 1.60, 12.8%, +0.052, 492); Jared Verse (Edge, 2024 R1 #19, 1.60, 14.9%, +0.048, 958); Will Anderson (Edge, 2023 R1 #3, 1.61, 17.8%, +0.047, 1,167); **Chop Robinson (Edge, 2024 R1 #21, 1.54, z +2.16, 13.9%, +0.040, 610) — #5 on the combined DL list**; YaYa Diaby (Edge, 2023 R3 #82, 1.56, 11.5%, +0.037, 1,292); Byron Young (Edge, 2023 R3 #77, 1.62, 11.5%, +0.036, 1,464); Robert Beal (Edge, 2023 R5 #173, 1.62, 9.2%, +0.026, 131). Also on the full 15-name list: Brandon Dorlus, Tyrus Wheat (UDFA), Adetomiwa Adebawore, Laiatu Latu, Yasir Abdullah, Mekhi Wingo, and Tyler Baron (44 snaps — early look).
+
+**Chop Robinson requested check:** he clears both cuts. Official 10-yard 1.54 (fastest of the 72, top third within Edge, z +2.16), 13.9% pressure on 610 pass-rush snaps, draft-slot residual +0.040 (year+pick residual +0.037). He is a gem, ranked 5th among the 15 combined DL gems by residual.
+
+Coach line: *the names are useful scouting cards — including first-rounders such as Brian Thomas, Will Anderson, Jared Verse, and Chop Robinson, and later-round standouts such as Cedric Johnson — but strong testers do not, as a group, reliably outproduce weak testers in this sample. Do not turn the shortlist into a draft rule. Official 40 time for receivers and the gauntlet for safeties are weak links.*
