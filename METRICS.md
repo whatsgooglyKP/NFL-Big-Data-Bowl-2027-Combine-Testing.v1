@@ -116,29 +116,93 @@ Official SSOE is **not** adjusted for weight, draft year, or draft slot. Those b
 ## 5. What these metrics are not
 
 - They are not “Combine speed minus game speed” as a raw gap. The official comparison is the position-specific expected value (SSOE), not an unadjusted subtraction.
-- They are not a draft-value or career-success metric. Translation and SSOE describe speed. Starts, snaps, separation, and YAC were tested and did not follow SSOE.
+- Sunday Speed, the translation rate, and SSOE describe **speed**. They are not themselves success metrics. Receiver production tests (yards per route, deep yards, deep target share, catch rate, separation, YAC-over-expected) were null for both Sunday Speed and SSOE. Do not use SSOE as a value grade.
 - They do not use opponent or ball tracking. Game tracking in this competition covers only the 510-player rookie cohort.
 - Phase 2 skill-drill tests and the corner “speed tax” check are supporting analyses. They do not change the definitions on this page.
 
-Pipeline: `build_dataset.py` writes the official player table; `ssoe.py` writes the scouting-card leaderboard from that table.
+Pipeline: `build_dataset.py` writes the official player table; `ssoe.py` writes the scouting-card leaderboard from that table; `gameplay_success.py` writes the WR / CB / S production tests; `dl_burst.py` writes the defensive-line get-off and pressure tests.
 
 ---
 
-## 6. Supporting analysis: defensive-line get-off (not a Sunday Speed metric)
+## 6. Official success metrics are on-field gameplay, not playing time
 
-This section does not change Sunday Speed, Speed Translation Rate, or SSOE. It records how we will judge whether a pass rusher's get-off on Sunday relates to career opportunity.
+Kevin’s decision (2026-11-10, America/New_York): success should not be measured by playing time only. Career defensive snaps, snaps per game, and start rate remain **secondary context**. They tell you whether coaches put a player on the field. They do not tell you what he did there. All-Pro and Pro Bowl flags are too rare in this rookie file (~1–3%) to use.
+
+Every official success definition below uses a field that actually exists in `player_play.csv`. Fields that do not exist are listed so they are not invented later.
+
+**Controls.** Official tests residualize both sides on **draft-year dummies and log draft pick** (UDFA = 260). 2023 rookies have had three seasons in this file; 2025 rookies have had one. Rates already adjust for opportunity; we still control for draft year so a one-season sample is not treated as interchangeable with a three-season sample. 95% confidence intervals are player-level bootstraps (2,000 resamples). Holm correction is applied inside each pre-declared family.
+
+---
+
+## 6A. Defensive line — pressure and sack rate
 
 **Who.** Defensive linemen only: `DE` and `OLB` as **Edge** (every OLB in this cohort tested in the DL Combine group and almost always lines up as EDGE), `DT` and `NT` as **Interior**. Offensive linemen are out of scope.
 
-**Get-off (the input).** On regular-season pass plays that stood, with the player lined up as EDGE or interior DL, and at least 20 such snaps:
+**Opportunity snaps.** Regular-season pass plays that stood (`season_type == REG`, `play_nullified_by_penalty == 'N'`), with the player lined up as `EDGE` or `INTERIOR_LINE`, and at least **20** such snaps. Current samples with a rate: **89** players have a tracking get-off median, **88** have an NFL `player_get_off` median, **72** have an official 10-yard split and a pressure rate.
 
-- Tracking get-off: the player's median speed 1.0 second after the snap, in mph. Companion views: speed at 1.5s, time to travel 5 yards, first-step acceleration.
+**Get-off (the process metric, not the success metric).**
+
+- Tracking get-off: the player’s median speed 1.0 second after the snap, in mph. Companion views: speed at 1.5s, time to travel 5 yards, first-step acceleration.
 - NFL get-off time: the median of `player_get_off` (seconds; lower is faster).
 
-Game tracking covers only the 510-player rookie cohort, so these numbers come from the rusher's own track.
+Game tracking covers only the 510-player rookie cohort, so these numbers come from the rusher’s own track. There are no blocker or quarterback tracks.
 
-**Career success (the outcome).** Primary outcomes are **career defensive snaps** (`career_defensive_snaps`) and **defensive snaps per game active** (`career_defensive_snaps / career_games_active`). Snaps measure opportunity. Start rate (`career_games_started / career_games_active`) is secondary, as are sack rate and pressure rate on the same pass-rush plays.
+**Primary success outcomes** (coach-readable):
 
-**Draft year.** 2023 rookies have had three seasons in this file; 2025 rookies have had one. Raw career snap totals are not comparable across classes. Official career tests therefore residualize both sides on **draft-year dummies and log draft pick** (UDFA = 260) before the Spearman correlation. Snaps per game already adjusts for career length; we still control for draft year so a one-season sample is not treated as interchangeable with a three-season sample.
+- **Pressure rate** = share of opportunity snaps where `time_to_pressure` is recorded. In English: how often this rusher is credited with a pressure.
+- **Sack rate** = sum of `sack` divided by opportunity snaps. `sack` is 1.0 for a solo sack and 0.5 for a shared sack.
 
-The primary career family is four All-DL tests (two get-off measures × two snap outcomes). Holm correction is applied to those four year-and-pick partial p-values. Subtype (Edge / Interior) and the secondary outcomes are reported, but they are not used to rescue a headline.
+**Companion outcomes** (reported, not used to rescue a headline):
+
+- **Hurry rate** = share of opportunity snaps where `time_to_qb_hurry` is recorded. This nearly nests with pressure (only a handful of hurries have no pressure time), so it is a consistency check, not a second headline.
+- **Blocked-pressure rate** = pressure rate after dropping snaps flagged `unblocked_pressure == True`. A sensitivity for the “he was already free” concern.
+- There is **no quarterback-hit field**. We do not invent one.
+
+**Secondary / context:** career defensive snaps, defensive snaps per game active, start rate.
+
+**Pre-declared Combine-to-success family (6 tests, Holm on year+pick partial p):** official 10-yard split vs pressure rate and vs sack rate, in All DL, Edge, and Interior. This is the competition-required Combine-to-NFL-performance link.
+
+**Get-off-to-success family (4 tests, Holm on year+pick partial p, All DL):** tracking speed at 1.0s and NFL get-off time, each vs pressure rate and sack rate. This is the middle of the chain, not a Combine test.
+
+**Mediation (supporting, not in either Holm family):** official 10-yard split vs pressure / sack after residualizing on draft year, log pick, **and** game get-off. If the direct 10-yard link shrinks to near zero, get-off is carrying the result. This is association, not a causal claim: we cannot see the blocker or the quarterback.
+
+---
+
+## 6B. Wide receivers — production on routes
+
+**Who.** The official Sunday Speed sample: receivers with a tracked 40 and at least **20** regular-season go / post / corner / wheel routes that stood. Current n = **62**.
+
+**Primary success outcomes**, all from `player_play.csv` on regular-season plays that stood, with `route_ran` present:
+
+- **Yards per route** = sum of `rec_yards` (missing treated as 0) / number of routes.
+- **Deep yards per deep route** = the same, restricted to `route_ran` in `{GO, POST, CORNER, WHEEL}`.
+- **Deep target share** = deep-route targets / all targets, requiring at least **8** targets.
+
+**Companion outcomes:** catch rate (`rec_yards` not null / targets, ≥8 targets), mean `separation_at_pass_forward` on deep routes, YAC over expected (`yards_after_catch − expected_yards_after_catch` on catches), overall target rate.
+
+**Pre-declared family (6 tests, Holm on year+pick partial p):** Sunday Speed and SSOE, each vs yards per route, deep yards per deep route, and deep target share. Combine top speed vs the same outcomes is reported as a companion Combine-to-production check.
+
+---
+
+## 6C. Cornerbacks and safeties — what we can and cannot measure
+
+**Fields that do not exist** (and will not be invented):
+
+- No `targets allowed`, no `completions allowed`, no pass-breakup / PBU field, and no interception field attributed to a defender.
+- `target` is only ever true for offensive skill players (WR / TE, plus a handful of backs).
+- `pass_result` (C / I / S / R / IN) is play-level. It appears on a defender’s row, but it is not “this defender allowed that completion or made that interception.” Using it as an allowed-rate would invent a metric the file does not support.
+
+**Fields that do exist:** `tackle` (1 = solo, 0 with `assist` = 1 means a shared tackle; null means this player was not involved), `assist`, `tackle_for_loss`, `caused_forced_fumble`, `recovered_fumble`, `coverage_assignment`, and pre-snap `cushion`.
+
+**Primary success outcomes** we can actually compute, on regular-season snaps that stood, with at least **50** such snaps:
+
+- **Tackle involvement rate** = share of snaps where the player recorded a solo tackle or an assist.
+- **Tackle-for-loss rate** = share of snaps where `tackle_for_loss` is true.
+
+**Pre-declared family (4 tests, Holm on year+pick partial p):** Combine top speed vs tackle involvement rate and vs TFL rate, for CB and for S, on the broader sample (tracked 40 and ≥50 snaps). The original CB “speed tax” vs start rate remains a **playing-time** supporting finding, not a gameplay success result.
+
+---
+
+## 6D. How a coach should read the two layers
+
+Sunday Speed answers: *does his Combine speed show up on Sunday?* Success metrics answer: *does that speed, or that get-off, show up as production?* A player can have a real Combine-to-Sunday-Speed (or Combine-to-get-off) link and still have a null to yards, tackles, or even playing time. We report both layers, and we do not promote a null into a value grade.

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """DL burst vs. Sunday get-off — a quick, honest check for BDB 2027.
 
-Question: does Combine burst (10-yard split, early acceleration from the
-tracked 40, and DL skill-drill explosiveness) show up as get-off on
-pass-rush snaps? Split by Edge (DE + OLB who tested in the DL Combine
-group) vs Interior (DT + NT). Offensive linemen are out of scope.
+Question: does Combine burst (especially the official 10-yard split)
+show up as get-off on pass-rush snaps, and does that get-off — and the
+10-yard split itself — travel with on-field success (pressure and sack
+rate), not just playing time? Split by Edge (DE + OLB who tested in the
+DL Combine group) vs Interior (DT + NT). Offensive linemen are out of scope.
 
 Game tracking in this competition covers only the 510-player rookie
 cohort, so get-off is measured from the rusher's own track, not from a
@@ -38,6 +39,8 @@ ACCEL_CLIP = 12.0
 GAME_YEARS = (2023, 2024, 2025)
 CHUNKSIZE = 2_000_000
 MIN_RUSH_PLAYS = 20
+N_BOOT = 2000
+BOOT_SEED = 2027
 T_FIRST_STEP = 0.40  # seconds after snap (or after first Combine frame)
 S15 = 15.0 / MPH     # yd/s
 S18 = 18.0 / MPH
@@ -84,19 +87,28 @@ SECONDARY_OUTCOMES = [
     ("accel_first", "First-step acceleration after snap", +1),
 ]
 
-# Primary career outcomes: opportunity, not just starts.
+# Official success outcomes are on-field gameplay, not playing time.
+# Pressure / sack / hurry rates are measured on the same REG standing
+# pass-rush snaps as get-off (≥20 snaps). Playing time is context only.
 # career_defensive_snaps is cumulative, so 2023 rookies have a head start
-# (three seasons vs one for 2025). snaps_per_game already adjusts for
-# career length; we still control both for draft year and draft slot.
-CAREER_PRIMARY = [
+# (three seasons vs one for 2025); any snap test still controls for
+# draft year and draft slot.
+SUCCESS_PRIMARY = [
+    ("pressure_rate", "Pressure rate on pass-rush plays"),
+    ("sack_rate", "Sack rate on pass-rush plays"),
+]
+SUCCESS_COMPANION = [
+    ("hurry_rate", "Hurry rate on pass-rush plays"),
+    ("pressure_rate_blocked", "Pressure rate excluding unblocked pressures"),
+]
+PLAYTIME_SECONDARY = [
     ("career_defensive_snaps", "Career defensive snaps"),
     ("snaps_per_game", "Defensive snaps per game active"),
-]
-CAREER_SECONDARY = [
     ("start_rate", "Start rate (starts / games active)"),
-    ("sack_rate", "Sack rate on pass-rush plays"),
-    ("pressure_rate", "Pressure rate on pass-rush plays"),
 ]
+# Backward-compatible aliases used by the older career-family printer.
+CAREER_PRIMARY = SUCCESS_PRIMARY
+CAREER_SECONDARY = PLAYTIME_SECONDARY
 
 DL_DRILLS = {
     "PASS_RUSH_DRILL": "pass_rush",
@@ -209,6 +221,87 @@ def spearman_controlled(x: pd.Series, y: pd.Series, df: pd.DataFrame, control_ki
         out["official_partial_rho"] = out["partial_rho"]
         out["official_partial_p"] = out["partial_p"]
     return out
+
+
+
+def _year_pick_controls(d: pd.DataFrame, extra: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Design matrix used for official DL partials: log pick + draft-year dummies."""
+    year_dummies = pd.get_dummies(d["draft_year"], prefix="yr", drop_first=True)
+    log_pick = np.log(d["pick"].astype(float)).to_frame("log_pick")
+    parts = [log_pick]
+    if year_dummies.shape[1] >= 1:
+        parts.append(year_dummies)
+    if extra is not None:
+        parts.append(extra)
+    return pd.concat(parts, axis=1)
+
+
+def spearman_residualized(x: pd.Series, y: pd.Series, controls: pd.DataFrame) -> dict:
+    """Spearman ρ of x vs y after residualizing both sides on `controls` (OLS)."""
+    d = pd.concat([x.rename("x"), y.rename("y"), controls], axis=1).dropna()
+    out = {"n": int(len(d)), "rho": np.nan, "p": np.nan}
+    if len(d) < 8 or d["x"].nunique() < 2 or d["y"].nunique() < 2:
+        return out
+    X = controls.loc[d.index].to_numpy(dtype=float)
+    if np.unique(X, axis=0).shape[0] < 2:
+        return out
+    rx = _residualize(d["x"].to_numpy(dtype=float), X)
+    ry = _residualize(d["y"].to_numpy(dtype=float), X)
+    if np.unique(rx).size < 2 or np.unique(ry).size < 2:
+        return out
+    rho, p = stats.spearmanr(rx, ry)
+    out["rho"], out["p"] = float(rho), float(p)
+    return out
+
+
+def bootstrap_partial_ci(
+    x: pd.Series,
+    y: pd.Series,
+    df: pd.DataFrame,
+    extra: pd.DataFrame | None = None,
+    n_boot: int = N_BOOT,
+    seed: int = BOOT_SEED,
+) -> tuple[float, float, int]:
+    """95% percentile CI for the year+pick (plus optional extra) partial Spearman.
+
+    Resamples players with replacement. Returns (lo, hi, n_valid_draws).
+    """
+    base = pd.DataFrame({
+        "x": x.to_numpy(),
+        "y": y.to_numpy(),
+        "pick": df["pick"].to_numpy(),
+        "draft_year": df["draft_year"].to_numpy(),
+    }, index=x.index if hasattr(x, "index") else None)
+    if extra is not None:
+        for c in extra.columns:
+            base[f"ex_{c}"] = extra[c].to_numpy()
+    base = base.dropna().reset_index(drop=True)
+    if len(base) < 8:
+        return np.nan, np.nan, 0
+    rng = np.random.default_rng(seed)
+    rhos: list[float] = []
+    ex_cols = [c for c in base.columns if c.startswith("ex_")]
+    for _ in range(n_boot):
+        idx = rng.integers(0, len(base), size=len(base))
+        b = base.iloc[idx].reset_index(drop=True)
+        if b["x"].nunique() < 2 or b["y"].nunique() < 2:
+            continue
+        extra_b = b[ex_cols].rename(columns=lambda c: c[3:]) if ex_cols else None
+        controls = _year_pick_controls(b, extra_b)
+        X = controls.to_numpy(dtype=float)
+        if np.unique(X, axis=0).shape[0] < 2:
+            continue
+        rx = _residualize(b["x"].to_numpy(dtype=float), X)
+        ry = _residualize(b["y"].to_numpy(dtype=float), X)
+        if np.unique(rx).size < 2 or np.unique(ry).size < 2:
+            continue
+        rho, _p = stats.spearmanr(rx, ry)
+        if np.isfinite(rho):
+            rhos.append(float(rho))
+    if len(rhos) < max(50, n_boot // 20):
+        return np.nan, np.nan, len(rhos)
+    lo, hi = np.percentile(rhos, [2.5, 97.5])
+    return float(lo), float(hi), len(rhos)
 
 
 def _style() -> None:
@@ -390,7 +483,7 @@ def load_pass_rush_plays(ids: pd.Index) -> pd.DataFrame:
         "game_id", "play_id", "nfl_id", "lined_up_position",
         "play_nullified_by_penalty", "pass_result",
         "player_get_off", "sack", "time_to_pressure", "time_to_qb_hurry",
-        "quick_pressure", "blitzing",
+        "quick_pressure", "unblocked_pressure", "blitzing",
     ]
     parts = []
     id_set = set(ids.tolist())
@@ -608,6 +701,9 @@ def build_player_table(roster: pd.DataFrame, combine: pd.DataFrame, rush: pd.Dat
     plays = rush.merge(getoff, on=["game_id", "play_id", "nfl_id"], how="left")
     plays["sack_num"] = pd.to_numeric(plays["sack"], errors="coerce").fillna(0.0)
     plays["got_pressure"] = plays["time_to_pressure"].notna().astype(float)
+    plays["got_hurry"] = plays["time_to_qb_hurry"].notna().astype(float)
+    unblk = coerce_bool(plays["unblocked_pressure"]).fillna(False).astype(bool)
+    plays["got_pressure_blocked"] = plays["got_pressure"] * (~unblk).astype(float)
 
     def agg(g: pd.DataFrame) -> pd.Series:
         n = len(g)
@@ -624,8 +720,10 @@ def build_player_table(roster: pd.DataFrame, combine: pd.DataFrame, rush: pd.Dat
             "time_to_10yd": float(g["time_to_10yd"].median()) if g["time_to_10yd"].notna().sum() >= MIN_RUSH_PLAYS else np.nan,
             "accel_first": float(g["accel_first"].median()) if g["accel_first"].notna().sum() >= MIN_RUSH_PLAYS else np.nan,
             "dist_1s": float(g["dist_1s"].median()) if g["dist_1s"].notna().sum() >= MIN_RUSH_PLAYS else np.nan,
-            "sack_rate": float(g["sack_num"].sum() / n) if n else np.nan,
-            "pressure_rate": float(g["got_pressure"].mean()) if n else np.nan,
+            "sack_rate": float(g["sack_num"].sum() / n) if n >= MIN_RUSH_PLAYS else np.nan,
+            "pressure_rate": float(g["got_pressure"].mean()) if n >= MIN_RUSH_PLAYS else np.nan,
+            "hurry_rate": float(g["got_hurry"].mean()) if n >= MIN_RUSH_PLAYS else np.nan,
+            "pressure_rate_blocked": float(g["got_pressure_blocked"].mean()) if n >= MIN_RUSH_PLAYS else np.nan,
         }
         return pd.Series(out)
 
@@ -717,13 +815,14 @@ def run_tests(M: pd.DataFrame) -> pd.DataFrame:
                 f"n={r['n']:3d}  ρ={r['rho']:+.2f} (p={fmt_p(r['p'])})  partial ρ={r['partial_rho']:+.2f}"
             )
 
-    # Career-success tests: does Sunday get-off relate to defensive snaps?
-    # Primary outcomes are career defensive snaps and snaps per game active.
+    # Gameplay-success tests: does Sunday get-off relate to pressure and
+    # sack rate (primary), not just playing time (now secondary/context)?
     # Official partial residualizes on draft-year dummies (2023 rookies have
-    # had more seasons) and log draft pick. Start rate, sack rate, and
-    # pressure rate are secondary. Holm is on the 4 primary All-DL tests,
-    # using the year+pick partial p-value.
-    log("\n==== Career family (PRIMARY): get-off vs defensive snaps, All DL ====")
+    # had more seasons) and log draft pick. Holm is on the 4 primary All-DL
+    # get-off → pressure/sack tests, using the year+pick partial p-value.
+    # The Combine-to-outcome family (10-yard split → pressure/sack) is a
+    # separate pre-declared family added after this block.
+    log("\n==== Get-off → gameplay success (PRIMARY): pressure and sack rate, All DL ====")
     log("Official partial controls for draft year and log draft pick.")
     career_rows = []
     g = groups["All DL"]
@@ -747,7 +846,7 @@ def run_tests(M: pd.DataFrame) -> pd.DataFrame:
 
     for gcol, glabel, _gs in getoff_measures:
         for ccol, clabel in CAREER_PRIMARY:
-            career_rows.append(_career_row("career_primary", "All DL", gcol, glabel, ccol, clabel, g))
+            career_rows.append(_career_row("getoff_success_primary", "All DL", gcol, glabel, ccol, clabel, g))
     Cprim = pd.DataFrame(career_rows)
     pvals = Cprim["official_partial_p"].to_numpy(dtype=float)
     finite = np.isfinite(pvals)
@@ -767,28 +866,189 @@ def run_tests(M: pd.DataFrame) -> pd.DataFrame:
             f"p={fmt_p(r['official_partial_p'])} → Holm p={fmt_p(r['holm_p'])}{star}"
         )
 
-    log("\n==== Career family (SECONDARY): start rate, sack rate, pressure rate ====")
+    log("\n==== Playing-time family (SECONDARY / context): snaps and start rate ====")
     sec_rows = []
     for gcol, glabel, _gs in getoff_measures:
-        for ccol, clabel in CAREER_SECONDARY:
-            row = _career_row("career_secondary", "All DL", gcol, glabel, ccol, clabel, g)
+        for ccol, clabel in PLAYTIME_SECONDARY:
+            row = _career_row("playtime_secondary", "All DL", gcol, glabel, ccol, clabel, g)
             row["holm_p"] = np.nan
             row["sig_holm_05"] = False
             sec_rows.append(row)
 
-    log("\n==== Career subtype (PRIMARY snaps only; not in the Holm family) ====")
+    log("\n==== Hurry / unblocked-pressure companion (All DL; not in this Holm family) ====")
+    for gcol, glabel, _gs in getoff_measures:
+        for ccol, clabel in SUCCESS_COMPANION:
+            row = _career_row("success_companion", "All DL", gcol, glabel, ccol, clabel, g)
+            row["holm_p"] = np.nan
+            row["sig_holm_05"] = False
+            sec_rows.append(row)
+
+    log("\n==== Get-off → success, subtypes (not in this Holm family) ====")
     sub_rows = []
     for gname in ("Edge", "Interior"):
         frame = groups[gname]
         for gcol, glabel, _gs in getoff_measures:
-            for ccol, clabel in CAREER_PRIMARY + CAREER_SECONDARY:
+            for ccol, clabel in SUCCESS_PRIMARY + SUCCESS_COMPANION + PLAYTIME_SECONDARY:
                 row = _career_row("career_subtype", gname, gcol, glabel, ccol, clabel, frame)
                 row["holm_p"] = np.nan
                 row["sig_holm_05"] = False
                 sub_rows.append(row)
     C = pd.concat([Cprim, pd.DataFrame(sec_rows), pd.DataFrame(sub_rows)], ignore_index=True, sort=False)
 
-    return pd.concat([T, E, C], ignore_index=True, sort=False)
+    G = run_combine_to_outcome_tests(M, groups)
+    return pd.concat([T, E, C, G], ignore_index=True, sort=False)
+
+
+
+def run_combine_to_outcome_tests(M: pd.DataFrame, groups: dict) -> pd.DataFrame:
+    """Pre-declared Combine → gameplay success family, plus mediation.
+
+    Official family (6 tests, Holm on year+pick partial p): official 10-yard
+    split vs pressure rate and sack rate, in All DL / Edge / Interior.
+    This is the competition-required Combine-to-NFL-performance link.
+    Bootstrap 95% CIs are player-level, 2,000 resamples.
+    """
+    rows: list[dict] = []
+
+    def _row(family: str, gname: str, frame: pd.DataFrame, feat: str, flabel: str,
+             out_col: str, olabel: str, extra: pd.DataFrame | None = None) -> dict:
+        res = spearman_controlled(frame[feat], frame[out_col], frame, "year+pick")
+        lo, hi, n_boot = bootstrap_partial_ci(frame[feat], frame[out_col], frame, extra=None)
+        # If extra controls are requested (mediation), overwrite official partial.
+        if extra is not None:
+            d = pd.DataFrame({
+                "x": frame[feat], "y": frame[out_col],
+                "pick": frame["pick"], "draft_year": frame["draft_year"],
+            }).join(extra)
+            d = d.dropna()
+            controls = _year_pick_controls(d, extra.loc[d.index] if len(d) else extra)
+            med = spearman_residualized(d["x"], d["y"], controls) if len(d) else {"n": 0, "rho": np.nan, "p": np.nan}
+            res["official_partial_rho"] = med["rho"]
+            res["official_partial_p"] = med["p"]
+            res["n"] = med["n"]
+            lo, hi, n_boot = bootstrap_partial_ci(frame[feat], frame[out_col], frame, extra=extra)
+            res["mediation"] = True
+        else:
+            res["mediation"] = False
+        res["partial_ci_low"] = lo
+        res["partial_ci_high"] = hi
+        res["n_boot"] = n_boot
+        log(
+            f"  {gname:9s}  {flabel:36s} vs {olabel:42s}  n={res['n']:3d}  "
+            f"ρ={res['rho']:+.2f} (p={fmt_p(res['p'])})  "
+            f"year+pick ρ={res['official_partial_rho']:+.2f} "
+            f"(p={fmt_p(res['official_partial_p'])}, 95% CI "
+            f"{lo:+.2f}–{hi:+.2f})"
+        )
+        return {
+            "family": family, "group": gname, "feature": feat, "feature_label": flabel,
+            "outcome": out_col, "outcome_label": olabel, **res,
+        }
+
+    # ---- Official family: 10-yard split → pressure / sack ----
+    log("\n==== Combine → gameplay (PRIMARY family): official 10-yard split vs pressure / sack ====")
+    log("Holm is on the 6 year+pick partial p-values. CI is a 2,000-player bootstrap.")
+    fam_rows = []
+    for gname in ("All DL", "Edge", "Interior"):
+        frame = groups[gname]
+        for out_col, olabel in SUCCESS_PRIMARY:
+            fam_rows.append(_row(
+                "combine_success_primary", gname, frame,
+                "official_ten_yd", "Official 10-yard split",
+                out_col, olabel,
+            ))
+    F = pd.DataFrame(fam_rows)
+    pvals = F["official_partial_p"].to_numpy(dtype=float)
+    finite = np.isfinite(pvals)
+    holm_p = np.full(len(pvals), np.nan)
+    sig = np.zeros(len(pvals), dtype=bool)
+    if finite.sum() >= 1:
+        reject, p_adj, _, _ = multipletests(pvals[finite], method="holm")
+        holm_p[finite] = p_adj
+        sig[finite] = reject
+    F["holm_p"] = holm_p
+    F["sig_holm_05"] = sig
+    log("  Holm-adjusted p (6-test family, year+pick partial p):")
+    for _, r in F.iterrows():
+        star = " *" if bool(r["sig_holm_05"]) else ""
+        log(
+            f"    {r['group']:9s}  {r['outcome_label']:42s}  "
+            f"year+pick ρ={r['official_partial_rho']:+.2f}  "
+            f"p={fmt_p(r['official_partial_p'])} → Holm p={fmt_p(r['holm_p'])}{star}"
+        )
+    rows.append(F)
+
+    # ---- Companion: 10-yard split → hurry / blocked-pressure; other burst features ----
+    log("\n==== Combine → gameplay companions (not in the 6-test Holm family) ====")
+    extra_rows = []
+    for gname in ("All DL", "Edge", "Interior"):
+        frame = groups[gname]
+        for out_col, olabel in SUCCESS_COMPANION:
+            row = _row(
+                "combine_success_companion", gname, frame,
+                "official_ten_yd", "Official 10-yard split",
+                out_col, olabel,
+            )
+            row["holm_p"] = np.nan
+            row["sig_holm_05"] = False
+            extra_rows.append(row)
+        # Other primary burst features vs pressure rate only, All-DL reported in subtypes too.
+        if gname == "All DL":
+            for feat, flabel, _s in PRIMARY_FEATURES:
+                if feat == "official_ten_yd":
+                    continue
+                if feat not in frame.columns:
+                    continue
+                row = _row(
+                    "combine_success_companion", gname, frame,
+                    feat, flabel, "pressure_rate", "Pressure rate on pass-rush plays",
+                )
+                row["holm_p"] = np.nan
+                row["sig_holm_05"] = False
+                extra_rows.append(row)
+    rows.append(pd.DataFrame(extra_rows))
+
+    # ---- Mediation: 10-yard split → pressure/sack after get-off ----
+    log("\n==== Mediation: does game get-off carry the 10-yard split → pressure link? ====")
+    log("Partial residualizes on draft year, log pick, AND speed at 1.0s after the snap.")
+    log("Caveat: no blocker or QB tracks, so this is association, not a causal claim.")
+    med_rows = []
+    for gname in ("All DL", "Edge", "Interior"):
+        frame = groups[gname]
+        extra = frame[["speed_1s_mph"]].rename(columns={"speed_1s_mph": "speed_1s_mph"})
+        for out_col, olabel in SUCCESS_PRIMARY:
+            row = _row(
+                "combine_success_mediation", gname, frame,
+                "official_ten_yd", "Official 10-yard split",
+                out_col, olabel + " | get-off (speed at 1.0s)",
+                extra=extra,
+            )
+            row["holm_p"] = np.nan
+            row["sig_holm_05"] = False
+            med_rows.append(row)
+    rows.append(pd.DataFrame(med_rows))
+
+    # Also attach bootstrap CIs onto the get-off → pressure All-DL primary cells
+    # (already computed in run_tests without CIs). We recompute here for the log
+    # and a clean CI column on a dedicated family copy.
+    log("\n==== Get-off → pressure / sack bootstrap CIs (All DL, year+pick) ====")
+    go_rows = []
+    frame = groups["All DL"]
+    for gcol, glabel, _gs in (
+        ("speed_1s_mph", "Speed at 1.0s after snap (mph)", +1),
+        ("player_get_off", "NFL get-off time (sec, lower=faster)", -1),
+    ):
+        for out_col, olabel in SUCCESS_PRIMARY:
+            row = _row(
+                "getoff_success_ci", "All DL", frame,
+                gcol, glabel, out_col, olabel,
+            )
+            row["holm_p"] = np.nan
+            row["sig_holm_05"] = False
+            go_rows.append(row)
+    rows.append(pd.DataFrame(go_rows))
+
+    return pd.concat(rows, ignore_index=True, sort=False)
 
 
 def make_figure(M: pd.DataFrame, tests: pd.DataFrame) -> Path:
@@ -861,15 +1121,161 @@ def make_figure(M: pd.DataFrame, tests: pd.DataFrame) -> Path:
     fig.text(
         0.01, -0.12,
         "A bar to the right means a more explosive Combine number comes with a faster first second on pass-rush snaps.  "
-        "Get-off is the player's median speed 1.0s after the snap, regular-season pass plays, lined up as EDGE or interior DL, plays that stood, at least 20 snaps.  "
+        "Get-off is the process metric (median speed 1.0s after the snap), not the success metric — pressure and sack rate are in Figure 6.  "
+        "Regular-season pass plays, lined up as EDGE or interior DL, plays that stood, at least 20 snaps.  "
         "Times (10-yard split, time to 15 mph) are flipped so 'faster' points right.  "
-        "★ would mark a result that survives Holm correction across the 12 primary tests (4 features × Edge/Interior/All DL).  "
-        "Grey bars did not.  Offensive linemen are not in this chart.  Game tracking covers only the 510 rookies.",
+        "★ marks a result that survives Holm correction across the 12 get-off tests (4 features × Edge/Interior/All DL).  "
+        "Grey bars did not.  Offensive linemen are not in this chart.  Game tracking covers only the 510 rookies; there are no blocker or QB tracks.",
         fontsize=8, color="#555555", ha="left",
     )
     fig.tight_layout(rect=(0, 0.02, 1, 0.96))
     path = FIGS / "fig5_dl_burst.png"
     fig.savefig(path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    log(f"  wrote {path}")
+    return path
+
+
+
+def make_figure6(M: pd.DataFrame, tests: pd.DataFrame) -> Path:
+    """Coach-readable chain: 10-yard split → get-off → pressure, plus the direct link."""
+    _style()
+    fam = tests[tests["family"] == "combine_success_primary"].copy()
+    go = tests[tests["family"] == "getoff_success_ci"].copy()
+    # Prefer year+pick partials for the annotation numbers.
+    def _cell(frame, group, feature, outcome):
+        sub = frame[(frame["group"] == group) & (frame["feature"] == feature) & (frame["outcome"] == outcome)]
+        return sub.iloc[0] if len(sub) else None
+
+    all_p = _cell(fam, "All DL", "official_ten_yd", "pressure_rate")
+    all_s = _cell(fam, "All DL", "official_ten_yd", "sack_rate")
+    go_p = _cell(go, "All DL", "speed_1s_mph", "pressure_rate")
+
+    # Title follows the All-DL 10-yard → pressure result after year+pick and Holm.
+    if all_p is not None and bool(all_p.get("sig_holm_05", False)):
+        title = "A faster Combine 10-yard split shows up as more pressure on Sunday"
+    elif all_p is not None and np.isfinite(all_p.get("official_partial_rho", np.nan)) and all_p["official_partial_rho"] < -0.2:
+        title = "A faster 10-yard split leans toward more pressure — check the fine print"
+    else:
+        title = "The 10-yard split is real get-off information; the pressure link is the one to judge carefully"
+
+    fig = plt.figure(figsize=(12.6, 6.2))
+    gs = fig.add_gridspec(1, 2, width_ratios=[1.05, 1.15], wspace=0.28)
+    ax0 = fig.add_subplot(gs[0, 0])
+    ax1 = fig.add_subplot(gs[0, 1])
+
+    # Left: chain of three All-DL links, oriented so "better 10-yard / faster get-off / more pressure" is to the right.
+    # 10-yd is a time (lower=better) so flip sign; speed_1s is already higher=better.
+    chain = []
+    ten_go = tests[
+        (tests["family"] == "primary")
+        & (tests["group"] == "All DL")
+        & (tests["feature"] == "official_ten_yd")
+        & (tests["outcome"] == "speed_1s_mph")
+    ]
+    if len(ten_go):
+        r = ten_go.iloc[0]
+        chain.append({
+            "label": "Faster 10-yard split\n→ faster get-off",
+            "rho": -float(r["partial_rho"]) if np.isfinite(r.get("partial_rho", np.nan)) else -float(r["rho"]),
+            "n": int(r["n"]),
+            "sig": bool(r.get("sig_holm_05", False)),
+        })
+    if go_p is not None:
+        chain.append({
+            "label": "Faster get-off\n→ higher pressure rate",
+            "rho": float(go_p["official_partial_rho"]),
+            "n": int(go_p["n"]),
+            "lo": go_p.get("partial_ci_low", np.nan),
+            "hi": go_p.get("partial_ci_high", np.nan),
+            "sig": np.isfinite(go_p.get("official_partial_p", np.nan)) and go_p["official_partial_p"] < 0.05,
+        })
+    if all_p is not None:
+        # 10-yd time: flip so "faster split, more pressure" is positive.
+        chain.append({
+            "label": "Faster 10-yard split\n→ higher pressure rate",
+            "rho": -float(all_p["official_partial_rho"]) if np.isfinite(all_p["official_partial_rho"]) else np.nan,
+            "n": int(all_p["n"]),
+            "lo": -float(all_p["partial_ci_high"]) if np.isfinite(all_p.get("partial_ci_high", np.nan)) else np.nan,
+            "hi": -float(all_p["partial_ci_low"]) if np.isfinite(all_p.get("partial_ci_low", np.nan)) else np.nan,
+            "sig": bool(all_p.get("sig_holm_05", False)),
+        })
+
+    ys = np.arange(len(chain))[::-1]
+    colors = ["#0072B2" if c["sig"] else "#7A7A7A" for c in chain]
+    rhos = [c["rho"] if np.isfinite(c["rho"]) else 0.0 for c in chain]
+    ax0.barh(ys, rhos, color=colors, height=0.62, zorder=3, edgecolor="white")
+    ax0.axvline(0, color="#888888", lw=0.8)
+    for y, c in zip(ys, chain):
+        x = c["rho"] if np.isfinite(c["rho"]) else 0.0
+        star = " ★" if c["sig"] else ""
+        ci = ""
+        if np.isfinite(c.get("lo", np.nan)) and np.isfinite(c.get("hi", np.nan)):
+            ci = f"\nCI {c['lo']:+.2f}–{c['hi']:+.2f}"
+        ax0.text(
+            x + (0.03 if x >= 0 else -0.03), y,
+            f"{x:+.2f}{star}\nn={c['n']}{ci}",
+            ha="left" if x >= 0 else "right", va="center", fontsize=8,
+        )
+    ax0.set_yticks(ys, [c["label"] for c in chain], fontsize=9)
+    ax0.set_xlabel("Correlation after draft year and draft slot\n(right = the expected football direction)")
+    ax0.set_xlim(-0.2, 1.05)
+    ax0.set_title("The chain, in numbers", loc="left", fontweight="bold")
+
+    # Right: scatter, 10-yard split vs pressure rate, Edge vs Interior.
+    d = M.dropna(subset=["official_ten_yd", "pressure_rate", "subtype"]).copy()
+    d = d[d["n_rush_plays"] >= MIN_RUSH_PLAYS]
+    for grp, color in (("Edge", SUBTYPE_COLOR["Edge"]), ("Interior", SUBTYPE_COLOR["Interior"])):
+        sub = d[d["subtype"] == grp]
+        ax1.scatter(
+            sub["official_ten_yd"], 100 * sub["pressure_rate"],
+            color=color, s=38, alpha=0.85, zorder=3, label=f"{grp} (n={len(sub)})",
+            edgecolor="white", linewidth=0.4,
+        )
+        if len(sub) >= 8:
+            x = sub["official_ten_yd"].to_numpy()
+            y = 100 * sub["pressure_rate"].to_numpy()
+            coef = np.polyfit(x, y, 1)
+            xs = np.linspace(x.min(), x.max(), 50)
+            ax1.plot(xs, np.poly1d(coef)(xs), color=color, lw=1.6, zorder=2)
+    ax1.set_xlabel("Official Combine 10-yard split (seconds, faster is left)")
+    ax1.set_ylabel("Pressure rate on pass-rush snaps (%)")
+    ax1.legend(frameon=False, loc="upper right", fontsize=9)
+    ax1.set_title("Each rusher, 10-yard split vs pressure rate", loc="left", fontweight="bold")
+    # Invert x so faster (lower time) is to the left — coaches already read a 10-yard
+    # split that way. (Do not invert: standard split axis already has faster on the left
+    # if we leave it as elapsed time increasing to the right... wait, increasing to the
+    # right means slower on the right, faster on the left. That is what we want. No invert.)
+
+    fig.suptitle(title, x=0.01, ha="left", fontweight="bold", fontsize=13, y=1.04)
+    caption_bits = []
+    if all_p is not None:
+        star = " (survives Holm)" if bool(all_p.get("sig_holm_05", False)) else " (does not survive Holm)"
+        caption_bits.append(
+            f"All-DL 10-yard split vs pressure rate: year+pick ρ={all_p['official_partial_rho']:+.2f}, "
+            f"n={int(all_p['n'])}, Holm p={all_p['holm_p']:.3f}{star}."
+        )
+    if all_s is not None:
+        star = " *" if bool(all_s.get("sig_holm_05", False)) else ""
+        caption_bits.append(
+            f"Same split vs sack rate: year+pick ρ={all_s['official_partial_rho']:+.2f}, "
+            f"Holm p={all_s['holm_p']:.3f}{star}."
+        )
+    caption_bits.append(
+        "Pressure rate is the share of regular-season pass-rush snaps (EDGE or interior, plays that stood, ≥20 snaps) "
+        "where time_to_pressure is recorded. Sack rate credits shared sacks as 0.5. "
+        "★ / colored bars mark results that clear their own pre-declared bar (get-off family or the 6-test Combine-to-success family). "
+        "We do not have blocker or QB tracking, so a rusher who is already free can also look 'faster' at 1.0s — association, not proof. "
+        "The All-DL 10-yard-to-pressure link survives Holm; the same test inside Edge and inside Interior does not, so some of the pooled result is the Edge vs Interior mix. "
+        "Playing time (snaps, start rate) is a secondary context metric, not the success definition."
+    )
+    import textwrap
+    caption = textwrap.fill("  ".join(caption_bits), width=165)
+    fig.suptitle(title, x=0.02, ha="left", fontweight="bold", fontsize=13, y=0.98)
+    fig.text(0.02, 0.01, caption, fontsize=7.5, color="#555555", ha="left", va="bottom")
+    fig.subplots_adjust(left=0.20, right=0.98, top=0.82, bottom=0.26, wspace=0.32)
+    path = FIGS / "fig6_combine_to_pressure.png"
+    fig.savefig(path, dpi=200, bbox_inches="tight", pad_inches=0.25)
     plt.close(fig)
     log(f"  wrote {path}")
     return path
@@ -897,7 +1303,8 @@ def main() -> int:
         "n_rush_plays", "n_getoff", "n_speed_1s",
         "player_get_off", "speed_1s_mph", "speed_15s_mph", "time_to_5yd",
         "time_to_10yd", "accel_first", "dist_1s",
-        "sack_rate", "pressure_rate", "start_rate", "snaps_per_game",
+        "sack_rate", "pressure_rate", "hurry_rate", "pressure_rate_blocked",
+        "start_rate", "snaps_per_game",
         "career_defensive_snaps", "career_games_active", "career_games_started",
     ]
     keep = [c for c in keep if c in M.columns]
@@ -910,6 +1317,7 @@ def main() -> int:
     tests.to_csv(tests_csv, index=False)
     log(f"  wrote {tests_csv}")
     make_figure(M, tests)
+    make_figure6(M, tests)
     return 0
 
 

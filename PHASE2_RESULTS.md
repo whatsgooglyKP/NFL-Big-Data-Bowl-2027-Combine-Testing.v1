@@ -6,6 +6,8 @@ Pipeline: `build_dataset.py` → `out/sunday_speed_players.parquet`
 
 This note is written for the project, not as the competition writeup. It records what the reproducible pipeline found, whether Phase 2 changes the story, and what to do next.
 
+**Later update (same day, after the gameplay-success re-definition).** Phase 2 still does not change the Sunday Speed framing. What changed is the *success* definition: playing time is context, not the official outcome. WR Sunday Speed and SSOE remain null against yards per route, deep yards, and deep target share (6-test Holm family, all n.s.). The CB speed tax stays a suggestive playing-time finding; tackle and TFL rates do not follow the 40, and this file has no targets-allowed or completions-allowed field. The new positive Combine-to-performance link is on the defensive line (official 10-yard split → pressure and sack rate in the pooled DL sample, through get-off). Details and numbers are in `RESULTS_LOG.md` and `METRICS.md` §§6–6D, not in this Phase 2 note.
+
 ---
 
 ## 1. Headline numbers, reproduced
@@ -92,22 +94,19 @@ That last sentence is the only real change from the draft-day line in `STRATEGY.
 
 The null is the insight. Teams still pay for a 4.3 at corner; that number does not predict coverage speed, and the drills that look more "football-specific" do not clearly predict it either — at least not from peak speed, braking, or a simple transition-time feature in this sample. That is a sharper scouting claim than "just look at a different drill," and it is honest.
 
-Do not claim that Speed Realization or Sunday Speed Over Expected predicts career value. Those tests were already null in the first pass and were not the question here.
+Do not claim that Speed Realization or Sunday Speed Over Expected predicts career value or receiving production. Those tests were already null in the first pass. They were re-run against yards per route, deep yards, and deep target share after success was redefined as gameplay, and they are still null after Holm correction.
 
-## 5. Recommended next step
+## 5. What was built after Phase 2, and what is still open
 
-1. **Freeze the concept and the official metric definitions.** Sunday Speed (REG, plays that stood, opportunity plays as defined above), Speed Translation Rate with bootstrap CIs, and SSOE as a development residual. Keep the legacy numbers only as a reproducibility appendix.
-2. **Soften the DB-drill half of the pitch**, as above. If we mention the gauntlet or the 45° transition drill, label them as uncorrected leads that did not survive Holm, not as recommended tests.
-3. **Build the next analysis layer, not another metric.** The hierarchical model (Sunday Speed with a position-varying slope on Combine top speed, plus weight and draft year), incremental value over `ngs_athleticism_score` and draft pick, the CB "speed tax" as a *suggestive* result with a permutation test, and the SSOE scouting-card leaderboard. Those are the remaining items that make the writeup feel like a finished scouting tool rather than a correlation table.
-4. **Then figures and the writeup.** We already have draft versions of the translation scatter, the exchange-rate bars, and the Phase 2 comparison (`out/figs/`). Next visuals worth the remaining figure budget: a stability scatter, a speed-tax panel if the tax still holds, the SSOE leaderboard, and the hero animation (one WR go route vs. one CB deep-coverage play, with a mph speedometer against that player's Combine 40 trace).
+Completed in later sessions (see `RESULTS_LOG.md`): official metric freeze in `METRICS.md`; SSOE scouting-card leaderboard (Figure 4); incremental test of the tracked 40 over `ngs_athleticism_score`; CB speed-tax re-test with a permutation check and a deep dive (`CB_DEEP_DIVE.md`); defensive-line 10-yard split vs get-off (Figure 5); and the gameplay-success re-definition with the Combine-to-pressure chain (Figure 6) and the WR / CB production tests (Figure 7).
 
-A reasonable goal for the next working session is the hierarchical model, the speed-tax check, and the SSOE leaderboard — still in this pipeline, still in numbers a coach can read.
+Still open for the writeup: the hierarchical model (optional; the position-specific OLS lines with bootstrap CIs already carry the exchange-rate claim), a stability scatter as a finished figure, the hero animation, and the Kaggle notebook draft. The draft-day line above is the one to keep; the DL 10-yard-to-pressure result belongs in its own section so it does not dilute the WR-vs-DB headline.
 
 ## 6. Pipeline notes (for reruns)
 
 - Run: `/workspace/bdb2027/.venv/bin/python /workspace/bdb2027/build_dataset.py`
 - Add `--rebuild-game` only if the game-tracking cache should be regenerated. The cache is `out/game_play_speed.parquet`.
-- Outputs: `out/sunday_speed_players.parquet` and `.csv` (one row per WR / CB / S, 219 players), `out/phase2_tests.csv`, `out/translation_slopes.json`, and the three PNGs under `out/figs/`.
+- Outputs: `out/sunday_speed_players.parquet` and `.csv` (one row per WR / CB / S, 219 players), `out/phase2_tests.csv`, `out/translation_slopes.json`, and the three PNGs under `out/figs/`. Later official layers are `ssoe.py`, `dl_burst.py`, `gameplay_success.py`, and `cb_deep_dive.py` (see `README.md`).
 - Sunday Speed is computed from all frames on the opportunity play (same as the original exploration). A snap-to-end-event windowed version is stored as `sunday_speed_window` for a later robustness check; it is not the primary metric.
 - `a` is unsigned in the source files. Signed acceleration is `Δs/Δt` after sorting by time, with `|Δs/Δt| > 12` yd/s² dropped as glitches. Speeds are stored in yd/s and also as mph (`× 2.0455`).
 - Undrafted players are given pick 260 when we control for draft slot, matching the first-pass analysis.
