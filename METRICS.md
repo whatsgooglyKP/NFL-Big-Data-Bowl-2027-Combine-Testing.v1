@@ -136,9 +136,15 @@ Every official success definition below uses a field that actually exists in `pl
 
 ## 6A. Defensive line — pressure and sack rate
 
-**Who.** Defensive linemen only: `DE` and `OLB` as **Edge** (every OLB in this cohort tested in the DL Combine group and almost always lines up as EDGE), `DT` and `NT` as **Interior**. Offensive linemen are out of scope.
+**Who.** Defensive linemen only. The **headline sample is one combined DL group**. Subtypes: `DE` and `OLB` as **Edge** (every OLB in this cohort tested in the DL Combine group and almost always lines up as EDGE), `DT` and `NT` as **Interior**. Edge vs Interior is a pre-declared breakout in every table and chart, not a second headline sample. Offensive linemen are out of scope.
 
-**Opportunity snaps.** Regular-season pass plays that stood (`season_type == REG`, `play_nullified_by_penalty == 'N'`), with the player lined up as `EDGE` or `INTERIOR_LINE`, and at least **20** such snaps. Current samples with a rate: **89** players have a tracking get-off median, **88** have an NFL `player_get_off` median, **72** have an official 10-yard split and a pressure rate.
+**Opportunity snaps.** Regular-season pass plays that stood (`season_type == REG`, `play_nullified_by_penalty == 'N'`), with the player lined up as `EDGE` or `INTERIOR_LINE`, and at least **20** such snaps. Current samples with a rate: **89** players have a tracking get-off median, **88** have an NFL `player_get_off` median.
+
+**Headline sample (official 10-yard split and ≥20 opportunity snaps).** n = **72** (39 Edge / 33 Interior; 28 / 25 / 19 by the 2023 / 2024 / 2025 classes). The named table of all 72 is `out/dl_players_named.csv`, with highlights in [`DL_PLAYERS.md`](DL_PLAYERS.md).
+
+**Sample funnel.** 118 DL in the roster (66 Edge / 52 Interior). 24 have no official 10-yard split: they skipped the Combine 40; this file has no pro-day times, and we do not invent a tracking-derived split for players who never ran the 40 (they still have other DL drills). 22 have a split but fewer than 20 pass-rush snaps. 72 remain.
+
+**Caveat on the all-DL 10-yard → pressure result.** Within Edge alone or Interior alone, that link is weaker and not significant. Part of the pooled effect comes from edges being both faster and better rushers. The 10-yard → get-off (speed at 1.0s) link does hold within subtypes.
 
 **Get-off (the process metric, not the success metric).**
 
@@ -160,7 +166,7 @@ Game tracking covers only the 510-player rookie cohort, so these numbers come fr
 
 **Secondary / context:** career defensive snaps, defensive snaps per game active, start rate.
 
-**Pre-declared Combine-to-success family (6 tests, Holm on year+pick partial p):** official 10-yard split vs pressure rate and vs sack rate, in All DL, Edge, and Interior. This is the competition-required Combine-to-NFL-performance link.
+**Pre-declared Combine-to-success family (6 tests, Holm on year+pick partial p):** official 10-yard split vs pressure rate and vs sack rate, in All DL, Edge, and Interior. Headline rows are All DL; Edge and Interior remain pre-declared breakouts in the same family (they do not survive Holm). We do not shrink the family to the two All-DL tests, which would quietly change the All-DL sack Holm p. This is the competition-required Combine-to-NFL-performance link.
 
 **Get-off-to-success family (4 tests, Holm on year+pick partial p, All DL):** tracking speed at 1.0s and NFL get-off time, each vs pressure rate and sack rate. This is the middle of the chain, not a Combine test.
 

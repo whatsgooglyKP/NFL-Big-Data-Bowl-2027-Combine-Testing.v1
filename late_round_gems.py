@@ -44,20 +44,19 @@ YDS_SPEED_MEASURES = {"db_gauntlet_max_s", "db_bp45_max_s", "db_w_max_s", "wr_go
 # Draft-slot residual is the official "overperformed" definition.
 # Playing time is context only.
 
-GROUPS = ["WR", "CB", "S", "Edge", "Interior"]
+GROUPS = ["WR", "CB", "S", "DL"]
 GROUP_COLOR = {
     "WR": "#0072B2",
     "CB": "#D55E00",
     "S": "#009E73",
-    "Edge": "#D55E00",
-    "Interior": "#0072B2",
+    "DL": "#333333",
 }
+DL_SUBTYPE_COLOR = {"Edge": "#D55E00", "Interior": "#0072B2"}
 GROUP_OUTCOME = {
     "WR": ("yards_per_route", "Yards per route"),
     "CB": ("tackle_rate", "Tackle involvement rate"),
     "S": ("tackle_rate", "Tackle involvement rate"),
-    "Edge": ("pressure_rate", "Pressure rate"),
-    "Interior": ("pressure_rate", "Pressure rate"),
+    "DL": ("pressure_rate", "Pressure rate"),
 }
 # Companion outcomes shown on the card, not used to pick the measure.
 GROUP_COMPANIONS = {
@@ -77,12 +76,7 @@ GROUP_COMPANIONS = {
         ("ssoe_mph", "SSOE (mph)"),
         ("sunday_speed_mph", "Sunday Speed (mph)"),
     ],
-    "Edge": [
-        ("sack_rate", "Sack rate"),
-        ("speed_1s_mph", "Get-off: speed at 1.0s (mph)"),
-        ("snaps_per_game", "Defensive snaps / game"),
-    ],
-    "Interior": [
+    "DL": [
         ("sack_rate", "Sack rate"),
         ("speed_1s_mph", "Get-off: speed at 1.0s (mph)"),
         ("snaps_per_game", "Defensive snaps / game"),
@@ -139,8 +133,7 @@ GROUP_SHORTLIST = {
     "WR": WR_SHORTLIST,
     "CB": DB_SHORTLIST,
     "S": DB_SHORTLIST,
-    "Edge": DL_SHORTLIST,
-    "Interior": DL_SHORTLIST,
+    "DL": DL_SHORTLIST,
 }
 
 
@@ -255,18 +248,37 @@ def oriented_value(series: pd.Series, direction: int) -> pd.Series:
     return series.astype(float) * (1 if direction > 0 else -1)
 
 
-def add_tertiles_and_z(df: pd.DataFrame, col: str, direction: int, prefix: str) -> pd.DataFrame:
-    """Position-group tertiles and z-score, oriented so higher = better."""
+def add_tertiles_and_z(df: pd.DataFrame, col: str, direction: int, prefix: str,
+                       by: str | None = None) -> pd.DataFrame:
+    """Tertiles and z-score, oriented so higher = better.
+
+    If `by` is set (for DL: subtype), z-scores and top/bottom thirds are
+    computed *within* that column. That keeps interior rushers from being
+    graded against edges on a raw 10-yard time.
+    """
     out = df.copy()
     oriented = oriented_value(out[col], direction)
-    mu = oriented.mean(skipna=True)
-    sd = oriented.std(skipna=True, ddof=1)
-    out[f"{prefix}_z"] = (oriented - mu) / sd if pd.notna(sd) and sd > 0 else np.nan
-    # Rank percentile among players with a value. Top third = strong.
-    ranks = oriented.rank(method="average", pct=True)
+    z = pd.Series(np.nan, index=out.index, dtype=float)
+    ranks = pd.Series(np.nan, index=out.index, dtype=float)
+    if by and by in out.columns:
+        for _, idx in out.groupby(by, dropna=False).groups.items():
+            ix = list(idx)
+            sub = oriented.loc[ix]
+            mu = sub.mean(skipna=True)
+            sd = sub.std(skipna=True, ddof=1)
+            if pd.notna(sd) and sd > 0:
+                z.loc[ix] = (sub - mu) / sd
+            ranks.loc[ix] = sub.rank(method="average", pct=True)
+    else:
+        mu = oriented.mean(skipna=True)
+        sd = oriented.std(skipna=True, ddof=1)
+        if pd.notna(sd) and sd > 0:
+            z = (oriented - mu) / sd
+        ranks = oriented.rank(method="average", pct=True)
+    out[f"{prefix}_z"] = z
     out[f"{prefix}_pct"] = ranks
     band = pd.Series(np.nan, index=out.index, dtype=object)
-    has = oriented.notna()
+    has = oriented.notna() & ranks.notna()
     band.loc[has & (ranks >= 2.0 / 3.0)] = "strong"
     band.loc[has & (ranks <= 1.0 / 3.0)] = "weak"
     band.loc[has & (ranks > 1.0 / 3.0) & (ranks < 2.0 / 3.0)] = "middle"
@@ -333,8 +345,10 @@ def load_tables() -> tuple[pd.DataFrame, pd.DataFrame]:
     dl["pick"] = dl["pick"].fillna(UDFA_PICK)
     dl["band"] = dl["draft_round"].map(draft_band)
     dl = dl[dl["n_rush_plays"] >= MIN_DL_RUSH].copy()
-    dl["group"] = dl["subtype"]
-    dl["pos_group"] = dl["subtype"]
+    dl["group"] = "DL"
+    dl["pos_group"] = "DL"
+    # subtype (Edge / Interior) stays on the frame for breakouts and
+    # within-subtype 10-yard z-scores.
     dl["eligible"] = True
     dl["n_opps"] = dl["n_rush_plays"]
     dl["opp_label"] = "pass-rush snaps"
@@ -407,7 +421,7 @@ def evaluate_shortlist(df: pd.DataFrame, group: str) -> pd.DataFrame:
         row["oriented_rho"] = sign * early_s["rho"]
         row["oriented_partial_rho"] = sign * early_s["partial_rho"]
         row["oriented_p"] = early_s["partial_p"] if np.isfinite(early_s["partial_p"]) else early_s["p"]
-        not_selectable = group in ("Edge", "Interior") and col in DL_NOT_SELECTABLE
+        not_selectable = group == "DL" and col in DL_NOT_SELECTABLE
         row["eligible_to_select"] = (
             used == "early_round"
             and (not not_selectable)
@@ -435,7 +449,7 @@ def choose_primary(short_df: pd.DataFrame, group: str) -> dict:
     cand = cand.sort_values("score", ascending=False)
     winner = cand.iloc[0].to_dict()
     # DL tie-break: keep the 10-yard split if it is close.
-    if group in ("Edge", "Interior") and DL_PREFERRED in set(cand["measure"]):
+    if group == "DL" and DL_PREFERRED in set(cand["measure"]):
         ten = cand[cand["measure"] == DL_PREFERRED].iloc[0]
         if np.isfinite(ten["score"]) and (winner["score"] - ten["score"]) <= DL_TIE_MARGIN:
             winner = ten.to_dict()
@@ -476,7 +490,10 @@ def tag_group(df: pd.DataFrame, group: str, choice: dict) -> pd.DataFrame:
     g = df[df["group"] == group].copy()
     measure = choice["measure"]
     direction = int(choice["direction"])
-    g = add_tertiles_and_z(g, measure, direction, "combine")
+    # DL: within-subtype z / tertiles so a fast interior is not graded
+    # against edges on raw 10-yard time.
+    by = "subtype" if group == "DL" and "subtype" in g.columns else None
+    g = add_tertiles_and_z(g, measure, direction, "combine", by=by)
     g["outcome"] = g[outcome_col]
     g["outcome_label"] = outcome_label
     g["measure"] = measure
@@ -508,14 +525,22 @@ def tag_group(df: pd.DataFrame, group: str, choice: dict) -> pd.DataFrame:
     return g
 
 
-def group_contrast(g: pd.DataFrame, group: str, choice: dict) -> dict:
-    """Late-round strong vs weak on the chosen measure."""
+def group_contrast(g: pd.DataFrame, group: str, choice: dict,
+                   subtype: str | None = None) -> dict:
+    """Late-round strong vs weak on the chosen measure.
+
+    For DL, pass subtype='Edge' or 'Interior' to report a breakout of the
+    same within-subtype strong/weak labels, without changing the headline.
+    """
     late = g[(g["band"] == "R4-7") & g["measure_value"].notna() & g["outcome"].notna()].copy()
+    if subtype and "subtype" in late.columns:
+        late = late[late["subtype"] == subtype]
     strong = late[late["combine_band"] == "strong"]["outcome"]
     weak = late[late["combine_band"] == "weak"]["outcome"]
     mid = late[late["combine_band"] == "middle"]["outcome"]
     out = {
         "group": group,
+        "subgroup": subtype or group,
         "measure": choice["measure"],
         "measure_label": choice["measure_label"],
         "outcome": GROUP_OUTCOME[group][0],
@@ -556,7 +581,9 @@ def group_contrast(g: pd.DataFrame, group: str, choice: dict) -> dict:
         out["spearman_partial_rho"] = s["partial_rho"]
         out["spearman_partial_p"] = s["partial_p"]
     # Sensitivity including UDFA
-    late_u = g[g["band"].isin(["R4-7", "UDFA"]) & g["measure_value"].notna() & g["outcome"].notna()]
+    late_u = g[g["band"].isin(["R4-7", "UDFA"]) & g["measure_value"].notna() & g["outcome"].notna()].copy()
+    if subtype and "subtype" in late_u.columns:
+        late_u = late_u[late_u["subtype"] == subtype]
     st = late_u[late_u["combine_band"] == "strong"]["outcome"]
     wk = late_u[late_u["combine_band"] == "weak"]["outcome"]
     out["n_late_plus_udfa"] = int(len(late_u))
@@ -628,16 +655,35 @@ def draw_figure(tagged: dict[str, pd.DataFrame], choices: dict[str, dict],
             s=22, c="#BBBBBB", alpha=0.55, zorder=2, label="R1–3 (context)",
             edgecolors="none",
         )
-        ax.scatter(
-            late["combine_z"], late["outcome_resid"],
-            s=42, c=color, alpha=0.85, zorder=3, label="R4–7",
-            edgecolors="white", linewidths=0.4,
-        )
-        ax.scatter(
-            udfa["combine_z"], udfa["outcome_resid"],
-            s=42, facecolors="none", edgecolors=color, linewidths=1.1,
-            zorder=4, label="UDFA",
-        )
+        if group == "DL" and "subtype" in g.columns:
+            for typ, typ_color, typ_marker in (
+                ("Edge", DL_SUBTYPE_COLOR["Edge"], "o"),
+                ("Interior", DL_SUBTYPE_COLOR["Interior"], "s"),
+            ):
+                sub = late[late["subtype"] == typ]
+                ax.scatter(
+                    sub["combine_z"], sub["outcome_resid"],
+                    s=42, c=typ_color, marker=typ_marker, alpha=0.88, zorder=3,
+                    label=f"R4–7 {typ}", edgecolors="white", linewidths=0.4,
+                )
+                u = udfa[udfa["subtype"] == typ]
+                ax.scatter(
+                    u["combine_z"], u["outcome_resid"],
+                    s=42, marker=typ_marker, facecolors="none",
+                    edgecolors=typ_color, linewidths=1.1, zorder=4,
+                    label=f"UDFA {typ}",
+                )
+        else:
+            ax.scatter(
+                late["combine_z"], late["outcome_resid"],
+                s=42, c=color, alpha=0.85, zorder=3, label="R4–7",
+                edgecolors="white", linewidths=0.4,
+            )
+            ax.scatter(
+                udfa["combine_z"], udfa["outcome_resid"],
+                s=42, facecolors="none", edgecolors=color, linewidths=1.1,
+                zorder=4, label="UDFA",
+            )
         gems = g[g["is_gem"] | g["is_udfa_gem"]]
         if len(gems):
             ax.scatter(
@@ -655,7 +701,10 @@ def draw_figure(tagged: dict[str, pd.DataFrame], choices: dict[str, dict],
         out_lab = GROUP_OUTCOME[group][1]
         flag = "  ·  weak link" if choices[group].get("weak_link") else ""
         ax.set_title(f"{group}: {meas}{flag}", loc="left", pad=6)
-        ax.set_xlabel("Combine z (higher = better)")
+        ax.set_xlabel(
+            "Within-subtype Combine z (higher = better)" if group == "DL"
+            else "Combine z (higher = better)"
+        )
         ax.set_ylabel(f"{out_lab}\nvs draft slot")
         if i == 0:
             ax.legend(loc="lower left", fontsize=7, frameon=False)
@@ -665,7 +714,8 @@ def draw_figure(tagged: dict[str, pd.DataFrame], choices: dict[str, dict],
     ax.set_title("R4–7 strong vs weak, group test", loc="left", pad=6)
     header = ["Group", "Strong", "Weak", "n s/w", "MW p", "Flag"]
     rows = [header]
-    for c in contrasts:
+    headline = [c for c in contrasts if c.get("subgroup", c["group"]) == c["group"]]
+    for c in headline:
         ok = outcome_kind(c["group"])
         flag = []
         if c["weak_link_flag"]:
@@ -711,8 +761,10 @@ def draw_figure(tagged: dict[str, pd.DataFrame], choices: dict[str, dict],
     )
     fig.text(
         0.01, 0.008,
-        "Strong = top third of the position (or Edge / Interior) on the chosen Combine measure, "
-        "not the top third of late-round only.  Over slot = residual vs log draft pick (UDFA = 260).  "
+        "Strong = top third of the position on the chosen Combine measure, not the top third of late-round only.  "
+        "For DL, strong is the top third *within Edge* and *within Interior* on the 10-yard split "
+        "(within-subtype z), so interior rushers are not graded against edges on raw time.  "
+        "Over slot = residual vs log draft pick (UDFA = 260).  "
         "Open circles are UDFAs.  Grey points are early-round context.  "
         "‘Weak link’ means the chosen measure is not clearly related to the gameplay outcome "
         "on the early-round sample — those shortlists are names, not a group-level finding.  "
@@ -746,7 +798,7 @@ def fmt_num(v, kind: str) -> str:
 
 
 def outcome_kind(group: str) -> str:
-    return {"WR": "ypR", "CB": "rate", "S": "rate", "Edge": "rate", "Interior": "rate"}[group]
+    return {"WR": "ypR", "CB": "rate", "S": "rate", "DL": "rate"}[group]
 
 
 def article_for(label: str) -> str:
@@ -783,19 +835,34 @@ def shortlist_table_md(g: pd.DataFrame, udfa: bool = False) -> str:
     meas_lab = gems["measure_label"].iloc[0]
     if meas_name in YDS_SPEED_MEASURES and not str(meas_lab).endswith("(mph)"):
         meas_lab = f"{meas_lab} (mph)"
-    lines = [
-        f"| Player | Draft | College | {meas_lab} | z | {out_lab} | vs slot | Opps | Above R1–3 median? |",
-        "|---|---|---|---:|---:|---:|---:|---:|---|",
-    ]
+    show_sub = group == "DL" and "subtype" in gems.columns
+    if show_sub:
+        lines = [
+            f"| Player | Subtype | Draft | College | {meas_lab} | z | {out_lab} | vs slot | Opps | Above R1–3 median? |",
+            "|---|---|---|---|---:|---:|---:|---:|---:|---|",
+        ]
+    else:
+        lines = [
+            f"| Player | Draft | College | {meas_lab} | z | {out_lab} | vs slot | Opps | Above R1–3 median? |",
+            "|---|---|---|---:|---:|---:|---:|---:|---|",
+        ]
     for _, r in gems.iterrows():
         college = r["college_name"] if pd.notna(r.get("college_name")) else "—"
         above = "Yes" if bool(r["above_early_median"]) else "No"
-        lines.append(
-            f"| {r['display_name']} | {r['draft_info']} | {college} | "
+        core = (
             f"{fmt_num(display_measure_value(r['measure'], r['measure_value']), mkind)} | {fmt_num(r['combine_z'], 'resid')} | "
             f"{fmt_num(r['outcome'], okind)} | {fmt_num(r['outcome_resid'], 'resid')} | "
             f"{fmt_num(r['n_opps'], 'int')} | {above} |"
         )
+        if show_sub:
+            typ = r["subtype"] if pd.notna(r.get("subtype")) else "—"
+            lines.append(
+                f"| {r['display_name']} | {typ} | {r['draft_info']} | {college} | {core}"
+            )
+        else:
+            lines.append(
+                f"| {r['display_name']} | {r['draft_info']} | {college} | {core}"
+            )
     return "\n".join(lines) + "\n"
 
 
@@ -826,15 +893,15 @@ def write_markdown(path: Path, choices: dict, short_df: pd.DataFrame,
     a("**Definitions.**")
     a("")
     a("- **Later-round** means drafted in rounds 4–7. UDFAs (pick 260) are reported on their own, not mixed into the headline contrast.")
-    a("- **Strong Combine** means the top third of *the whole position group* (Edge and Interior are split) on the chosen measure, not the top third of late-round players only. A late-round tester in the top third of his position is the interesting case.")
-    a("- **Overperformed** means a positive residual after a linear fit of the group's primary gameplay outcome on log draft pick, fit on every eligible player at that group (UDFA = 260). Beating the rounds 1–3 median at the position is a second, stricter badge; it is not required to make the shortlist.")
-    a("- **Primary outcomes** are on-field gameplay, not playing time: yards per route for receivers (≥20 regular-season routes that stood); pressure rate for Edge and Interior (≥20 pass-rush snaps); tackle involvement rate for corners and safeties (≥50 defensive snaps). CB/S coverage outcomes (targets or completions allowed, PBUs, INTs) are not in this file and were not invented. Playing time is context only.")
+    a("- **Strong Combine** means the top third of the whole position group on the chosen measure, not the top third of late-round players only. A late-round tester in the top third of his position is the interesting case. **For DL, strong is the top third within Edge and within Interior** (a within-subtype z-score of the official 10-yard split). We do not take the top third of raw 10-yard times among all DL, because that list would be almost all edges.")
+    a("- **Overperformed** means a positive residual after a linear fit of the group's primary gameplay outcome on log draft pick, fit on every eligible player at that group (UDFA = 260). For DL that residual is fit on the combined all-DL sample. Beating the rounds 1–3 median at the position is a second, stricter badge; it is not required to make the shortlist.")
+    a("- **Primary outcomes** are on-field gameplay, not playing time: yards per route for receivers (≥20 regular-season routes that stood); pressure rate for the combined DL group (≥20 pass-rush snaps), with Edge vs Interior shown as a breakout; tackle involvement rate for corners and safeties (≥50 defensive snaps). CB/S coverage outcomes (targets or completions allowed, PBUs, INTs) are not in this file and were not invented. Playing time is context only.")
     a("")
     a("## 1. How the Combine measure was chosen")
     a("")
     a("Each group had a **pre-declared shortlist**. The primary measure is the shortlist entry with the highest *oriented* pick-partial Spearman ρ (better Combine number ↔ better gameplay) on the **early-round (R1–3)** sample, and only if that sample has at least 12 players with both the test and the outcome. That keeps the selection step off the late-round contrast we then test. Measures that miss the early-round n floor are still shown in the correlation table; they cannot be chosen. Full-sample correlations are for transparency only — they cannot win, because they would peek at the late-round players we then test.")
     a("")
-    a("For Edge and Interior, the official 10-yard split is the established burst measure from the earlier get-off work. An alternate (3-cone, broad jump, or bench) had to beat it by more than 0.10 ρ on the early-round sample to take its place — a small-n buffer, not a claim that the measures are equal. The official 40 time is listed because it is a cousin of the 10-yard split; it is not allowed to replace it.")
+    a("For the combined DL group, the official 10-yard split is the established burst measure from the earlier get-off work. Selection uses the early-round all-DL sample. An alternate (3-cone, broad jump, or bench) had to beat the 10-yard by more than 0.10 ρ to take its place — a small-n buffer, not a claim that the measures are equal. The official 40 time is listed because it is a cousin of the 10-yard split; it is not allowed to replace it. Edge vs Interior breakouts of the late-round contrast are reported, but there is one DL shortlist, not two.")
     a("")
     a("**This is a selection step.** The winning correlation was chosen after looking at a shortlist. Do not read it as an independent confirmatory test. The late-round strong-vs-weak contrast is the check that uses a held-out draft band; even that is a small-sample descriptive test, not a new official finding.")
     a("")
@@ -884,8 +951,8 @@ def write_markdown(path: Path, choices: dict, short_df: pd.DataFrame,
     a("")
     a("Sample: rounds 4–7 only, eligible gameplay floor, with a value on the chosen measure. Strong = top third of the *position*, weak = bottom third of the position. Mann-Whitney is one-sided (strong > weak). Spearman is the chosen measure's oriented z vs the raw outcome, also inside rounds 4–7, with a pick-partial column. Cells with fewer than 5 players in either tail are marked underpowered. A “weak link” group is one where the measure itself barely relates to the outcome — a null or noisy contrast is the expected result, not a surprise.")
     a("")
-    a("| Group | Measure | n late (strong / mid / weak) | Median strong | Median weak | MW p (strong > weak) | Late Spearman ρ (p) | Late pick-partial ρ (p) | Notes |")
-    a("|---|---|---|---:|---:|---:|---|---|---|")
+    a("| Group | Subgroup | Measure | n late (strong / mid / weak) | Median strong | Median weak | MW p (strong > weak) | Late Spearman ρ (p) | Late pick-partial ρ (p) | Notes |")
+    a("|---|---|---|---|---:|---:|---:|---|---|---|")
     for c in contrasts:
         notes = []
         if c["underpowered"]:
@@ -895,7 +962,7 @@ def write_markdown(path: Path, choices: dict, short_df: pd.DataFrame,
         if c.get("mw_note") and not c["underpowered"]:
             notes.append(c["mw_note"])
         a(
-            f"| {c['group']} | {c['measure_label']} | {c['n_late']} "
+            f"| {c['group']} | {c.get('subgroup', c['group'])} | {c['measure_label']} | {c['n_late']} "
             f"({c['n_strong']} / {c['n_middle']} / {c['n_weak']}) | "
             f"{fmt_num(c['median_strong'], outcome_kind(c['group']))} | "
             f"{fmt_num(c['median_weak'], outcome_kind(c['group']))} | "
@@ -907,7 +974,7 @@ def write_markdown(path: Path, choices: dict, short_df: pd.DataFrame,
     a("")
     a("The late-round receiver contrast leans the expected way (median yards per route 0.99 for strong official-40 testers vs 0.74 for weak, one-sided Mann-Whitney p=0.086) but we will not promote it. Official 40 time was a weak-link pick from a null shortlist, the early-round relationship was ρ=+0.10 (p=0.61), and p=0.086 on 11 vs 9 players is still a lean, not a finding.")
     a("")
-    a("One reported-only lead: Interior 3-cone vs pressure rate is ρ=+0.64 (p=0.007) on the full eligible sample (n=16), but only seven early-round interior players ran the 3-cone, so it could not be selected. That is a lead for a later look, not a chosen primary.")
+    a("One reported-only lead, as a breakout: interior 3-cone vs pressure rate was ρ=+0.64 (p=0.007) on the full eligible interior sample (n=16) in the earlier look, but only seven early-round interior players ran the 3-cone, so it is not the chosen all-DL primary. That is a lead for a later look.")
     a("")
     a("Sensitivity including UDFAs is in `out/late_round_gems_tests.csv`. Do not overclaim a group effect when n is small, when the p-value is modest, or when the selection step already flagged a weak link.")
     a("")
@@ -924,6 +991,9 @@ def write_markdown(path: Path, choices: dict, short_df: pd.DataFrame,
             a(f"*The {group} measure is only weakly related to {ch['outcome_label']} on the selection sample. These are named over-slot testers, not a group-level recommendation.*")
             a("")
         a(shortlist_table_md(tagged[group], udfa=False))
+        if group == "DL":
+            a("")
+            a("*One combined DL shortlist. Strong is the top third of the official 10-yard split **within Edge** and **within Interior** (the z column is a within-subtype z-score), so interior rushers are not graded against edges on raw time. The draft-slot residual is fit on the combined all-DL sample. Limited snap counts (just-cleared floors) are early looks, not finished grades.*")
         gems = tagged[group][tagged[group]["is_gem"]].sort_values("outcome_resid", ascending=False)
         strong_late = tagged[group][
             (tagged[group]["band"] == "R4-7") & (tagged[group]["combine_band"] == "strong")
@@ -947,12 +1017,12 @@ def write_markdown(path: Path, choices: dict, short_df: pd.DataFrame,
         if len(gems):
             a("Why they stand out:")
             a("")
-            for _, r in gems.head(5).iterrows():
+            for _, r in gems.iterrows():
                 extra = companion_bits(r, group)
                 extra_s = f" Companions: {extra}." if extra else ""
                 early_badge = " Also above the rounds 1–3 median at the position." if r["above_early_median"] else ""
                 a(
-                    f"- **{r['display_name']}** ({r['draft_info']}) posted "
+                    f"- **{r['display_name']}** ({(str(r['subtype']) + ', ' if group == 'DL' and pd.notna(r.get('subtype')) else '')}{r['draft_info']}) posted "
                     f"{fmt_num(r['outcome'], outcome_kind(group))} {GROUP_OUTCOME[group][1].lower()} "
                     f"against a draft-slot expectation, residual {fmt_num(r['outcome_resid'], 'resid')}, "
                     f"with {article_for(ch['measure_label'])} {ch['measure_label'].lower()} of {fmt_num(display_measure_value(ch['measure'], r['measure_value']), measure_kind(ch['measure']))} "
@@ -979,7 +1049,7 @@ def write_markdown(path: Path, choices: dict, short_df: pd.DataFrame,
             extra = companion_bits(r, group)
             extra_s = f" Companions: {extra}." if extra else ""
             a(
-                f"- **{r['display_name']}** (UDFA) posted "
+                f"- **{r['display_name']}** ({(str(r['subtype']) + ' ' if group == 'DL' and pd.notna(r.get('subtype')) else '')}UDFA) posted "
                 f"{fmt_num(r['outcome'], outcome_kind(group))} {GROUP_OUTCOME[group][1].lower()}, "
                 f"residual {fmt_num(r['outcome_resid'], 'resid')}, "
                 f"{ch['measure_label'].lower()} {fmt_num(display_measure_value(ch['measure'], r['measure_value']), measure_kind(ch['measure']))} "
@@ -1012,6 +1082,7 @@ def player_row(r: pd.Series) -> dict:
         "nfl_id": r.get("nfl_id"),
         "display_name": r.get("display_name"),
         "group": r.get("group"),
+        "subtype": r.get("subtype"),
         "college_name": r.get("college_name"),
         "draft_year": r.get("draft_year"),
         "draft_round": r.get("draft_round"),
@@ -1059,7 +1130,7 @@ def main() -> None:
 
     frames = {
         "WR": skill, "CB": skill, "S": skill,
-        "Edge": dl, "Interior": dl,
+        "DL": dl,
     }
 
     short_parts = []
@@ -1088,6 +1159,15 @@ def main() -> None:
             f"  late n={c['n_late']} strong/weak={c['n_strong']}/{c['n_weak']} "
             f"MW p={fmt_p(c['mw_p'])}  gems={n_gems} udfa_gems={n_udfa}"
         )
+        if group == "DL":
+            for typ in ("Edge", "Interior"):
+                br = group_contrast(g, group, ch, subtype=typ)
+                contrasts.append(br)
+                log(
+                    f"    breakout {typ}: late n={br['n_late']} "
+                    f"strong/weak={br['n_strong']}/{br['n_weak']} "
+                    f"MW p={fmt_p(br['mw_p'])}"
+                )
 
     short_df = pd.concat(short_parts, ignore_index=True)
     # Mark chosen on the shortlist table

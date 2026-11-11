@@ -4,8 +4,15 @@
 Question: does Combine burst (especially the official 10-yard split)
 show up as get-off on pass-rush snaps, and does that get-off — and the
 10-yard split itself — travel with on-field success (pressure and sack
-rate), not just playing time? Split by Edge (DE + OLB who tested in the
-DL Combine group) vs Interior (DT + NT). Offensive linemen are out of scope.
+rate), not just playing time?
+
+The headline sample is **all defensive linemen** (official 10-yard split
+and at least 20 pass-rush snaps, 2023–2025 classes pooled). Every table
+and chart also breaks out Edge (DE + OLB who tested in the DL Combine
+group) vs Interior (DT + NT). Within Edge alone or Interior alone, the
+10-yard-to-pressure link is weaker and not significant; part of the
+pooled all-DL effect comes from edges being both faster and better
+rushers. Offensive linemen are out of scope.
 
 Game tracking in this competition covers only the 510-player rookie
 cohort, so get-off is measured from the rusher's own track, not from a
@@ -896,7 +903,10 @@ def run_tests(M: pd.DataFrame) -> pd.DataFrame:
     C = pd.concat([Cprim, pd.DataFrame(sec_rows), pd.DataFrame(sub_rows)], ignore_index=True, sort=False)
 
     G = run_combine_to_outcome_tests(M, groups)
-    return pd.concat([T, E, C, G], ignore_index=True, sort=False)
+    out = pd.concat([T, E, C, G], ignore_index=True, sort=False)
+    # Headline is All DL; Edge and Interior are pre-declared breakouts on every row.
+    out["subgroup"] = out["group"]
+    return out
 
 
 
@@ -1048,93 +1058,297 @@ def run_combine_to_outcome_tests(M: pd.DataFrame, groups: dict) -> pd.DataFrame:
             go_rows.append(row)
     rows.append(pd.DataFrame(go_rows))
 
-    return pd.concat(rows, ignore_index=True, sort=False)
+    T = pd.concat(rows, ignore_index=True, sort=False)
+    # Headline is All DL; Edge and Interior are pre-declared breakouts.
+    # Keep `group` for compatibility and add an explicit `subgroup` column.
+    T["subgroup"] = T["group"]
+    return T
+
+
+
+def sample_funnel(M: pd.DataFrame) -> dict:
+    """Roster funnel for the official 10-yard / pressure sample."""
+    total = len(M)
+    n_edge = int((M["subtype"] == "Edge").sum())
+    n_int = int((M["subtype"] == "Interior").sum())
+    no_split = M["official_ten_yd"].isna()
+    n_no_split = int(no_split.sum())
+    has_split = M["official_ten_yd"].notna()
+    thin = has_split & (M["n_rush_plays"].fillna(0) < MIN_RUSH_PLAYS)
+    n_thin = int(thin.sum())
+    final = has_split & (M["n_rush_plays"].fillna(0) >= MIN_RUSH_PLAYS)
+    F = M[final]
+    by_year = {int(y): int(n) for y, n in F["draft_year"].value_counts().sort_index().items()}
+    return {
+        "n_total": total,
+        "n_edge": n_edge,
+        "n_interior": n_int,
+        "n_no_split": n_no_split,
+        "n_thin": n_thin,
+        "n_final": int(final.sum()),
+        "n_final_edge": int((F["subtype"] == "Edge").sum()),
+        "n_final_interior": int((F["subtype"] == "Interior").sum()),
+        "by_year": by_year,
+    }
+
+
+def log_funnel(funnel: dict) -> None:
+    y = funnel["by_year"]
+    year_s = "/".join(str(y.get(yr, 0)) for yr in (2023, 2024, 2025))
+    log(
+        "Sample funnel (headline = official 10-yard split and ≥"
+        f"{MIN_RUSH_PLAYS} pass-rush snaps): "
+        f"{funnel['n_total']} DL total "
+        f"({funnel['n_edge']} Edge / {funnel['n_interior']} Interior); "
+        f"{funnel['n_no_split']} no official split "
+        "(skipped the Combine 40; this file has no pro-day times and we "
+        "do not invent a tracking-derived split for players who never ran "
+        f"the 40); {funnel['n_thin']} with a split but fewer than "
+        f"{MIN_RUSH_PLAYS} pass-rush snaps; "
+        f"{funnel['n_final']} final "
+        f"({funnel['n_final_edge']} Edge / {funnel['n_final_interior']} Interior; "
+        f"{year_s} by 2023/24/25)."
+    )
+
+
+def write_named_players(M: pd.DataFrame) -> Path:
+    """Every official-sample rusher, sorted by 10-yard split (faster first)."""
+    d = M[
+        M["official_ten_yd"].notna()
+        & (M["n_rush_plays"].fillna(0) >= MIN_RUSH_PLAYS)
+    ].copy()
+    d = d.sort_values(["official_ten_yd", "display_name"], kind="mergesort")
+    def _pick(row):
+        if pd.isna(row.get("draft_overall_pick")):
+            return "UDFA"
+        return int(row["draft_overall_pick"])
+    out = pd.DataFrame({
+        "player": d["display_name"],
+        "subtype": d["subtype"],
+        "draft_year": d["draft_year"].astype(int),
+        "draft_round": d["draft_round"],
+        "pick": d.apply(_pick, axis=1),
+        "official_ten_yd": d["official_ten_yd"],
+        "speed_1s_mph": d["speed_1s_mph"],
+        "pressure_rate": d["pressure_rate"],
+        "sack_rate": d["sack_rate"],
+        "pass_rush_snaps": d["n_rush_plays"].astype(int),
+        "college_name": d["college_name"] if "college_name" in d.columns else "",
+        "nfl_id": d["nfl_id"],
+        "nfl_position": d["nfl_position"],
+    })
+    path = OUT / "dl_players_named.csv"
+    out.to_csv(path, index=False)
+    log(f"  wrote {path} ({len(out)} rows, sorted by official 10-yard split)")
+    return path
+
+
+def write_dl_players_md(M: pd.DataFrame, funnel: dict) -> Path:
+    d = pd.read_csv(OUT / "dl_players_named.csv")
+    y = funnel["by_year"]
+    year_s = "/".join(str(y.get(yr, 0)) for yr in (2023, 2024, 2025))
+
+    def fmt_pick(v):
+        return "UDFA" if str(v) == "UDFA" else str(int(float(v))) if pd.notna(v) else "UDFA"
+
+    def fmt_rnd(v):
+        return "—" if pd.isna(v) else str(int(float(v)))
+
+    def row_md(r):
+        return (
+            f"| {r['player']} | {r['subtype']} | {int(r['draft_year'])} | "
+            f"{fmt_rnd(r['draft_round'])} | {fmt_pick(r['pick'])} | "
+            f"{r['official_ten_yd']:.2f} | {r['speed_1s_mph']:.2f} | "
+            f"{100 * r['pressure_rate']:.1f}% | {100 * r['sack_rate']:.1f}% | "
+            f"{int(r['pass_rush_snaps'])} |"
+        )
+
+    header = (
+        "| Player | Subtype | Year | Round | Pick | 10-yd | Speed 1.0s (mph) | "
+        "Pressure | Sack | Pass-rush snaps |\n"
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|"
+    )
+    top = "\n".join(row_md(r) for _, r in d.head(10).iterrows())
+    bot = "\n".join(row_md(r) for _, r in d.tail(10).iterrows())
+    lines = [
+        "# Named defensive linemen — official 10-yard sample",
+        "",
+        "The headline DL analysis uses **one combined group**: every defensive lineman in the 2023–2025 rookie classes with an official Combine 10-yard split and at least 20 regular-season pass-rush snaps that stood. Edge vs Interior is a breakout in every table and chart, not a second headline sample.",
+        "",
+        "## Sample funnel",
+        "",
+        f"- **{funnel['n_total']} DL** in the roster ({funnel['n_edge']} Edge = DE + OLB who tested in the DL Combine group; {funnel['n_interior']} Interior = DT + NT).",
+        f"- **{funnel['n_no_split']}** have no official 10-yard split. They skipped the Combine 40. This file has no pro-day times, and we do not invent a tracking-derived split for players who never ran the 40 (they still have other DL drills).",
+        f"- **{funnel['n_thin']}** have a split but fewer than 20 pass-rush snaps, so they do not get a pressure or sack rate.",
+        f"- **{funnel['n_final']} final** ({funnel['n_final_edge']} Edge / {funnel['n_final_interior']} Interior; {year_s} by the 2023 / 2024 / 2025 classes).",
+        "",
+        "The official named table is `out/dl_players_named.csv` (all "
+        f"{funnel['n_final']} players, sorted by official 10-yard split, faster first).",
+        "",
+        "## How to read the all-DL result",
+        "",
+        "Edges as a group run faster 10-yard splits and post higher pressure rates than interior players, because they rush in more space. That composition is part of the pooled all-DL 10-yard-to-pressure link. **Within Edge alone, or Interior alone, the same link is weaker and does not survive Holm correction.** Trust the all-DL number as a pooled scouting fact; do not treat it as a within-position rule until a larger sample says so. We still have no blocker or QB tracks.",
+        "",
+        "## Fastest official 10-yard splits (top 10 of the 72)",
+        "",
+        header,
+        top,
+        "",
+        "## Slowest official 10-yard splits (bottom 10 of the 72)",
+        "",
+        header,
+        bot,
+        "",
+        "Times are official Combine 10-yard splits in seconds (faster is smaller). Speed at 1.0s is the tracking get-off process metric, in mph. Pressure and sack rates are on regular-season pass-rush snaps that stood.",
+        "",
+    ]
+    path = ROOT / "DL_PLAYERS.md"
+    path.write_text("\n".join(lines), encoding="utf-8")
+    log(f"  wrote {path}")
+    return path
+
+
+def _rho_cell(tests: pd.DataFrame, family: str, group: str, feature: str, outcome: str):
+    sub = tests[
+        (tests["family"] == family)
+        & (tests["group"] == group)
+        & (tests["feature"] == feature)
+        & (tests["outcome"] == outcome)
+    ]
+    return sub.iloc[0] if len(sub) else None
 
 
 def make_figure(M: pd.DataFrame, tests: pd.DataFrame) -> Path:
-    """Coach-readable fig: does Combine burst show up as get-off, Edge vs Interior?"""
+    """Headline view: all DL, 10-yard split vs get-off, colored by Edge / Interior."""
     _style()
-    # Oriented ρ so that a bar to the right always means "better Combine burst,
-    # faster Sunday get-off (higher speed at 1.0s)".
     feat_sign = {f: s for f, _l, s in PRIMARY_FEATURES}
-    prim = tests[(tests["family"] == "primary") & (tests["group"].isin(SUBTYPE_ORDER))].copy()
+    prim = tests[(tests["family"] == "primary")].copy()
     prim["rho_oriented"] = prim.apply(
-        lambda r: r["rho"] * feat_sign.get(r["feature"], 1) * 1,  # outcome speed_1s is already +
+        lambda r: r["rho"] * feat_sign.get(r["feature"], 1),
         axis=1,
     )
 
-    fig, axes = plt.subplots(1, 2, figsize=(12.4, 5.4), sharey=True)
-    labels_order = [f for f, _l, _s in PRIMARY_FEATURES]
-    pretty = {f: l.replace(" ", "\n") if False else l for f, l, _s in PRIMARY_FEATURES}
-    # Shorter labels for the axis.
+    fig, axes = plt.subplots(1, 2, figsize=(12.8, 5.6), gridspec_kw={"width_ratios": [1.15, 1.0]})
+    ax0, ax1 = axes
+
+    d = M.dropna(subset=["official_ten_yd", "speed_1s_mph", "subtype"]).copy()
+    d = d[d["n_rush_plays"].fillna(0) >= MIN_RUSH_PLAYS]
+    for grp, color, marker in (
+        ("Edge", SUBTYPE_COLOR["Edge"], "o"),
+        ("Interior", SUBTYPE_COLOR["Interior"], "s"),
+    ):
+        sub = d[d["subtype"] == grp]
+        ax0.scatter(
+            sub["official_ten_yd"], sub["speed_1s_mph"],
+            color=color, marker=marker, s=42, alpha=0.88, zorder=3,
+            label=f"{grp} (n={len(sub)})",
+            edgecolor="white", linewidth=0.4,
+        )
+        if len(sub) >= 8:
+            x = sub["official_ten_yd"].to_numpy()
+            y = sub["speed_1s_mph"].to_numpy()
+            xs = np.linspace(x.min(), x.max(), 50)
+            ax0.plot(xs, np.poly1d(np.polyfit(x, y, 1))(xs), color=color, lw=1.2, ls="--", zorder=2)
+    if len(d) >= 8:
+        x = d["official_ten_yd"].to_numpy()
+        y = d["speed_1s_mph"].to_numpy()
+        xs = np.linspace(x.min(), x.max(), 50)
+        ax0.plot(xs, np.poly1d(np.polyfit(x, y, 1))(xs), color="#222222", lw=2.1, zorder=2, label=f"All DL (n={len(d)})")
+
+    # Legend annotations: pick-partial / raw ρ for 10-yard vs speed_1s
+    bits = []
+    for gname in ("All DL", "Edge", "Interior"):
+        r = _rho_cell(tests, "primary", gname, "official_ten_yd", "speed_1s_mph")
+        if r is None:
+            continue
+        # orient: faster split, faster get-off => flip raw rho
+        rho = -float(r["partial_rho"]) if np.isfinite(r.get("partial_rho", np.nan)) else -float(r["rho"])
+        star = " ★" if bool(r.get("sig_holm_05", False)) else ""
+        bits.append(f"{gname} ρ={rho:+.2f}{star}")
+    ax0.legend(frameon=False, loc="upper right", fontsize=8.5)
+    ax0.set_xlabel("Official Combine 10-yard split (seconds, faster is left)")
+    ax0.set_ylabel("Get-off: speed 1.0s after the snap (mph)")
+    ax0.set_title("All DL: 10-yard split vs get-off", loc="left", fontweight="bold")
+    if bits:
+        ax0.text(
+            0.02, 0.02, "  ·  ".join(bits),
+            transform=ax0.transAxes, fontsize=7.5, color="#333333", va="bottom",
+        )
+
+    # Right: 4 Combine features, grouped bars All DL / Edge / Interior
     pretty = {
         "official_ten_yd": "Faster\n10-yard split",
         "c_40_accel": "Higher 40-yard\npeak accel",
         "c_t15": "Faster 40\ntime to 15 mph",
         "dl_pass_rush_accel": "Higher pass-rush\ndrill accel",
     }
-
-    # Title follows the 10-yard split, which is the feature that actually holds
-    # inside both Edge and Interior (All-DL ρ is inflated by the speed gap
-    # between those groups). Other primary features are mentioned only if they
-    # also survive Holm within a subtype.
-    ten = prim[prim["feature"] == "official_ten_yd"]
-    ten_sig = bool(ten["sig_holm_05"].fillna(False).any())
-    other_sig = bool(
-        prim[prim["feature"] != "official_ten_yd"]["sig_holm_05"].fillna(False).any()
-    )
-    if ten_sig:
-        # Keep this to one line so it does not clip. Interior time-to-15-mph
-        # also barely survives Holm; that lives in the caption, not the title.
-        title = "The 10-yard split is the Combine burst that shows up as get-off"
-    elif other_sig:
-        title = "A few Combine burst numbers track get-off — most do not survive a hard look"
-    else:
-        title = "Combine burst does not reliably show up as get-off on Sunday pass-rush snaps"
-
-    for ax, group in zip(axes, SUBTYPE_ORDER):
-        sub = prim[prim["group"] == group].copy()
-        sub["_ord"] = sub["feature"].map({f: i for i, f in enumerate(labels_order)})
+    labels_order = [f for f, _l, _s in PRIMARY_FEATURES]
+    groups_order = ["All DL", "Edge", "Interior"]
+    bar_colors = [SUBTYPE_COLOR[g] for g in groups_order]
+    width = 0.26
+    x = np.arange(len(labels_order))
+    for i, gname in enumerate(groups_order):
+        sub = prim[prim["group"] == gname].copy()
+        sub["_ord"] = sub["feature"].map({f: j for j, f in enumerate(labels_order)})
         sub = sub.dropna(subset=["_ord"]).sort_values("_ord")
-        xs = np.arange(len(sub))
-        colors = [SUBTYPE_COLOR[group] if bool(s) else "#7A7A7A" for s in sub["sig_holm_05"].fillna(False)]
-        ax.bar(xs, sub["rho_oriented"], color=colors, width=0.72, zorder=3, edgecolor="white")
-        ax.axhline(0, color="#888888", lw=0.8)
-        for i, r in enumerate(sub.itertuples()):
-            y = r.rho_oriented if np.isfinite(r.rho_oriented) else 0.0
-            star = " ★" if bool(getattr(r, "sig_holm_05", False)) else ""
-            ax.text(
-                i, y + (0.04 if y >= 0 else -0.04),
-                f"{y:+.2f}{star}\nn={int(r.n)}",
-                ha="center", va="bottom" if y >= 0 else "top", fontsize=8,
+        # align to labels_order
+        vals = []
+        ns = []
+        sigs = []
+        for feat in labels_order:
+            row = sub[sub["feature"] == feat]
+            if len(row):
+                vals.append(float(row["rho_oriented"].iloc[0]))
+                ns.append(int(row["n"].iloc[0]))
+                sigs.append(bool(row["sig_holm_05"].fillna(False).iloc[0]))
+            else:
+                vals.append(0.0)
+                ns.append(0)
+                sigs.append(False)
+        offset = (i - 1) * width
+        # All DL slightly taller / more opaque
+        alpha = 0.95 if gname == "All DL" else 0.72
+        ax1.bar(
+            x + offset, vals, width=width, color=bar_colors[i],
+            edgecolor="white", zorder=3, alpha=alpha, label=gname,
+        )
+        for xi, val, sig in zip(x + offset, vals, sigs):
+            if not np.isfinite(val):
+                continue
+            mark = "★" if sig else ""
+            ax1.text(
+                xi, val + (0.03 if val >= 0 else -0.03),
+                f"{val:+.2f}{mark}",
+                ha="center", va="bottom" if val >= 0 else "top", fontsize=6.5,
+                fontweight="bold" if gname == "All DL" else "normal",
             )
-        ax.set_xticks(xs, [pretty.get(f, f) for f in sub["feature"]], fontsize=8.5)
-        n_players = int((M["subtype"] == group).sum())
-        n_used = int(sub["n"].max()) if len(sub) else 0
-        ax.set_title(f"{group}  ({n_used} of {n_players} with enough snaps)", loc="left",
-                     fontweight="bold", color=SUBTYPE_COLOR[group])
-        if group == "Edge":
-            ax.set_ylabel("Correlation with get-off\n(speed 1 second after the snap)")
-        ax.set_ylim(-0.55, 0.75)
+    ax1.axhline(0, color="#888888", lw=0.8)
+    ax1.set_xticks(x, [pretty[f] for f in labels_order], fontsize=8)
+    ax1.set_ylabel("Correlation with get-off\n(right = expected football direction)")
+    ax1.set_ylim(-0.55, 1.05)
+    ax1.set_title("Burst features vs get-off, by group", loc="left", fontweight="bold")
+    ax1.legend(frameon=False, loc="upper right", fontsize=8)
 
-    fig.suptitle(title, x=0.01, ha="left", fontweight="bold", fontsize=13, y=1.08)
-    fig.text(
-        0.01, -0.12,
-        "A bar to the right means a more explosive Combine number comes with a faster first second on pass-rush snaps.  "
-        "Get-off is the process metric (median speed 1.0s after the snap), not the success metric — pressure and sack rate are in Figure 6.  "
-        "Regular-season pass plays, lined up as EDGE or interior DL, plays that stood, at least 20 snaps.  "
-        "Times (10-yard split, time to 15 mph) are flipped so 'faster' points right.  "
-        "★ marks a result that survives Holm correction across the 12 get-off tests (4 features × Edge/Interior/All DL).  "
-        "Grey bars did not.  Offensive linemen are not in this chart.  Game tracking covers only the 510 rookies; there are no blocker or QB tracks.",
-        fontsize=8, color="#555555", ha="left",
+    fig.suptitle(
+        "The official 10-yard split shows up as get-off — headline is all DL",
+        x=0.01, ha="left", fontweight="bold", fontsize=13, y=1.02,
     )
-    fig.tight_layout(rect=(0, 0.02, 1, 0.96))
+    fig.text(
+        0.01, -0.08,
+        "Left: every rusher with an official 10-yard split and ≥20 pass-rush snaps (n=72). Solid line is the all-DL fit; dashed lines are Edge and Interior. "
+        "ρ values are pick-partial Spearman, oriented so faster split / faster get-off is positive. "
+        "Right: the four pre-declared Combine burst features vs speed 1.0s after the snap. All-DL bars are the headline; Edge and Interior are breakouts. "
+        "★ survives Holm across the 12 get-off tests (4 features × All DL / Edge / Interior). "
+        "Times are flipped so 'faster' points right. Game tracking covers only the 510 rookies; there are no blocker or QB tracks. "
+        "The 10-yard-to-get-off link also survives Holm inside Edge and inside Interior. The 10-yard-to-pressure link does not — that caveat lives in Figure 6.",
+        fontsize=7.6, color="#555555", ha="left",
+    )
+    fig.tight_layout(rect=(0, 0.04, 1, 0.95))
     path = FIGS / "fig5_dl_burst.png"
     fig.savefig(path, dpi=200, bbox_inches="tight")
     plt.close(fig)
     log(f"  wrote {path}")
     return path
-
 
 
 def make_figure6(M: pd.DataFrame, tests: pd.DataFrame) -> Path:
@@ -1222,25 +1436,45 @@ def make_figure6(M: pd.DataFrame, tests: pd.DataFrame) -> Path:
     ax0.set_xlim(-0.2, 1.05)
     ax0.set_title("The chain, in numbers", loc="left", fontweight="bold")
 
-    # Right: scatter, 10-yard split vs pressure rate, Edge vs Interior.
+    # Right: scatter, 10-yard split vs pressure rate. Headline is all DL;
+    # points and dashed fits are Edge vs Interior breakouts.
     d = M.dropna(subset=["official_ten_yd", "pressure_rate", "subtype"]).copy()
     d = d[d["n_rush_plays"] >= MIN_RUSH_PLAYS]
-    for grp, color in (("Edge", SUBTYPE_COLOR["Edge"]), ("Interior", SUBTYPE_COLOR["Interior"])):
+
+    def _leg(group, n):
+        r = _cell(fam, group, "official_ten_yd", "pressure_rate")
+        if r is None or not np.isfinite(r.get("official_partial_rho", np.nan)):
+            return f"{group} (n={n})"
+        star = " ★" if bool(r.get("sig_holm_05", False)) else ""
+        return f"{group} (n={n}, ρ={r['official_partial_rho']:+.2f}{star})"
+
+    if len(d) >= 8:
+        x = d["official_ten_yd"].to_numpy()
+        y = 100 * d["pressure_rate"].to_numpy()
+        xs = np.linspace(x.min(), x.max(), 50)
+        ax1.plot(
+            xs, np.poly1d(np.polyfit(x, y, 1))(xs),
+            color="#222222", lw=2.2, zorder=2, label=_leg("All DL", len(d)),
+        )
+    for grp, color, marker in (
+        ("Edge", SUBTYPE_COLOR["Edge"], "o"),
+        ("Interior", SUBTYPE_COLOR["Interior"], "s"),
+    ):
         sub = d[d["subtype"] == grp]
         ax1.scatter(
             sub["official_ten_yd"], 100 * sub["pressure_rate"],
-            color=color, s=38, alpha=0.85, zorder=3, label=f"{grp} (n={len(sub)})",
+            color=color, marker=marker, s=38, alpha=0.85, zorder=3,
+            label=_leg(grp, len(sub)),
             edgecolor="white", linewidth=0.4,
         )
         if len(sub) >= 8:
             x = sub["official_ten_yd"].to_numpy()
             y = 100 * sub["pressure_rate"].to_numpy()
-            coef = np.polyfit(x, y, 1)
             xs = np.linspace(x.min(), x.max(), 50)
-            ax1.plot(xs, np.poly1d(coef)(xs), color=color, lw=1.6, zorder=2)
+            ax1.plot(xs, np.poly1d(np.polyfit(x, y, 1))(xs), color=color, lw=1.3, ls="--", zorder=2)
     ax1.set_xlabel("Official Combine 10-yard split (seconds, faster is left)")
     ax1.set_ylabel("Pressure rate on pass-rush snaps (%)")
-    ax1.legend(frameon=False, loc="upper right", fontsize=9)
+    ax1.legend(frameon=False, loc="upper right", fontsize=8)
     ax1.set_title("Each rusher, 10-yard split vs pressure rate", loc="left", fontweight="bold")
     # Invert x so faster (lower time) is to the left — coaches already read a 10-yard
     # split that way. (Do not invert: standard split axis already has faster on the left
@@ -1266,7 +1500,7 @@ def make_figure6(M: pd.DataFrame, tests: pd.DataFrame) -> Path:
         "where time_to_pressure is recorded. Sack rate credits shared sacks as 0.5. "
         "★ / colored bars mark results that clear their own pre-declared bar (get-off family or the 6-test Combine-to-success family). "
         "We do not have blocker or QB tracking, so a rusher who is already free can also look 'faster' at 1.0s — association, not proof. "
-        "The All-DL 10-yard-to-pressure link survives Holm; the same test inside Edge and inside Interior does not, so some of the pooled result is the Edge vs Interior mix. "
+        "Headline is the all-DL sample (n=72, 2023–2025 pooled). The all-DL 10-yard-to-pressure link survives Holm; the same test inside Edge and inside Interior does not. Part of the pooled effect comes from edges being both faster and better rushers. "
         "Playing time (snaps, start rate) is a secondary context metric, not the success definition."
     )
     import textwrap
@@ -1311,6 +1545,11 @@ def main() -> int:
     players_csv = OUT / "dl_burst_players.csv"
     M[keep].to_csv(players_csv, index=False)
     log(f"  wrote {players_csv} ({len(M)} rows)")
+
+    funnel = sample_funnel(M)
+    log_funnel(funnel)
+    write_named_players(M)
+    write_dl_players_md(M, funnel)
 
     tests = run_tests(M)
     tests_csv = OUT / "dl_burst_tests.csv"

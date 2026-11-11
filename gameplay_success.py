@@ -559,7 +559,8 @@ def make_figure(wr_tests: pd.DataFrame, db_tests: pd.DataFrame) -> Path:
         "Deep routes are go, post, corner, and wheel. Deep target share needs at least 8 targets. "
         "Right: Combine speed vs tackle involvement (solo or assist) and tackle-for-loss rate, regular-season snaps that stood, at least 50 snaps. "
         "There is no targets-allowed, completions-allowed, PBU, or interception field for a defender; those tests were not invented. "
-        "★ would mark a Holm-surviving result in the pre-declared family. Grey bars did not. Playing time is context, not the success definition."
+        "★ would mark a Holm-surviving result in the pre-declared family. Grey bars did not. Playing time is context, not the success definition. "
+        "Defensive-line pressure and sack results are in Figures 5 and 6 (headline: all DL, with Edge vs Interior breakouts)."
     )
     fig.text(0.01, 0.01, textwrap.fill(caption, width=165), fontsize=8, color="#555555", ha="left", va="bottom")
     fig.subplots_adjust(left=0.28, right=0.98, top=0.86, bottom=0.20, wspace=0.55)

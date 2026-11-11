@@ -281,3 +281,47 @@ A gem is a rounds 4–7 pick in the top third of his position on the chosen meas
 - **Interior (official 10-yard, weak link):** Adetomiwa Adebawore (2023 R4 #110, 1.61 split, z +2.32, 9.2% pressure, residual +0.036, 479 snaps, above the R1–3 median); Brandon Dorlus (2024 R4 #109, 1.68, 9.6% pressure, +0.040, 303 snaps, 2.8% sack rate); Mekhi Wingo (2024 R6 #189, 1.64, 6.8%, +0.017, 132 snaps); Zeek Biggers (2025 R7 #253, 1.74, 5.4%, residual only +0.005, 130 snaps — a thin over-slot).
 
 Coach line: *the names are useful scouting cards — especially Cedric Johnson on the edge and Adebawore / Dorlus inside — but late-round strong testers do not, as a group, reliably outproduce late-round weak testers in this sample. Do not turn the shortlist into a draft rule.*
+
+---
+
+## 2026-11-11 (America/New_York) — DL headline is one combined group, with Edge vs Interior breakouts
+
+Kevin's decision: defensive linemen are **one combined DL group** for the headline analysis (n=72 with an official 10-yard split and ≥20 pass-rush snaps, 2023–2025 classes pooled), with the ability to break out Edge vs Interior in every DL table and chart. Caveat to state plainly: within Edge alone or Interior alone, the split→pressure link is weaker and not significant; part of the pooled effect comes from edges being both faster and better rushers.
+
+Scripts: `dl_burst.py`, `late_round_gems.py`, light caption pointer in `gameplay_success.py` Figure 7. New outputs: `out/dl_players_named.csv`, `DL_PLAYERS.md`. Refreshed figures: `out/figs/fig5_dl_burst.png`, `out/figs/fig6_combine_to_pressure.png`, `out/figs/fig8_late_round_gems.png` (Figure 7 caption only). Docs: `METRICS.md` §6A, `README.md`, `STRATEGY.md`, `LATE_ROUND_GEMS.md`. The pre-declared 6-test Combine-to-success Holm family is unchanged (All DL / Edge / Interior × pressure / sack); headline rows are All DL.
+
+### 1. Sample funnel
+
+118 DL in the roster (66 Edge / 52 Interior). 24 have no official 10-yard split (skipped the Combine 40; this file has no pro-day times; no tracking-derived split was invented for players who never ran the 40). 22 have a split but fewer than 20 pass-rush snaps. **72 final** (39 Edge / 33 Interior; 28 / 25 / 19 by 2023 / 2024 / 2025). All 72 are named, sorted by official 10-yard split, in `out/dl_players_named.csv`.
+
+### 2. Headline numbers (6-test family, year+pick partial Spearman, Holm, 2,000 bootstrap)
+
+| Subgroup | n | 10-yd vs pressure ρ (CI) | Holm p | 10-yd vs sack ρ (CI) | Holm p |
+|---|---:|---|---:|---|---:|
+| All DL | 72 | −0.45 (−0.62 to −0.19) | 0.00047 * | −0.31 (−0.53 to −0.07) | 0.039 * |
+| Edge | 39 | −0.24 (−0.54 to +0.11) | 0.560 | +0.08 (−0.30 to +0.43) | 1.000 |
+| Interior | 33 | −0.12 (−0.51 to +0.28) | 1.000 | −0.25 (−0.59 to +0.13) | 0.560 |
+
+10-yard vs get-off (speed at 1.0s) remains strong even within subtypes: All DL partial ρ = −0.79; Edge −0.61 (Holm-significant); Interior −0.31 (Holm p ≈ 0.048). Mediation: 10-yard vs pressure after year + pick + get-off shrinks to ρ = −0.08 (p = 0.49). Edge median 10-yard 1.65 / pressure 8.3%; Interior 1.76 / 5.6% — that composition is part of the pooled pressure link.
+
+### 3. Late-round gems, now one combined DL shortlist
+
+The primary Combine measure is still the official 10-yard split, now chosen on the early-round *all-DL* sample (n early = 25, oriented pick-partial ρ = +0.64, p = 0.001, not a weak link). Strong = top third **within Edge** and **within Interior** (a within-subtype z-score). We do not take the top third of raw 10-yard times among all DL, because that list would be almost all edges. The draft-slot residual is fit on the combined all-DL sample.
+
+Late-round strong vs weak remains null as a group (All DL: 35 late, 11 strong / 13 weak, median pressure 6.8% vs 7.2%, MW p = 0.614). Edge and Interior breakouts of that contrast are also null (Edge underpowered, 4 vs 8).
+
+Combined R4–7 shortlist (ordered by residual):
+
+- Cedric Johnson (Edge, 2024 R6 #214, 1.61, 14.6% pressure, residual +0.083, 192 snaps, also above the R1–3 median)
+- Robert Beal (Edge, 2023 R5 #173, 1.62, 9.2%, +0.026, 131 snaps, above the R1–3 median)
+- Brandon Dorlus (Interior, 2024 R4 #109, 1.68, 9.6%, +0.022, 303 snaps, above the R1–3 median)
+- Adetomiwa Adebawore (Interior, 2023 R4 #110, 1.61, z +2.32, 9.2%, +0.019, 479 snaps, above the R1–3 median)
+- Yasir Abdullah (Edge, 2023 R5 #136, 1.56, 7.4%, +0.004, 122 snaps)
+- Mekhi Wingo (Interior, 2024 R6 #189, 1.64, 6.8%, +0.004, 132 snaps)
+- Tyler Baron (Edge, 2025 R5 #176, 1.61, 6.8%, +0.003, **44 snaps — early look**)
+
+UDFA: Tyrus Wheat (Edge, 2023, 1.59, 8.1%, +0.022, 123 snaps).
+
+Abdullah and Baron are new relative to the earlier split-group lists, because the residual is now fit on all DL and “strong” is within-subtype. Zeek Biggers (Interior, 2025 R7 #253, 1.74, 5.4%, 130 snaps) drops off: residual is now −0.006 vs the all-DL slot fit (it was a thin +0.005 vs the interior-only fit).
+
+Coach line is unchanged in spirit: *the names are useful scouting cards — especially Cedric Johnson on the edge and Adebawore / Dorlus inside — but late-round strong testers do not, as a group, reliably outproduce late-round weak testers. Do not turn the shortlist into a draft rule. And do not read the all-DL pressure result as a within-Edge or within-Interior rule.*
