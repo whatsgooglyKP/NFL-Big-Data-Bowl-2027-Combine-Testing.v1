@@ -1,0 +1,7 @@
+data/
+.venv/
+__pycache__/
+*.parquet
+out/cache/
+.env
+kaggle.json

@@ -1,0 +1,122 @@
+Roster: 219 WR/CB/FS/SS players (106 WR, 60 CB, 53 S)
+Loading combine_tracking.csv (PLAYER rows for WR/CB/S)...
+  209,186 frames, 3,082 attempts, 219 players
+  wrote 3,082 attempt rows -> out/combine_attempts_features.parquet
+  combine feature table: 219 players, 52 columns
+Streaming game tracking (this is the slow step)...
+  game_tracking_2023.csv...
+  game_tracking_2024.csv...
+    chunks=4, kept frames=3,246,998, plays so far=44,394
+  game_tracking_2025.csv...
+    chunks=8, kept frames=6,481,701, plays so far=88,802
+    chunks=12, kept frames=9,339,302, plays so far=128,084
+  128,082 play-player rows written to /workspace/bdb2027/out/game_play_speed.parquet in 31.4s
+Building player table...
+  WR official translation: n=62 slope=0.673 (95% CI 0.465–0.884)
+  CB official translation: n=33 slope=0.094 (95% CI -0.129–0.378)
+  S official translation: n=26 slope=0.218 (95% CI -0.174–0.592)
+  WR legacy translation (plays>=100): n=68 slope=0.666
+  CB legacy translation (plays>=100): n=33 slope=0.100
+  S legacy translation (plays>=100): n=27 slope=0.328
+
+Wrote 219 player rows, 122 columns
+  /workspace/bdb2027/out/sunday_speed_players.parquet
+  /workspace/bdb2027/out/sunday_speed_players.csv
+  asserts passed (219 unique WR/CB/S rows)
+
+==== Headline verification (legacy definition, to match STRATEGY.md) ====
+  WR  n= 68 (exp 68)  rho=+0.64 (exp +0.64)  partial=+0.62 (exp +0.62)  p=5.5e-09  [MATCH]
+  CB  n= 33 (exp 33)  rho=+0.06 (exp +0.06)  partial=+0.05 (exp +0.05)  p=0.753  [MATCH]
+  S   n= 27 (exp 27)  rho=+0.19 (exp +0.19)  partial=+0.15 (exp +0.15)  p=0.350  [MATCH]
+
+==== Official definition (REG, play stands, no 100-play floor) ====
+  WR  n= 62  rho=+0.63 p=3.1e-08  partial=+0.62 p=8.1e-08
+  CB  n= 33  rho=+0.06 p=0.726  partial=+0.05 p=0.786
+  S   n= 26  rho=+0.10 p=0.620  partial=+0.15 p=0.479
+
+==== Split-half stability (odd vs even games, official SS) ====
+  WR: n=62 r=0.84
+  CB: n=37 r=0.44
+  S: n=29 r=0.24
+  DB: n=66 r=0.58
+
+==== Phase 2: drill features vs 40-yard tracked speed ====
+  [primary  ] WR  40-yard tracked speed                     n= 62  rho=+0.63 p=3.1e-08  partial=+0.62  LOO R²=+0.336
+  [primary  ] WR  Official 40 time                          n= 63  rho=-0.55 p=3.3e-06  partial=-0.57  LOO R²=+0.212  inc|c_top rho=-0.03 p=0.815
+  [primary  ] WR  Official 10-yard split                    n= 63  rho=-0.16 p=0.219  partial=-0.15  LOO R²=-0.052  inc|c_top rho=+0.11 p=0.376
+  [primary  ] WR  40 burst (time to 90% top speed)          n= 62  rho=+0.33 p=0.010  partial=+0.35  LOO R²=-0.067  inc|c_top rho=+0.22 p=0.084
+  [primary  ] WR  WR go-route drill speed                   n= 61  rho=+0.47 p=0.000  partial=+0.46  LOO R²=+0.174  inc|c_top rho=+0.13 p=0.334
+  [primary  ] WR  WR post-corner drill speed                n= 60  rho=+0.16 p=0.231  partial=+0.11  LOO R²=-0.039  inc|c_top rho=+0.03 p=0.846
+  [primary  ] WR  WR slant drill speed                      n= 69  rho=+0.02 p=0.896  partial=+0.02  LOO R²=-0.080  inc|c_top rho=+0.00 p=0.977
+  [primary  ] WR  WR dagger drill speed                     n= 69  rho=+0.00 p=0.978  partial=+0.01  LOO R²=-0.062  inc|c_top rho=+0.05 p=0.705
+  [secondary] WR  wr_go_brake                               n= 61  rho=-0.06 p=0.650  partial=-0.06  LOO R²=-0.053  inc|c_top rho=-0.21 p=0.133
+  [secondary] WR  wr_go_trans                               n= 28  rho=+0.07 p=0.723  partial=+0.20  LOO R²=-0.203  inc|c_top rho=+0.09 p=0.690
+  [primary  ] CB  40-yard tracked speed                     n= 33  rho=+0.06 p=0.726  partial=+0.05  LOO R²=-0.093
+  [primary  ] CB  Official 40 time                          n= 34  rho=-0.20 p=0.257  partial=-0.21  LOO R²=-0.068  inc|c_top rho=-0.27 p=0.135
+  [primary  ] CB  Official 10-yard split                    n= 34  rho=+0.00 p=0.981  partial=-0.00  LOO R²=-0.110  inc|c_top rho=-0.02 p=0.912
+  [primary  ] CB  40 burst (time to 90% top speed)          n= 33  rho=-0.10 p=0.598  partial=-0.05  LOO R²=-0.106  inc|c_top rho=-0.08 p=0.653
+  [primary  ] CB  DB 45° transition drill speed             n= 39  rho=-0.05 p=0.749  partial=-0.10  LOO R²=-0.100  inc|c_top rho=-0.26 p=0.147
+  [primary  ] CB  DB 90° break-to-ball drill speed          n= 39  rho=+0.01 p=0.943  partial=+0.04  LOO R²=-0.148  inc|c_top rho=-0.13 p=0.456
+  [primary  ] CB  DB W-drill speed                          n= 39  rho=-0.06 p=0.715  partial=-0.05  LOO R²=-0.084  inc|c_top rho=-0.08 p=0.639
+  [primary  ] CB  DB box-drill speed                        n= 39  rho=+0.07 p=0.679  partial=+0.02  LOO R²=-0.084  inc|c_top rho=+0.05 p=0.780
+  [primary  ] CB  DB gauntlet drill speed                   n= 39  rho=+0.40 p=0.012  partial=+0.35  LOO R²=+0.020  inc|c_top rho=+0.27 p=0.126
+  [secondary] CB  DB 45° transition braking                 n= 39  rho=+0.01 p=0.956  partial=+0.02  LOO R²=-0.101  inc|c_top rho=-0.22 p=0.218
+  [secondary] CB  DB 90° break braking                      n= 39  rho=-0.23 p=0.153  partial=-0.22  LOO R²=-0.043  inc|c_top rho=-0.32 p=0.071
+  [secondary] CB  DB W-drill braking                        n= 39  rho=-0.00 p=0.987  partial=-0.04  LOO R²=-0.111  inc|c_top rho=+0.02 p=0.913
+  [secondary] CB  DB box-drill braking                      n= 39  rho=+0.30 p=0.065  partial=+0.31  LOO R²=-0.152  inc|c_top rho=+0.37 p=0.034
+  [secondary] CB  DB 45° transition time                    n= 39  rho=-0.25 p=0.124  partial=-0.29  LOO R²=-0.096  inc|c_top rho=-0.38 p=0.031
+  [secondary] CB  DB 90° break transition time              n= 31  rho=-0.19 p=0.319  partial=-0.14  LOO R²=-0.300  inc|c_top rho=-0.29 p=0.143
+  [secondary] CB  DB W-drill transition time                n= 39  rho=+0.04 p=0.800  partial=+0.08  LOO R²=-0.113  inc|c_top rho=-0.07 p=0.698
+  [secondary] CB  DB box-drill transition time              n= 39  rho=-0.16 p=0.327  partial=-0.16  LOO R²=-0.112  inc|c_top rho=-0.30 p=0.093
+  [primary  ] S   40-yard tracked speed                     n= 26  rho=+0.10 p=0.620  partial=+0.15  LOO R²=-0.128
+  [primary  ] S   Official 40 time                          n= 26  rho=-0.26 p=0.199  partial=-0.22  LOO R²=-0.083  inc|c_top rho=-0.21 p=0.293
+  [primary  ] S   Official 10-yard split                    n= 26  rho=-0.30 p=0.131  partial=-0.20  LOO R²=-0.048  inc|c_top rho=-0.24 p=0.236
+  [primary  ] S   40 burst (time to 90% top speed)          n= 26  rho=+0.09 p=0.658  partial=+0.04  LOO R²=-0.150  inc|c_top rho=-0.02 p=0.930
+  [primary  ] S   DB 45° transition drill speed             n= 31  rho=+0.41 p=0.021  partial=+0.37  LOO R²=+0.078  inc|c_top rho=+0.49 p=0.011
+  [primary  ] S   DB 90° break-to-ball drill speed          n= 31  rho=-0.10 p=0.581  partial=-0.14  LOO R²=-0.176  inc|c_top rho=-0.26 p=0.208
+  [primary  ] S   DB W-drill speed                          n= 31  rho=-0.01 p=0.938  partial=-0.10  LOO R²=-0.161  inc|c_top rho=-0.01 p=0.972
+  [primary  ] S   DB box-drill speed                        n= 31  rho=+0.03 p=0.856  partial=-0.04  LOO R²=-0.133  inc|c_top rho=+0.06 p=0.774
+  [primary  ] S   DB gauntlet drill speed                   n= 30  rho=+0.30 p=0.104  partial=+0.20  LOO R²=-0.113  inc|c_top rho=+0.30 p=0.144
+  [secondary] S   DB 45° transition braking                 n= 31  rho=+0.39 p=0.029  partial=+0.43  LOO R²=+0.009  inc|c_top rho=+0.45 p=0.021
+  [secondary] S   DB 90° break braking                      n= 31  rho=+0.32 p=0.076  partial=+0.34  LOO R²=-0.029  inc|c_top rho=+0.41 p=0.039
+  [secondary] S   DB W-drill braking                        n= 31  rho=+0.30 p=0.101  partial=+0.37  LOO R²=-0.060  inc|c_top rho=+0.34 p=0.085
+  [secondary] S   DB box-drill braking                      n= 31  rho=-0.27 p=0.143  partial=-0.22  LOO R²=-0.055  inc|c_top rho=-0.39 p=0.048
+  [secondary] S   DB 45° transition time                    n= 27  rho=+0.12 p=0.568  partial=+0.07  LOO R²=-0.120  inc|c_top rho=+0.15 p=0.470
+  [secondary] S   DB 90° break transition time              n= 19  rho=-0.08 p=0.730  partial=-0.06  LOO R²=-0.148  inc|c_top rho=+0.04 p=0.897
+  [secondary] S   DB W-drill transition time                n= 31  rho=-0.23 p=0.208  partial=-0.28  LOO R²=-0.051  inc|c_top rho=-0.22 p=0.287
+  [secondary] S   DB box-drill transition time              n= 31  rho=+0.14 p=0.449  partial=+0.17  LOO R²=-0.092  inc|c_top rho=+0.11 p=0.577
+
+  Holm-adjusted p (primary family, all positions together):
+    CB  DB gauntlet drill speed                   p_raw=0.012  p_holm=0.266
+    CB  Official 40 time                          p_raw=0.257  p_holm=1.000
+    CB  40 burst (time to 90% top speed)          p_raw=0.598  p_holm=1.000
+    CB  DB box-drill speed                        p_raw=0.679  p_holm=1.000
+    CB  DB W-drill speed                          p_raw=0.715  p_holm=1.000
+    CB  40-yard tracked speed                     p_raw=0.726  p_holm=1.000
+    CB  DB 45° transition drill speed             p_raw=0.749  p_holm=1.000
+    CB  DB 90° break-to-ball drill speed          p_raw=0.943  p_holm=1.000
+    CB  Official 10-yard split                    p_raw=0.981  p_holm=1.000
+    S   DB 45° transition drill speed             p_raw=0.021  p_holm=0.446
+    S   DB gauntlet drill speed                   p_raw=0.104  p_holm=1.000
+    S   Official 10-yard split                    p_raw=0.131  p_holm=1.000
+    S   Official 40 time                          p_raw=0.199  p_holm=1.000
+    S   DB 90° break-to-ball drill speed          p_raw=0.581  p_holm=1.000
+    S   40-yard tracked speed                     p_raw=0.620  p_holm=1.000
+    S   40 burst (time to 90% top speed)          p_raw=0.658  p_holm=1.000
+    S   DB box-drill speed                        p_raw=0.856  p_holm=1.000
+    S   DB W-drill speed                          p_raw=0.938  p_holm=1.000
+  * WR  40-yard tracked speed                     p_raw=3.1e-08  p_holm=8.0e-07
+  * WR  Official 40 time                          p_raw=3.3e-06  p_holm=8.4e-05
+  * WR  WR go-route drill speed                   p_raw=0.000  p_holm=0.003
+    WR  40 burst (time to 90% top speed)          p_raw=0.010  p_holm=0.225
+    WR  Official 10-yard split                    p_raw=0.219  p_holm=1.000
+    WR  WR post-corner drill speed                p_raw=0.231  p_holm=1.000
+    WR  WR slant drill speed                      p_raw=0.896  p_holm=1.000
+    WR  WR dagger drill speed                     p_raw=0.978  p_holm=1.000
+
+==== Figures ====
+  wrote /workspace/bdb2027/out/figs/fig1_translation_scatter.png
+  wrote /workspace/bdb2027/out/figs/fig2_exchange_rate.png
+  wrote /workspace/bdb2027/out/figs/fig3_phase2_drills.png
+
+Done in 37.8s
