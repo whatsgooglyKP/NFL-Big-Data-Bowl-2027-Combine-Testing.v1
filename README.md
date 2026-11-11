@@ -102,3 +102,7 @@ About 2.3 GB total. Licensed CC BY-NC 4.0. Column notes and gotchas are in [`DAT
 | `out/figs/cb_speed_tax.png`, `out/figs/cb_gauntlet.png` | CB deep-dive charts |
 
 Owner: whatsgooglyKP. Work happens in this repo and in the Google Drive folder “NFL Big Data Bowl.”
+
+## License
+
+Code in this repository is released under the Apache License 2.0 (see `LICENSE`). Kaggle competition data is not included and remains subject to the competition rules.
