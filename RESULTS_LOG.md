@@ -380,3 +380,68 @@ A gem is eligible, in the top third on the pre-declared measure, with a positive
 **Chop Robinson requested check:** he clears both cuts. Official 10-yard 1.54 (fastest of the 72, top third within Edge, z +2.16), 13.9% pressure on 610 pass-rush snaps, draft-slot residual +0.040 (year+pick residual +0.037). He is a gem, ranked 5th among the 15 combined DL gems by residual.
 
 Coach line: *the names are useful scouting cards — including first-rounders such as Brian Thomas, Will Anderson, Jared Verse, and Chop Robinson, and later-round standouts such as Cedric Johnson — but strong testers do not, as a group, reliably outproduce weak testers in this sample. Do not turn the shortlist into a draft rule. Official 40 time for receivers and the gauntlet for safeties are weak links.*
+
+---
+
+## 11/2026 (America/New_York) — Multi-test models (WR / TE / CB / S) and athletic comps
+
+Kevin's question: can a logistic regression that incorporates the 10-yard split, broad jump, vertical, and 40 find on-field trends for RBs, WRs, TEs, CBs, and safeties, and how do trees and naive Bayes compare? After the model comparison, KNN athletic comps against public nflverse Combine data (2000–2022).
+
+Scripts: `multi_test_models.py`, `athletic_comps.py`. Outputs: `out/multi_test_coefficients.csv`, `out/multi_test_auc.csv`, `out/multi_test_spearman.csv`, `out/multi_test_coverage.csv`, `out/multi_test_players.csv`, `out/multi_test_tree_rules.txt`, `out/athletic_comps.csv`, `out/athletic_comps_summary.csv`, `out/athletic_comps_correlation.csv`, `out/figs/fig9_multi_test_models.png`. Writeup: `MULTI_TEST_MODELS.md`. Public historical data (not Kaggle) is cached in `external/` with attribution.
+
+### 1. Sample and outcomes
+
+Success = above the position median among rookies clearing a snap/route floor. UDFA = pick 260. Year and log pick in every model. Complete cases are primary (40, 10-yard, vertical, broad, weight). 3-cone and shuttle are too sparse for the joint model.
+
+| Group | In file | Eligible | Complete | Outcome | Floor | Median |
+|---|---:|---:|---:|---|---|---:|
+| WR | 106 | 77 | 63 | Yards per route | ≥20 routes | 1.15 |
+| TE | 42 | 29 | 22 | Yards per route | ≥20 routes | 1.15 |
+| CB | 60 | 42 | 30 | Tackle involvement rate | ≥50 def snaps | 8.1% |
+| S | 53 | 34 | 24 | Tackle involvement rate | ≥50 def snaps | 10.0% |
+| RB | 1 | — | — | **Excluded from every model** | — | — |
+
+RB is Sione Vaki (26 REG snaps, 9 routes, 7 rush plays, 18 rush yards). Too few to fit or to pool. His athletic comps are an anecdote only.
+
+CB yards allowed is not computable (no target-allowed or reception-yards field on a defender; play-level yards_gained is not attributed). Tackle rate is the fallback. Same for S, with the earlier wrong-signed gauntlet → tackle-rate result noted.
+
+### 2. Firth odds ratios per 1 SD (multivariable, Holm within position)
+
+**No Combine test is Holm-significant at any position.**
+
+- WR (n=63): 40 OR 0.80 (CI 0.35–1.59, Holm p=0.40); 10-yard 1.52 (0.90–3.42, 0.14, wrong-signed); vertical 1.16; broad 1.09; weight 0.93. All CIs include 1.
+- TE (n=22): 10-yard OR 0.16 (0.00–1.32, Holm p=0.13) is a lean — L2 bootstrap CI 0.24–0.79 excludes 1, but Holm-Firth does not, n is 22, and vertical goes the wrong way (OR 0.23). Weight Holm p=0.071.
+- CB (n=30): nothing significant. 40 OR 2.43 is wrong-signed with a huge Firth CI (0.81–615). Weight lean Holm p=0.089.
+- S (n=24): nothing significant; CIs very wide.
+
+Partial Spearman (year+pick, pairwise, Holm) is also all null. Closest leans: TE 10-yard ρ=−0.37, p=0.069; CB broad jump ρ=+0.34, p=0.056 (same as Combine gems); WR 40 ρ=−0.12, p=0.33 (the known weak production link).
+
+### 3. Model comparison, repeated stratified CV (20×5) vs pick+year baseline
+
+- **WR, the largest sample:** L2 multi-test CV AUC 0.55 ± 0.12 vs pick+year 0.62 (Δ=−0.07). Adding tests *hurts*. Trees 0.51–0.54, NB 0.54, RF 0.50, GB 0.50. Training AUCs 0.72–0.97 vs those CV numbers — overfitting, especially RF/GB.
+- **TE:** L2 0.75 vs 0.63 looks like a lift, but training AUC is 0.96 on n=22 and the fold SD is 0.28. Not a finding.
+- **CB:** L2 0.63 vs a below-chance baseline of 0.42; Gaussian NB 0.81 (train 0.96) on the fallback tackle-rate outcome. Not a draft rule.
+- **S:** L2 0.61 vs pick+year 0.64. Does not beat the baseline.
+
+Depth-2 tree rules (in-sample; CV AUCs near 0.45–0.56): WR and S split first on draft pick; TE's higher vertical goes to *below*-median (wrong direction); CB's faster 40 (≤4.40) goes to below-median tackle rate. Trust the CV, not the leaves.
+
+Imputation sensitivity does not flip the complete-case conclusions (WR still loses to the baseline).
+
+### 4. Athletic comps (nflverse Combine 2000–2022, K=5)
+
+Z-score within position; nan-aware RMS distance on 40, vertical, broad, 3-cone, shuttle, height, weight. (No 10-yard split in the public file.) Prefer 4 shared tests; fall back to 3 and flag as thin. Career labels from draft_picks `w_av`, All-Pros, Pro Bowls. 380 rookies (WR/TE/CB/S/Edge/Interior + the one RB); 22 have too few tests for a comp.
+
+Headline cards:
+
+- **Cedric Johnson** (Edge, 2024, pick 214): nearest comp is **Brian Orakpo** (2009, pick 13, 4 Pro Bowls, 4.63 40 like Cedric's 4.63, 39.5" vs 38" vertical, 75"/263 vs 75"/260). Mean comp w_av 31.5. Cedric's pressure rate 14.6%. The card of the set.
+- **Chop Robinson** (Edge, pick 21): Drake Jackson, Bryan Thomas, Eli Harold, Kevin Burnett, Malik Jefferson. Mean w_av 21.2 (above Edge median 15). Solid-starter profile.
+- **Luther Burden** (WR, pick 39): thin (40 + size only). Comps include D.J. Moore and Pierre Garçon (stars) and three journeymen with the same 4.40-ish 40 at 72"/~206. Flag as thin.
+- **Brian Thomas** (WR, pick 23): Darrius Heyward-Bey, Javon Walker, and three lesser WRs. Solid, mixed.
+- **Will Anderson** (Edge, pick 3): thin (40 + size). Kayvon Thibodeaux, Karlos Dansby (star), Mark Anderson, and two journeymen.
+- **Jared Verse** (Edge, pick 19): Clelin Ferrell, Drake Jackson, Ojabo, Brailford, Vernon Gholston. Mean w_av 7.4. Cautionary neighborhood, not a forecast.
+- **Sione Vaki** (RB, pick 132): anecdote. Kerryon Johnson plus four no-record (mostly UDFA) RBs.
+
+KNN mean-w_av vs our gameplay, year+pick partial Spearman, Holm across six groups: **all null.** CB lean ρ=−0.37, Holm p=0.12, on the fallback tackle metric, unstable to the shared-test floor. Interior lean ρ=+0.22, Holm p=0.91. Names are the deliverable.
+
+Coach line: *receivers stay good with the 40 as Sunday Speed, not as production. A multi-test logistic, a shallow tree, and naive Bayes do not beat draft slot for WR gameplay and do not produce a Holm-significant test at any skill position in this sample. Athletic comps — especially Cedric Johnson / Brian Orakpo — are scouting cards, not a group prediction rule. RBs are out (n=1).*
+

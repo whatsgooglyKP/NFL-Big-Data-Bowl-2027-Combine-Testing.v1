@@ -1,0 +1,85 @@
+pos_group,model,feature,feature_label,importance
+WR,tree_d2,forty,Official 40 time,0.0
+WR,tree_d2,ten_yd_split,10-yard split,0.0
+WR,tree_d2,vertical,Vertical jump,0.0
+WR,tree_d2,broad_jump,Broad jump,0.26385309278350555
+WR,tree_d2,combine_weight,Weight,0.12989690721649455
+WR,tree_d2,log_pick,Log draft pick,0.6062499999999998
+WR,tree_d2,year_idx,Draft year,0.0
+WR,tree_d3,forty,Official 40 time,0.0
+WR,tree_d3,ten_yd_split,10-yard split,0.0
+WR,tree_d3,vertical,Vertical jump,0.0
+WR,tree_d3,broad_jump,Broad jump,0.22216796875000036
+WR,tree_d3,combine_weight,Weight,0.10937499999999978
+WR,tree_d3,log_pick,Log draft pick,0.6684570312499999
+WR,tree_d3,year_idx,Draft year,0.0
+WR,random_forest,forty,Official 40 time,0.1877428738498213
+WR,random_forest,ten_yd_split,10-yard split,0.12328347758724036
+WR,random_forest,vertical,Vertical jump,0.10691117735868605
+WR,random_forest,broad_jump,Broad jump,0.09873467961778137
+WR,random_forest,combine_weight,Weight,0.15395950850368081
+WR,random_forest,log_pick,Log draft pick,0.2649525815689805
+WR,random_forest,year_idx,Draft year,0.06441570151380968
+TE,tree_d2,forty,Official 40 time,0.0
+TE,tree_d2,ten_yd_split,10-yard split,0.0
+TE,tree_d2,vertical,Vertical jump,0.444012009340598
+TE,tree_d2,broad_jump,Broad jump,0.0
+TE,tree_d2,combine_weight,Weight,0.0
+TE,tree_d2,log_pick,Log draft pick,0.555987990659402
+TE,tree_d2,year_idx,Draft year,0.0
+TE,tree_d3,forty,Official 40 time,0.0
+TE,tree_d3,ten_yd_split,10-yard split,0.0
+TE,tree_d3,vertical,Vertical jump,0.38410850848925
+TE,tree_d3,broad_jump,Broad jump,0.13491414554374487
+TE,tree_d3,combine_weight,Weight,0.0
+TE,tree_d3,log_pick,Log draft pick,0.48097734596700525
+TE,tree_d3,year_idx,Draft year,0.0
+TE,random_forest,forty,Official 40 time,0.11003309385493171
+TE,random_forest,ten_yd_split,10-yard split,0.16905567477356784
+TE,random_forest,vertical,Vertical jump,0.09318491208073597
+TE,random_forest,broad_jump,Broad jump,0.08233975556060641
+TE,random_forest,combine_weight,Weight,0.10742308552280963
+TE,random_forest,log_pick,Log draft pick,0.2516291031164179
+TE,random_forest,year_idx,Draft year,0.18633437509093065
+CB,tree_d2,forty,Official 40 time,0.4994197757926083
+CB,tree_d2,ten_yd_split,10-yard split,0.0
+CB,tree_d2,vertical,Vertical jump,0.0
+CB,tree_d2,broad_jump,Broad jump,0.0
+CB,tree_d2,combine_weight,Weight,0.05720134874759154
+CB,tree_d2,log_pick,Log draft pick,0.4433788754598002
+CB,tree_d2,year_idx,Draft year,0.0
+CB,tree_d3,forty,Official 40 time,0.4133953168044078
+CB,tree_d3,ten_yd_split,10-yard split,0.17224880382775135
+CB,tree_d3,vertical,Vertical jump,0.0
+CB,tree_d3,broad_jump,Broad jump,0.0
+CB,tree_d3,combine_weight,Weight,0.047348484848484855
+CB,tree_d3,log_pick,Log draft pick,0.3670073945193561
+CB,tree_d3,year_idx,Draft year,0.0
+CB,random_forest,forty,Official 40 time,0.2588998332702994
+CB,random_forest,ten_yd_split,10-yard split,0.06770741241808066
+CB,random_forest,vertical,Vertical jump,0.12818485143382982
+CB,random_forest,broad_jump,Broad jump,0.08585160049543362
+CB,random_forest,combine_weight,Weight,0.25210682602723405
+CB,random_forest,log_pick,Log draft pick,0.1789778074152126
+CB,random_forest,year_idx,Draft year,0.028271668939909757
+S,tree_d2,forty,Official 40 time,0.0
+S,tree_d2,ten_yd_split,10-yard split,0.0
+S,tree_d2,vertical,Vertical jump,0.0
+S,tree_d2,broad_jump,Broad jump,0.06981740064446833
+S,tree_d2,combine_weight,Weight,0.4833512352309343
+S,tree_d2,log_pick,Log draft pick,0.44683136412459734
+S,tree_d2,year_idx,Draft year,0.0
+S,tree_d3,forty,Official 40 time,0.05823627287853578
+S,tree_d3,ten_yd_split,10-yard split,0.0
+S,tree_d3,vertical,Vertical jump,0.16587738384743383
+S,tree_d3,broad_jump,Broad jump,0.0
+S,tree_d3,combine_weight,Weight,0.4031741968514014
+S,tree_d3,log_pick,Log draft pick,0.37271214642262906
+S,tree_d3,year_idx,Draft year,0.0
+S,random_forest,forty,Official 40 time,0.1569618592631979
+S,random_forest,ten_yd_split,10-yard split,0.0867404745572514
+S,random_forest,vertical,Vertical jump,0.11326390448833233
+S,random_forest,broad_jump,Broad jump,0.13107743679405048
+S,random_forest,combine_weight,Weight,0.1869216634858798
+S,random_forest,log_pick,Log draft pick,0.22637733955120365
+S,random_forest,year_idx,Draft year,0.0986573218600845
