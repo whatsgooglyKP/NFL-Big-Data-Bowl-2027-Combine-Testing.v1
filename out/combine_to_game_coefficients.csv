@@ -1,0 +1,41 @@
+pos_group,feature,feature_label,family,lasso_coef,lasso_or,lasso_stability,nonzero,n,outcome
+WR,official_forty,Official 40,combine,0.0,1.0,0.66,False,61,yards_per_route
+WR,official_ten_yd,Official 10-yard,combine,0.0,1.0,0.58,False,61,yards_per_route
+WR,vertical,Vertical,combine,0.0,1.0,0.57,False,61,yards_per_route
+WR,broad_jump,Broad jump,combine,0.0,1.0,0.55,False,61,yards_per_route
+WR,combine_height,Height,combine,0.0,1.0,0.5,False,61,yards_per_route
+WR,combine_weight,Weight,combine,0.0,1.0,0.5,False,61,yards_per_route
+WR,c_top_mph,Combine top speed,combine,0.0,1.0,0.53,False,61,yards_per_route
+WR,year_idx,Year,control,0.0,1.0,0.55,False,61,yards_per_route
+TE,official_forty,Official 40,combine,-3.4634707267158293,0.0313208669854203,0.71,True,22,yards_per_route
+TE,official_ten_yd,Official 10-yard,combine,-4.3249963370568905,0.0132335985703708,0.96,True,22,yards_per_route
+TE,vertical,Vertical,combine,-8.03831496786426,0.0003228525088859,0.93,True,22,yards_per_route
+TE,broad_jump,Broad jump,combine,2.629693488053114,13.869518077557355,0.57,True,22,yards_per_route
+TE,combine_height,Height,combine,5.919828723334348,372.34793390174633,0.84,True,22,yards_per_route
+TE,combine_weight,Weight,combine,-5.767259744257804,0.0031283181714457,0.9,True,22,yards_per_route
+TE,c_top_mph,Combine top speed,combine,-2.2681380394715123,0.1035047224820733,0.62,True,22,yards_per_route
+TE,year_idx,Year,control,0.0623275717641134,1.0643109258397945,0.6,True,22,yards_per_route
+CB,official_forty,Official 40,combine,0.4708629493479591,1.6013755030776375,0.84,True,29,tackle_rate
+CB,official_ten_yd,Official 10-yard,combine,-0.0001614990622805,0.999838513977991,0.46,True,29,tackle_rate
+CB,vertical,Vertical,combine,0.0001188307244113,1.0001188377850616,0.51,True,29,tackle_rate
+CB,broad_jump,Broad jump,combine,0.0,1.0,0.32,False,29,tackle_rate
+CB,combine_height,Height,combine,0.0,1.0,0.27,False,29,tackle_rate
+CB,combine_weight,Weight,combine,-0.9510839497343422,0.3863220427429073,0.99,True,29,tackle_rate
+CB,c_top_mph,Combine top speed,combine,0.0,1.0,0.28,False,29,tackle_rate
+CB,year_idx,Year,control,0.0,1.0,0.29,False,29,tackle_rate
+S,official_forty,Official 40,combine,0.0,1.0,0.42,False,24,tackle_rate
+S,official_ten_yd,Official 10-yard,combine,0.0,1.0,0.49,False,24,tackle_rate
+S,vertical,Vertical,combine,0.0,1.0,0.34,False,24,tackle_rate
+S,broad_jump,Broad jump,combine,0.0,1.0,0.62,False,24,tackle_rate
+S,combine_height,Height,combine,-0.7031432656427121,0.4950268548599554,0.92,True,24,tackle_rate
+S,combine_weight,Weight,combine,-0.4010891069195758,0.669590393242248,0.86,True,24,tackle_rate
+S,c_top_mph,Combine top speed,combine,-0.3014324434001622,0.7397578001882736,0.74,True,24,tackle_rate
+S,year_idx,Year,control,0.0,1.0,0.43,False,24,tackle_rate
+DL,official_forty,Official 40,combine,-0.4230439798038212,0.6550498235155594,0.74,True,64,pressure_rate
+DL,official_ten_yd,Official 10-yard,combine,0.0,1.0,0.13,False,64,pressure_rate
+DL,vertical,Vertical,combine,0.1076205818082038,1.113625135583332,0.73,True,64,pressure_rate
+DL,broad_jump,Broad jump,combine,0.0,1.0,0.29,False,64,pressure_rate
+DL,combine_height,Height,combine,0.0,1.0,0.47,False,64,pressure_rate
+DL,combine_weight,Weight,combine,-0.1004179693774521,0.904459302729462,0.63,True,64,pressure_rate
+DL,c_top_mph,Combine top speed,combine,0.0,1.0,0.36,False,64,pressure_rate
+DL,year_idx,Year,control,0.0,1.0,0.3,False,64,pressure_rate

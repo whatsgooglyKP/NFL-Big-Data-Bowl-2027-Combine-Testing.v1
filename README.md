@@ -30,7 +30,14 @@ Draft-day lines:
 
 **Combine gems** (named shortlist, not a new official finding): players in any draft round, plus UDFAs, who tested in the top third of their position on a pre-declared Combine measure and then outplayed their draft slot. Rounds are not split. UDFAs are flagged in a column (draft-slot value = pick 260) and are in the same list, not a separate tier. Pre-declared measures: official 40 time (WR), broad jump (CB), gauntlet top speed (S), official 10-yard split (combined DL; strong is the top third *within Edge* and *within Interior*). Full-sample correlations are reported; this is a selection caveat, not a confirmatory test. The group-level strong-vs-weak tests are mostly null or modest; the names are the deliverable. Details in [`COMBINE_GEMS.md`](COMBINE_GEMS.md) and Figure 8.
 
-**Multi-test models (WR / TE / CB / S) and athletic comps** (supporting, not a new official finding): a Firth / L2 logistic that uses the 40, 10-yard split, broad jump, vertical, and weight, plus shallow trees, naive Bayes, and random forests / gradient boosting, all against a draft-pick + year baseline. Success is above-median yards per route (WR, TE) or tackle involvement rate (CB, S — yards allowed is not attributable). **No Combine test is Holm-significant. For receivers, the multi-test model loses to pick + year (CV AUC 0.55 vs 0.62).** Tight ends and corners show raw AUC lifts that come with severe overfitting on n = 22–30. Running backs are excluded (one player in the file). Historical athletic comps against the public nflverse Combine (2000–2022) are scouting cards, not a prediction rule; the standout card is Cedric Johnson (Edge, pick 214) testing nearest to Brian Orakpo. Details in [`MULTI_TEST_MODELS.md`](MULTI_TEST_MODELS.md) and Figure 9.
+**Which Combine tests translate to Sunday?** (supporting, not a new official finding; **draft slot is out of this analysis entirely** — not a covariate, not a baseline, not a sensitivity). Per group (WR, TE, CB, S, and one combined DL; RB excluded), a year-only Spearman matrix of every available Combine test × coach-relevant in-game metrics, with bootstrap CIs and Holm / BH-FDR within the group, plus lasso, elastic net, ridge, Firth, shallow trees, naive Bayes, and a Bayesian hierarchical logistic (partial pooling across the five groups), all against a **year-only** baseline.
+
+- **DL is the one clear Combine-to-success link:** official 10-yard split vs pressure rate, ρ = −0.47, n = 72, 95% CI −0.66 to −0.23, Holm p = 0.001, FDR p = 7×10⁻⁵. The official 40 is tied. The same tests line up with get-off and sack rate. Recommended model: lasso (CV AUC 0.69 vs year-only 0.60).
+- **WR:** Combine top speed and the official 40 translate to Sunday Speed (ρ = +0.63 and −0.59, both FDR-significant). Nothing is FDR-significant for yards per route. Lasso sets every YPR coefficient to zero.
+- **TE:** tracking 20-yard split vs yards per route is a lean (ρ = −0.56, n = 25, p = 0.004, CI excludes 0) that does not survive FDR (0.19). No deployable multi-test model (n = 22, train AUC ≈ 1.00).
+- **CB and S:** no FDR-significant cell. Yards allowed and closing speed are not in this file. Tackle rate is a fallback.
+
+Details in [`MULTI_TEST_MODELS.md`](MULTI_TEST_MODELS.md). Headline figures: Figure 10 (heatmap) and Figure 11 (Bayesian forest). Athletic comps against the public nflverse Combine remain scouting cards, not a prediction rule.
 
 ## How to reproduce
 
@@ -38,15 +45,15 @@ Data is kept locally in `data/` (gitignored). From the repo root, with the nine 
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install pandas numpy scipy scikit-learn statsmodels matplotlib pyarrow
+.venv/bin/pip install pandas numpy scipy scikit-learn statsmodels matplotlib pyarrow pymc arviz nutpie
 .venv/bin/python build_dataset.py          # official WR / CB / S Sunday Speed table
 .venv/bin/python ssoe.py                   # SSOE scouting card, NGS incremental, CB speed tax
 .venv/bin/python dl_burst.py               # DL get-off, pressure / sack success, Figures 5–6
 .venv/bin/python gameplay_success.py       # WR production and CB/S tackle tests, Figure 7
 .venv/bin/python cb_deep_dive.py           # supporting CB speed-tax / gauntlet re-test
 .venv/bin/python combine_gems.py           # Combine gems (all rounds + UDFA), Figure 8
-.venv/bin/python multi_test_models.py      # Multi-test logistic / trees / NB, Figure 9
 .venv/bin/python athletic_comps.py         # KNN historical athletic comps (uses external/nflverse)
+.venv/bin/python combine_to_game.py        # Combine → Sunday matrix, year only, no pick; Figures 10–12
 ```
 
 Optional rebuilds (slow; they re-stream the 2+ GB of game tracking):
@@ -83,14 +90,15 @@ About 2.3 GB total. Licensed CC BY-NC 4.0. Column notes and gotchas are in [`DAT
 | `DATA_NOTES.md` | Data dictionary and gotchas from the Kaggle Data tab |
 | `CB_DEEP_DIVE.md` | CB speed-tax and gauntlet re-test writeup |
 | `COMBINE_GEMS.md` | Combine-gem overperformer shortlist and group tests |
-| `MULTI_TEST_MODELS.md` | Multi-test logistic / trees / NB, and historical athletic comps |
+| `MULTI_TEST_MODELS.md` | Which Combine tests translate to Sunday (year only, no pick) |
 | `build_dataset.py` | Official WR / CB / S player table |
 | `ssoe.py` | Scouting-card leaderboard and supporting tests |
 | `dl_burst.py` | DL Combine burst, get-off, pressure / sack |
 | `gameplay_success.py` | WR production and CB/S tackle / TFL tests |
 | `cb_deep_dive.py` | Supporting CB robustness |
 | `combine_gems.py` | Combine gems: pre-declared measures, all-rounds shortlist, Figure 8 |
-| `multi_test_models.py` | Multi-test logistic, trees, naive Bayes, RF/GB, Figure 9 |
+| `multi_test_models.py` | Earlier pick-controlled multi-test models (superseded for this question), Figure 9 |
+| `combine_to_game.py` | Combine → in-game matrix, year-only models and Bayesian pool, Figures 10–12 |
 | `athletic_comps.py` | KNN athletic comps vs nflverse Combine 2000–2022 |
 | `external/` | Public nflverse Combine and draft_picks cache (not Kaggle), with attribution |
 | `explore.py`, `profile.py` | First-pass exploration |
@@ -99,7 +107,10 @@ About 2.3 GB total. Licensed CC BY-NC 4.0. Column notes and gotchas are in [`DAT
 | `out/dl_burst_players.csv`, `out/dl_burst_tests.csv` | DL player table and tests |
 | `out/gameplay_success_players.csv`, `out/gameplay_success_tests.csv` | Gameplay outcomes and tests |
 | `out/combine_gems.csv`, `out/combine_gems_tests.csv` | Combine-gem player table and tests |
-| `out/multi_test_coefficients.csv`, `out/multi_test_auc.csv` | Multi-test odds ratios and CV AUCs |
+| `out/multi_test_coefficients.csv`, `out/multi_test_auc.csv` | Earlier pick-controlled multi-test outputs |
+| `out/combine_to_game_spearman.csv`, `out/combine_to_game_best.csv` | Year-only Spearman matrix and best test per group |
+| `out/combine_to_game_auc.csv`, `out/combine_to_game_lasso_stability.csv` | Year-only model comparison and lasso stability |
+| `out/combine_to_game_bayes.csv` | Bayesian hierarchical posterior ORs |
 | `out/athletic_comps.csv`, `out/athletic_comps_summary.csv` | Historical athletic comps (5 per rookie) |
 | `out/figs/fig1_translation_scatter.png` | Combine vs Sunday Speed, by position |
 | `out/figs/fig2_exchange_rate.png` | mph on Sunday per Combine mph |
@@ -109,7 +120,10 @@ About 2.3 GB total. Licensed CC BY-NC 4.0. Column notes and gotchas are in [`DAT
 | `out/figs/fig6_combine_to_pressure.png` | Combine 10-yard split → pressure chain |
 | `out/figs/fig7_gameplay_success.png` | WR production and CB/S tackle tests |
 | `out/figs/fig8_combine_gems.png` | Top-third testers, all rounds, who outplayed their draft slot |
-| `out/figs/fig9_multi_test_models.png` | Multi-test odds ratios and model-comparison AUCs |
+| `out/figs/fig9_multi_test_models.png` | Earlier pick-controlled multi-test figure |
+| `out/figs/fig10_combine_gameplay_heatmap.png` | Combine test × in-game metric Spearman heatmap (headline) |
+| `out/figs/fig11_bayes_hierarchical.png` | Bayesian hierarchical forest (headline) |
+| `out/figs/fig12_model_comparison.png` | Year-only all-models CV AUC comparison |
 | `out/figs/cb_speed_tax.png`, `out/figs/cb_gauntlet.png` | CB deep-dive charts |
 
 Owner: whatsgooglyKP. Work happens in this repo and in the Google Drive folder “NFL Big Data Bowl.”

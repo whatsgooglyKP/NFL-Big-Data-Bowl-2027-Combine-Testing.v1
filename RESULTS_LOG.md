@@ -445,3 +445,31 @@ KNN mean-w_av vs our gameplay, year+pick partial Spearman, Holm across six group
 
 Coach line: *receivers stay good with the 40 as Sunday Speed, not as production. A multi-test logistic, a shallow tree, and naive Bayes do not beat draft slot for WR gameplay and do not produce a Holm-significant test at any skill position in this sample. Athletic comps — especially Cedric Johnson / Brian Orakpo — are scouting cards, not a group prediction rule. RBs are out (n=1).*
 
+
+## 11/2026 (America/New_York) — Which Combine tests translate to Sunday? (year only, no draft pick)
+
+Kevin reframed the multi-test question. Draft slot is out of this analysis entirely — not a covariate, not a baseline, not a sensitivity. The question is: per position group, which Combine metric translates to an important in-game success metric? Groups are WR, TE, CB, S, and **one combined DL**. Edge vs Interior is an appendix only. RB is excluded (n=1). Script: `combine_to_game.py`. Headline figures: `out/figs/fig10_combine_gameplay_heatmap.png`, `out/figs/fig11_bayes_hierarchical.png`. Model chart: `out/figs/fig12_model_comparison.png`. Writeup: `MULTI_TEST_MODELS.md`.
+
+**Method.** Pairwise Spearman of every available Combine test (official 40, official 10-yard, tracking 20-yard, vertical, broad, 3-cone, shuttle, height, weight, Combine top speed, 40-yard peak accel) × each group's in-game metrics, residualized on draft-year dummies only, 2,000 bootstrap CIs, Holm and BH-FDR within the group across every valid cell. Then a model comparison on the key binary success metric (above-median among snap-eligible rookies) with a **year-only** baseline, 20×5 RepeatedStratifiedKFold seed 2027: L2, Firth, nested-CV lasso and elastic net, shallow trees, Gaussian NB, plus continuous ridge / lasso / EN, plus a Bayesian hierarchical logistic (PyMC / nutpie) that partially pools Combine-test slopes across the five groups. Joint models use official 40, official 10-yard, vertical, broad, height, weight, and Combine top speed, plus year. Closing speed and defender yards-allowed are not in this file and were not invented.
+
+**Best Combine test for each group's key success metric** (year-controlled Spearman):
+
+| Group | Key metric | Best test | n | ρ | 95% CI | p | Holm | FDR | FDR-sig? |
+|---|---|---|---:|---:|---|---:|---:|---:|---|
+| WR | Yards per route | Vertical | 67 | +0.22 | −0.05 to +0.45 | 0.079 | 1.00 | 0.38 | No |
+| TE | Yards per route | 20-yard (tracking) | 25 | −0.56 | −0.84 to −0.10 | 0.004 | 0.19 | 0.19 | No (lean) |
+| CB | Tackle rate | Broad jump | 32 | +0.34 | −0.15 to +0.62 | 0.058 | 1.00 | 0.49 | No |
+| S | Tackle rate | Height | 34 | −0.33 | −0.59 to +0.03 | 0.060 | 1.00 | 0.54 | No |
+| DL | Pressure rate | Official 10-yard | 72 | −0.47 | −0.66 to −0.23 | 2.7×10⁻⁵ | 0.001 | 7.3×10⁻⁵ | Yes |
+
+**FDR-significant cells.** DL: 37 of 44 cells, including official 10-yard and official 40 vs pressure (both ρ = −0.47, n = 72), vs sack (ρ ≈ −0.37), and a very tight get-off chain (10-yard vs speed at 1.0 s: ρ = −0.80, n = 72). WR: 6 of 66 cells, **none of them yards per route** — Combine top speed vs Sunday Speed ρ = +0.63, n = 62, FDR p = 2×10⁻⁶; official 40 vs Sunday Speed ρ = −0.59, n = 63; plus a size–speed tradeoff (heavier / taller receivers run slower on Sunday and get less deep separation). TE, CB, S: zero FDR-significant cells.
+
+**Model comparison (CV AUC vs year-only baseline).** WR: nothing beats chance (Firth 0.49, lasso 0.44, year 0.40); lasso shrinks every test to zero (C=0.01). TE: Firth 0.67 and lasso 0.61 on n=22 with train AUC 0.99–1.00 and wild lasso ORs (height 372) — not deployable; lasso failed to shrink (C=35.9). CB: lasso 0.71 vs year 0.35, n=29, overfit 0.13; surviving official 40, 10-yard, vertical, weight. S: L2 0.70, lasso 0.61, n=24, weak outcome. DL: lasso 0.685 vs year 0.596, overfit 0.075, n=64; surviving official 40 (OR 0.66), vertical (1.11), weight (0.90); the pairwise 10-yard winner is collinear with the 40 (stability 0.13). Continuous CV R² is negative except DL ridge +0.03.
+
+**Bayesian hierarchical (n=200, 4×2000+2000 nutpie, max R̂=1.002, 0 divergences, 1/200 Pareto k>0.7).** Pooled official-40 OR 0.69 per 1 SD (90% CI 0.34–1.22), P(direction)=0.88. WR official 40 OR 0.57 (0.27–1.01), P(dir)=0.95, the only filled marker. DL official 40 OR 0.62 (0.24–1.22), P=0.89. PSIS-LOO AUC pooled 0.60 (WR 0.42, TE 0.41, CB 0.66, S 0.68, DL 0.70). 5-fold (one pass) mean AUC 0.60 ± 0.07.
+
+**Recommendations, flagged for Kevin (he leans lasso as safest).** WR: lasso, because it refuses the tests; the WR finding is Sunday Speed, not YPR. TE: no deployable model; report the 20-yard lean as a lean. CB: lasso, tentative. S: no deployable model. DL: lasso (we agree with Kevin's preference).
+
+**Appendix (not in headline).** Official 10-yard vs pressure is an Edge lean (ρ=−0.36, n=39, p=0.025, FDR=0.077) and is not significant in Interior (ρ=−0.15, n=33, p=0.41). 10-yard vs get-off holds in both (Edge ρ=−0.57, FDR=0.002; Interior ρ=−0.41, FDR=0.047).
+
+Outputs: `out/combine_to_game_spearman.csv`, `out/combine_to_game_best.csv`, `out/combine_to_game_auc.csv`, `out/combine_to_game_lasso_stability.csv`, `out/combine_to_game_coefficients.csv`, `out/combine_to_game_continuous.csv`, `out/combine_to_game_bayes.csv`, `out/combine_to_game_recommendations.csv`, `out/combine_to_game_appendix_edge_interior.csv`, `out/combine_to_game_players.csv`. No draft-pick column is in any of these analysis files.

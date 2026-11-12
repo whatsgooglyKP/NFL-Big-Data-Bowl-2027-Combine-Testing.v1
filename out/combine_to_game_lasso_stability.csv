@@ -1,0 +1,81 @@
+pos_group,model,feature,feature_label,family,stability,full_sample_coef,full_sample_or,nonzero_full,chosen_C,chosen_l1_ratio,n
+WR,lasso,official_forty,Official 40,combine,0.66,0.0,1.0,False,0.01,1.0,61
+WR,lasso,official_ten_yd,Official 10-yard,combine,0.58,0.0,1.0,False,0.01,1.0,61
+WR,lasso,vertical,Vertical,combine,0.57,0.0,1.0,False,0.01,1.0,61
+WR,lasso,broad_jump,Broad jump,combine,0.55,0.0,1.0,False,0.01,1.0,61
+WR,lasso,combine_height,Height,combine,0.5,0.0,1.0,False,0.01,1.0,61
+WR,lasso,combine_weight,Weight,combine,0.5,0.0,1.0,False,0.01,1.0,61
+WR,lasso,c_top_mph,Combine top speed,combine,0.53,0.0,1.0,False,0.01,1.0,61
+WR,lasso,year_idx,Year,control,0.55,0.0,1.0,False,0.01,1.0,61
+WR,elastic_net,official_forty,Official 40,combine,0.67,0.0,1.0,False,0.01,0.15,61
+WR,elastic_net,official_ten_yd,Official 10-yard,combine,0.57,0.0,1.0,False,0.01,0.15,61
+WR,elastic_net,vertical,Vertical,combine,0.63,0.0,1.0,False,0.01,0.15,61
+WR,elastic_net,broad_jump,Broad jump,combine,0.58,0.0,1.0,False,0.01,0.15,61
+WR,elastic_net,combine_height,Height,combine,0.54,0.0,1.0,False,0.01,0.15,61
+WR,elastic_net,combine_weight,Weight,combine,0.47,0.0,1.0,False,0.01,0.15,61
+WR,elastic_net,c_top_mph,Combine top speed,combine,0.49,0.0,1.0,False,0.01,0.15,61
+WR,elastic_net,year_idx,Year,control,0.51,0.0,1.0,False,0.01,0.15,61
+TE,lasso,official_forty,Official 40,combine,0.71,-3.4634707267158293,0.0313208669854203,True,35.93813663804626,1.0,22
+TE,lasso,official_ten_yd,Official 10-yard,combine,0.96,-4.3249963370568905,0.0132335985703708,True,35.93813663804626,1.0,22
+TE,lasso,vertical,Vertical,combine,0.93,-8.03831496786426,0.0003228525088859,True,35.93813663804626,1.0,22
+TE,lasso,broad_jump,Broad jump,combine,0.57,2.629693488053114,13.869518077557355,True,35.93813663804626,1.0,22
+TE,lasso,combine_height,Height,combine,0.84,5.919828723334348,372.34793390174633,True,35.93813663804626,1.0,22
+TE,lasso,combine_weight,Weight,combine,0.9,-5.767259744257804,0.0031283181714457,True,35.93813663804626,1.0,22
+TE,lasso,c_top_mph,Combine top speed,combine,0.62,-2.2681380394715123,0.1035047224820733,True,35.93813663804626,1.0,22
+TE,lasso,year_idx,Year,control,0.6,0.0623275717641134,1.0643109258397945,True,35.93813663804626,1.0,22
+TE,elastic_net,official_forty,Official 40,combine,0.81,-2.2087872500282084,0.1098337686783252,True,35.93813663804626,0.15,22
+TE,elastic_net,official_ten_yd,Official 10-yard,combine,0.97,-3.0679608345476943,0.0465159118524331,True,35.93813663804626,0.15,22
+TE,elastic_net,vertical,Vertical,combine,0.94,-5.295449849426915,0.0050143581619046,True,35.93813663804626,0.15,22
+TE,elastic_net,broad_jump,Broad jump,combine,0.62,1.604167491126055,4.973717214973687,True,35.93813663804626,0.15,22
+TE,elastic_net,combine_height,Height,combine,0.82,3.874242586052746,48.14621786053426,True,35.93813663804626,0.15,22
+TE,elastic_net,combine_weight,Weight,combine,0.87,-3.978746394268668,0.0187090784509338,True,35.93813663804626,0.15,22
+TE,elastic_net,c_top_mph,Combine top speed,combine,0.68,-1.420688485639716,0.2415476575420696,True,35.93813663804626,0.15,22
+TE,elastic_net,year_idx,Year,control,0.7,-0.0340766864513245,0.9664973845409044,True,35.93813663804626,0.15,22
+CB,lasso,official_forty,Official 40,combine,0.84,0.4708629493479591,1.6013755030776375,True,0.5994842503189409,1.0,29
+CB,lasso,official_ten_yd,Official 10-yard,combine,0.46,-0.0001614990622805,0.999838513977991,True,0.5994842503189409,1.0,29
+CB,lasso,vertical,Vertical,combine,0.51,0.0001188307244113,1.0001188377850616,True,0.5994842503189409,1.0,29
+CB,lasso,broad_jump,Broad jump,combine,0.32,0.0,1.0,False,0.5994842503189409,1.0,29
+CB,lasso,combine_height,Height,combine,0.27,0.0,1.0,False,0.5994842503189409,1.0,29
+CB,lasso,combine_weight,Weight,combine,0.99,-0.9510839497343422,0.3863220427429073,True,0.5994842503189409,1.0,29
+CB,lasso,c_top_mph,Combine top speed,combine,0.28,0.0,1.0,False,0.5994842503189409,1.0,29
+CB,lasso,year_idx,Year,control,0.29,0.0,1.0,False,0.5994842503189409,1.0,29
+CB,elastic_net,official_forty,Official 40,combine,0.8,0.5104497349555721,1.6660403030448825,True,0.5994842503189409,0.85,29
+CB,elastic_net,official_ten_yd,Official 10-yard,combine,0.53,-0.0272870521659254,0.9730818761698626,True,0.5994842503189409,0.85,29
+CB,elastic_net,vertical,Vertical,combine,0.45,0.0351508229870525,1.0357759158370647,True,0.5994842503189409,0.85,29
+CB,elastic_net,broad_jump,Broad jump,combine,0.32,0.0,1.0,False,0.5994842503189409,0.85,29
+CB,elastic_net,combine_height,Height,combine,0.62,0.0,1.0,False,0.5994842503189409,0.85,29
+CB,elastic_net,combine_weight,Weight,combine,1.0,-0.95460923278591,0.3849625459066986,True,0.5994842503189409,0.85,29
+CB,elastic_net,c_top_mph,Combine top speed,combine,0.52,0.0,1.0,False,0.5994842503189409,0.85,29
+CB,elastic_net,year_idx,Year,control,0.31,0.0,1.0,False,0.5994842503189409,0.85,29
+S,lasso,official_forty,Official 40,combine,0.42,0.0,1.0,False,0.5994842503189409,1.0,24
+S,lasso,official_ten_yd,Official 10-yard,combine,0.49,0.0,1.0,False,0.5994842503189409,1.0,24
+S,lasso,vertical,Vertical,combine,0.34,0.0,1.0,False,0.5994842503189409,1.0,24
+S,lasso,broad_jump,Broad jump,combine,0.62,0.0,1.0,False,0.5994842503189409,1.0,24
+S,lasso,combine_height,Height,combine,0.92,-0.7031432656427121,0.4950268548599554,True,0.5994842503189409,1.0,24
+S,lasso,combine_weight,Weight,combine,0.86,-0.4010891069195758,0.669590393242248,True,0.5994842503189409,1.0,24
+S,lasso,c_top_mph,Combine top speed,combine,0.74,-0.3014324434001622,0.7397578001882736,True,0.5994842503189409,1.0,24
+S,lasso,year_idx,Year,control,0.43,0.0,1.0,False,0.5994842503189409,1.0,24
+S,elastic_net,official_forty,Official 40,combine,0.51,0.0,1.0,False,0.2154434690031883,0.15,24
+S,elastic_net,official_ten_yd,Official 10-yard,combine,0.5,0.0,1.0,False,0.2154434690031883,0.15,24
+S,elastic_net,vertical,Vertical,combine,0.59,0.0649215931325674,1.0670753550682055,True,0.2154434690031883,0.15,24
+S,elastic_net,broad_jump,Broad jump,combine,0.69,-0.122111137728405,0.8850500005899448,True,0.2154434690031883,0.15,24
+S,elastic_net,combine_height,Height,combine,0.98,-0.4678845636215039,0.6263258202690966,True,0.2154434690031883,0.15,24
+S,elastic_net,combine_weight,Weight,combine,0.93,-0.3597453175855133,0.697854034590942,True,0.2154434690031883,0.15,24
+S,elastic_net,c_top_mph,Combine top speed,combine,0.78,-0.20473378925052,0.8148642131529193,True,0.2154434690031883,0.15,24
+S,elastic_net,year_idx,Year,control,0.51,0.0,1.0,False,0.2154434690031883,0.15,24
+DL,lasso,official_forty,Official 40,combine,0.74,-0.4230439798038212,0.6550498235155594,True,0.2154434690031883,1.0,64
+DL,lasso,official_ten_yd,Official 10-yard,combine,0.13,0.0,1.0,False,0.2154434690031883,1.0,64
+DL,lasso,vertical,Vertical,combine,0.73,0.1076205818082038,1.113625135583332,True,0.2154434690031883,1.0,64
+DL,lasso,broad_jump,Broad jump,combine,0.29,0.0,1.0,False,0.2154434690031883,1.0,64
+DL,lasso,combine_height,Height,combine,0.47,0.0,1.0,False,0.2154434690031883,1.0,64
+DL,lasso,combine_weight,Weight,combine,0.63,-0.1004179693774521,0.904459302729462,True,0.2154434690031883,1.0,64
+DL,lasso,c_top_mph,Combine top speed,combine,0.36,0.0,1.0,False,0.2154434690031883,1.0,64
+DL,lasso,year_idx,Year,control,0.3,0.0,1.0,False,0.2154434690031883,1.0,64
+DL,elastic_net,official_forty,Official 40,combine,0.99,-0.1618909268175635,0.8505339699279034,True,0.0774263682681127,0.15,64
+DL,elastic_net,official_ten_yd,Official 10-yard,combine,0.7,-0.0487589074020097,0.9524107211961144,True,0.0774263682681127,0.15,64
+DL,elastic_net,vertical,Vertical,combine,0.92,0.15007815239759,1.161925046408171,True,0.0774263682681127,0.15,64
+DL,elastic_net,broad_jump,Broad jump,combine,0.77,0.0810233673598561,1.0843962357477717,True,0.0774263682681127,0.15,64
+DL,elastic_net,combine_height,Height,combine,0.53,-0.0805233969099651,0.9226333165625844,True,0.0774263682681127,0.15,64
+DL,elastic_net,combine_weight,Weight,combine,0.94,-0.140441247541766,0.868974717833836,True,0.0774263682681127,0.15,64
+DL,elastic_net,c_top_mph,Combine top speed,combine,0.93,0.1400347598708226,1.1503137829208026,True,0.0774263682681127,0.15,64
+DL,elastic_net,year_idx,Year,control,0.4,-0.0302885187280729,0.9701655822250466,True,0.0774263682681127,0.15,64
