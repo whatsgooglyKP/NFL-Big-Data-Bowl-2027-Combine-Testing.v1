@@ -30,14 +30,14 @@ Draft-day lines:
 
 **Combine gems** (named shortlist, not a new official finding): players in any draft round, plus UDFAs, who tested in the top third of their position on a pre-declared Combine measure and then outplayed their draft slot. Rounds are not split. UDFAs are flagged in a column (draft-slot value = pick 260) and are in the same list, not a separate tier. Pre-declared measures: official 40 time (WR), broad jump (CB), gauntlet top speed (S), official 10-yard split (combined DL; strong is the top third *within Edge* and *within Interior*). Full-sample correlations are reported; this is a selection caveat, not a confirmatory test. The group-level strong-vs-weak tests are mostly null or modest; the names are the deliverable. Details in [`COMBINE_GEMS.md`](COMBINE_GEMS.md) and Figure 8.
 
-**Which Combine tests translate to Sunday?** (supporting, not a new official finding; **draft slot is out of this analysis entirely** — not a covariate, not a baseline, not a sensitivity). Per group (WR, TE, CB, S, and one combined DL; RB excluded), a year-only Spearman matrix of every available Combine test × coach-relevant in-game metrics, with bootstrap CIs and Holm / BH-FDR within the group, plus lasso, elastic net, ridge, Firth, shallow trees, naive Bayes, and a Bayesian hierarchical logistic (partial pooling across the five groups), all against a **year-only** baseline.
+**Which Combine tests translate to Sunday?** (supporting, not a new official finding; **draft slot is out of this analysis entirely** — not a covariate, not a baseline, not a sensitivity). Per group (**WR, TE, DB, and one combined DL**; RB excluded; corners and safeties are one headline DB group), a year-only Spearman matrix of every available Combine test × coach-relevant in-game metrics, with the **tracking-derived 20-yard split** as the lead test, bootstrap CIs and Holm / BH-FDR within the group, plus a coach-readable **Burst Score** (20-yard + jumps; equal-weight and learned-inside-CV, picked by out-of-fold ρ, scaled 0–100 within position), plus lasso, elastic net, ridge, Firth, shallow trees, naive Bayes, and a Bayesian hierarchical logistic (partial pooling across the four groups), all against a **year-only** baseline.
 
-- **DL is the one clear Combine-to-success link:** official 10-yard split vs pressure rate, ρ = −0.47, n = 72, 95% CI −0.66 to −0.23, Holm p = 0.001, FDR p = 7×10⁻⁵. The official 40 is tied. The same tests line up with get-off and sack rate. Recommended model: lasso (CV AUC 0.69 vs year-only 0.60).
-- **WR:** Combine top speed and the official 40 translate to Sunday Speed (ρ = +0.63 and −0.59, both FDR-significant). Nothing is FDR-significant for yards per route. Lasso sets every YPR coefficient to zero.
-- **TE:** tracking 20-yard split vs yards per route is a lean (ρ = −0.56, n = 25, p = 0.004, CI excludes 0) that does not survive FDR (0.19). No deployable multi-test model (n = 22, train AUC ≈ 1.00).
-- **CB and S:** no FDR-significant cell. Yards allowed and closing speed are not in this file. Tackle rate is a fallback.
+- **DL is the one clear Combine-to-success link:** official 10-yard split vs pressure rate, ρ = −0.47, n = 72, 95% CI −0.65 to −0.23, Holm p = 0.001, FDR p = 7.3×10⁻⁵. The tracking 20-yard is also FDR-significant vs pressure (ρ = −0.31, n = 71, FDR p = 0.012) but weaker. The **DL Burst Score** (equal-weight 20-yard + vertical + broad) has out-of-fold ρ = +0.45, 95% CI +0.18 to +0.66, n = 64, and beats the 20-yard alone (OOF ρ = +0.31). Recommended model: lasso (CV AUC 0.674 vs year-only 0.596).
+- **WR:** the 20-yard alone does not translate to yards per route (ρ = −0.02). The **WR Burst Score** (equal-weight 20-yard + vertical + broad) does, modestly: OOF ρ = +0.29, 95% CI +0.01 to +0.54, n = 61. Combine top speed and the official 40 still translate to Sunday Speed (ρ = +0.63 and −0.59, both FDR-significant). Lasso sets every YPR coefficient to zero.
+- **TE:** the tracking 20-yard is the lead and the best test vs yards per route (ρ = −0.56, n = 25, p = 0.004, CI excludes 0) and does not survive FDR (0.19). Adding jumps does not help; the Burst Score does not beat the 20-yard alone. No deployable multi-test model (n = 22, train AUC ≈ 1.00).
+- **DB (CB + S):** no Combine-to-tackle finding. 20-yard vs tackle ρ = −0.07; Burst Score OOF ρ = +0.13 (CI includes 0). Year-only beats every multi-test model. Safeties have a higher median tackle rate than corners (0.100 vs 0.081) — a pooled DB median can confound role. Yards allowed and closing speed are not in this file. Tackle rate is a fallback.
 
-Details in [`MULTI_TEST_MODELS.md`](MULTI_TEST_MODELS.md). Headline figures: Figure 10 (heatmap) and Figure 11 (Bayesian forest). Athletic comps against the public nflverse Combine remain scouting cards, not a prediction rule.
+Details in [`MULTI_TEST_MODELS.md`](MULTI_TEST_MODELS.md). Headline figures: Figure 10 (heatmap), Figure 11 (Bayesian forest), and Figure 13 (Burst Score). Athletic comps against the public nflverse Combine remain scouting cards, not a prediction rule.
 
 ## How to reproduce
 
@@ -53,7 +53,7 @@ python3 -m venv .venv
 .venv/bin/python cb_deep_dive.py           # supporting CB speed-tax / gauntlet re-test
 .venv/bin/python combine_gems.py           # Combine gems (all rounds + UDFA), Figure 8
 .venv/bin/python athletic_comps.py         # KNN historical athletic comps (uses external/nflverse)
-.venv/bin/python combine_to_game.py        # Combine → Sunday matrix, year only, no pick; Figures 10–12
+.venv/bin/python combine_to_game.py        # Combine → Sunday matrix, year only, no pick; Burst Score; Figures 10–13
 ```
 
 Optional rebuilds (slow; they re-stream the 2+ GB of game tracking):
@@ -98,7 +98,7 @@ About 2.3 GB total. Licensed CC BY-NC 4.0. Column notes and gotchas are in [`DAT
 | `cb_deep_dive.py` | Supporting CB robustness |
 | `combine_gems.py` | Combine gems: pre-declared measures, all-rounds shortlist, Figure 8 |
 | `multi_test_models.py` | Earlier pick-controlled multi-test models (superseded for this question), Figure 9 |
-| `combine_to_game.py` | Combine → in-game matrix, year-only models and Bayesian pool, Figures 10–12 |
+| `combine_to_game.py` | Combine → in-game matrix, 20-yard lead, Burst Score, year-only models and Bayesian pool, Figures 10–13 |
 | `athletic_comps.py` | KNN athletic comps vs nflverse Combine 2000–2022 |
 | `external/` | Public nflverse Combine and draft_picks cache (not Kaggle), with attribution |
 | `explore.py`, `profile.py` | First-pass exploration |
@@ -108,9 +108,11 @@ About 2.3 GB total. Licensed CC BY-NC 4.0. Column notes and gotchas are in [`DAT
 | `out/gameplay_success_players.csv`, `out/gameplay_success_tests.csv` | Gameplay outcomes and tests |
 | `out/combine_gems.csv`, `out/combine_gems_tests.csv` | Combine-gem player table and tests |
 | `out/multi_test_coefficients.csv`, `out/multi_test_auc.csv` | Earlier pick-controlled multi-test outputs |
-| `out/combine_to_game_spearman.csv`, `out/combine_to_game_best.csv` | Year-only Spearman matrix and best test per group |
+| `out/combine_to_game_spearman.csv`, `out/combine_to_game_best.csv`, `out/combine_to_game_lead20.csv` | Year-only Spearman matrix, best test, and 20-yard lead table |
+| `out/combine_to_game_combos.csv`, `out/combine_to_game_burst.csv`, `out/combine_to_game_burst_players.csv`, `out/combine_to_game_burst_top10.csv` | Two-test combos and Burst Score (OOF ρ, 0–100, top-10) |
 | `out/combine_to_game_auc.csv`, `out/combine_to_game_lasso_stability.csv` | Year-only model comparison and lasso stability |
 | `out/combine_to_game_bayes.csv` | Bayesian hierarchical posterior ORs |
+| `out/combine_to_game_appendix_cb_s.csv` | Appendix: CB vs S breakout |
 | `out/athletic_comps.csv`, `out/athletic_comps_summary.csv` | Historical athletic comps (5 per rookie) |
 | `out/figs/fig1_translation_scatter.png` | Combine vs Sunday Speed, by position |
 | `out/figs/fig2_exchange_rate.png` | mph on Sunday per Combine mph |
@@ -124,6 +126,7 @@ About 2.3 GB total. Licensed CC BY-NC 4.0. Column notes and gotchas are in [`DAT
 | `out/figs/fig10_combine_gameplay_heatmap.png` | Combine test × in-game metric Spearman heatmap (headline) |
 | `out/figs/fig11_bayes_hierarchical.png` | Bayesian hierarchical forest (headline) |
 | `out/figs/fig12_model_comparison.png` | Year-only all-models CV AUC comparison |
+| `out/figs/fig13_burst_score.png` | Burst Score: OOF ρ vs 20-yard alone, and 0–100 scatters |
 | `out/figs/cb_speed_tax.png`, `out/figs/cb_gauntlet.png` | CB deep-dive charts |
 
 Owner: whatsgooglyKP. Work happens in this repo and in the Google Drive folder “NFL Big Data Bowl.”

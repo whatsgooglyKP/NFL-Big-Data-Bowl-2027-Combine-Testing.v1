@@ -3,7 +3,7 @@
 
 Kevin's framing (11/2026): draft slot is out of this analysis entirely —
 not as a covariate, not as a baseline, not as a sensitivity. For each
-group (WR, TE, CB, S, and one combined DL; RB excluded) we ask which
+group (WR, TE, DB, and one combined DL; RB excluded) we ask which
 Combine metric maps to coach-relevant Sunday outcomes.
 
   1. Pairwise Spearman matrix: every available Combine test × each
@@ -12,7 +12,7 @@ Combine metric maps to coach-relevant Sunday outcomes.
   2. Model comparison on the group's key success metric, year-only
      baseline: L2 logistic, Firth, L1 lasso, elastic net, shallow
      trees, Gaussian naive Bayes, and a Bayesian hierarchical
-     logistic that partially pools Combine slopes across the five
+     logistic that partially pools Combine slopes across the four
      groups. Ridge / lasso / EN on the continuous outcome.
 
 Usage, from the repo root with the venv:
@@ -30,6 +30,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.colors import TwoSlopeNorm
 from scipy import stats
+from scipy.stats import chi2, rankdata
 from sklearn.linear_model import (
     ElasticNetCV,
     LassoCV,
@@ -47,6 +48,7 @@ from sklearn.model_selection import KFold, RepeatedKFold, RepeatedStratifiedKFol
 from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
+import statsmodels.api as sm
 from statsmodels.stats.multitest import multipletests
 
 import multi_test_models as mtm
@@ -86,9 +88,11 @@ NONZERO = 1e-5
 # +1 = higher should help; 0 = no pre-declared direction.
 
 COMBINE_TESTS = [
+    # Lead test: tracking-derived 20-yard split from the 40-yard dash.
+    # There is no official electronic 20-yard time in this file.
+    ("c_t20_derived", "20-yard (tracking)", -1, "s"),
     ("official_forty", "Official 40", -1, "s"),
     ("official_ten_yd", "Official 10-yard", -1, "s"),
-    ("c_t20_derived", "20-yard (tracking)", -1, "s"),
     ("vertical", "Vertical", +1, "in"),
     ("broad_jump", "Broad jump", +1, "in"),
     ("three_cone", "3-cone", -1, "s"),
@@ -102,13 +106,13 @@ TEST_LABELS = {k: lab for k, lab, *_ in COMBINE_TESTS}
 TEST_SIGN = {k: sgn for k, _, sgn, _ in COMBINE_TESTS}
 TEST_ORDER = [k for k, *_ in COMBINE_TESTS]
 
-# Joint models drop 3-cone and shuttle (too sparse). Draft pick is never a
-# predictor. Year is the only control.
-# Joint models: official times, jumps, size, and Combine top speed.
-# 3-cone, shuttle, 20-yard (tracking), and 40-yard accel stay in the
-# pairwise Spearman matrix only — the last two are near-collinear with
-# the official 40 / Combine top speed, and 3-cone / shuttle are sparse.
+# Joint models: the lead 20-yard tracking split, official times, jumps,
+# size, and Combine top speed. 3-cone, shuttle, and 40-yard accel stay
+# in the pairwise Spearman matrix only (3-cone / shuttle are sparse;
+# accel is near-collinear with the 20-yard and the official 40).
+# Draft pick is never a predictor. Year is the only control.
 MODEL_TESTS = [
+    "c_t20_derived",
     "official_forty", "official_ten_yd",
     "vertical", "broad_jump", "combine_height", "combine_weight",
     "c_top_mph",
@@ -155,6 +159,36 @@ OUTCOMES = {
              higher_better=True, key=False, min_col="n_deep_routes", min_n=8,
              min_label="≥8 regular-season deep routes"),
     ],
+    "DB": [
+        dict(col="tackle_rate", label="Tackle involvement rate", short="Tackle rate",
+             higher_better=True, key=True, min_col="n_def_snaps", min_n=MIN_DB_SNAPS,
+             min_label="≥50 regular-season defensive snaps (CB + S pooled)"),
+        dict(col="tfl_rate", label="Tackle-for-loss rate", short="TFL rate",
+             higher_better=True, key=False, min_col="n_def_snaps", min_n=MIN_DB_SNAPS,
+             min_label="≥50 regular-season defensive snaps (CB + S pooled)"),
+        dict(col="sunday_speed_mph", label="Game top speed (coverage)", short="Sunday Speed",
+             higher_better=True, key=False, min_col=None, min_n=0,
+             min_label="official Sunday Speed sample (CB + S pooled)"),
+    ],
+    "DL": [
+        dict(col="pressure_rate", label="Pressure rate", short="Pressure",
+             higher_better=True, key=True, min_col="n_rush_plays", min_n=MIN_DL_RUSH,
+             min_label="≥20 regular-season pass-rush snaps"),
+        dict(col="sack_rate", label="Sack rate", short="Sack",
+             higher_better=True, key=False, min_col="n_rush_plays", min_n=MIN_DL_RUSH,
+             min_label="≥20 regular-season pass-rush snaps"),
+        dict(col="speed_1s_mph", label="Get-off (speed at 1.0s)", short="Get-off mph",
+             higher_better=True, key=False, min_col="n_rush_plays", min_n=MIN_DL_RUSH,
+             min_label="≥20 regular-season pass-rush snaps"),
+        dict(col="player_get_off", label="NFL get-off time", short="Get-off sec",
+             higher_better=False, key=False, min_col="n_rush_plays", min_n=MIN_DL_RUSH,
+             min_label="≥20 regular-season pass-rush snaps (lower is faster)"),
+    ],
+}
+
+# Appendix-only outcome list for a CB vs S breakout. Not in the heatmap,
+# the models, or the Bayesian pool.
+CB_S_OUTCOMES = {
     "CB": [
         dict(col="tackle_rate", label="Tackle involvement rate", short="Tackle rate",
              higher_better=True, key=True, min_col="n_def_snaps", min_n=MIN_DB_SNAPS,
@@ -177,27 +211,28 @@ OUTCOMES = {
              higher_better=True, key=False, min_col=None, min_n=0,
              min_label="official Sunday Speed sample"),
     ],
-    "DL": [
-        dict(col="pressure_rate", label="Pressure rate", short="Pressure",
-             higher_better=True, key=True, min_col="n_rush_plays", min_n=MIN_DL_RUSH,
-             min_label="≥20 regular-season pass-rush snaps"),
-        dict(col="sack_rate", label="Sack rate", short="Sack",
-             higher_better=True, key=False, min_col="n_rush_plays", min_n=MIN_DL_RUSH,
-             min_label="≥20 regular-season pass-rush snaps"),
-        dict(col="speed_1s_mph", label="Get-off (speed at 1.0s)", short="Get-off mph",
-             higher_better=True, key=False, min_col="n_rush_plays", min_n=MIN_DL_RUSH,
-             min_label="≥20 regular-season pass-rush snaps"),
-        dict(col="player_get_off", label="NFL get-off time", short="Get-off sec",
-             higher_better=False, key=False, min_col="n_rush_plays", min_n=MIN_DL_RUSH,
-             min_label="≥20 regular-season pass-rush snaps (lower is faster)"),
-    ],
 }
 
-POS_ORDER = ["WR", "TE", "CB", "S", "DL"]
+POS_ORDER = ["WR", "TE", "DB", "DL"]
 POS_COLOR = {
-    "WR": "#0072B2", "TE": "#CC79A7", "CB": "#D55E00",
-    "S": "#009E73", "DL": "#6A3D9A",
+    "WR": "#0072B2", "TE": "#CC79A7", "DB": "#D55E00", "DL": "#6A3D9A",
+    "CB": "#D55E00", "S": "#009E73",
 }
+
+# Two- and three-test Burst Score recipes. 20-yard is in every recipe.
+COMBO_RECIPES = {
+    "t20": ["c_t20_derived"],
+    "t20_broad": ["c_t20_derived", "broad_jump"],
+    "t20_vert": ["c_t20_derived", "vertical"],
+    "t20_vert_broad": ["c_t20_derived", "vertical", "broad_jump"],
+}
+COMBO_LABELS = {
+    "t20": "20-yard alone",
+    "t20_broad": "20-yard + broad jump",
+    "t20_vert": "20-yard + vertical",
+    "t20_vert_broad": "20-yard + vertical + broad",
+}
+BURST_NAME = "Burst Score"
 KEY_OUTCOME = {g: next(o["col"] for o in outs if o["key"]) for g, outs in OUTCOMES.items()}
 KEY_LABEL = {g: next(o["label"] for o in outs if o["key"]) for g, outs in OUTCOMES.items()}
 
@@ -546,6 +581,9 @@ def assemble() -> pd.DataFrame:
                 skill[c] = skill[c].combine_first(skill[cm])
             skill = skill.drop(columns=[cm])
     skill = skill[skill["pos_group"].isin(["WR", "CB", "S"])].copy()
+    # Headline group is DB (corners + safeties). Keep the role for the appendix.
+    skill["db_role"] = np.where(skill["pos_group"].isin(["CB", "S"]), skill["pos_group"], np.nan)
+    skill.loc[skill["pos_group"].isin(["CB", "S"]), "pos_group"] = "DB"
 
     # --- TE ---
     te_m = M[M["pos_group"] == "TE"].copy()
@@ -598,7 +636,7 @@ def assemble() -> pd.DataFrame:
         all_cols |= set(f.columns)
     identity = [
         "nfl_id", "display_name", "nfl_position", "pos_group", "subtype",
-        "draft_year", "year_idx", "college_name",
+        "db_role", "draft_year", "year_idx", "college_name",
     ]
     tests = list(TEST_ORDER) + ["c_t10_derived", "c_t40_derived", "c_t90"]
     outcomes = [
@@ -1670,6 +1708,931 @@ def recommend(auc: pd.DataFrame, stab: pd.DataFrame, best: pd.DataFrame) -> pd.D
 
 
 # ---------------------------------------------------------------------------
+# Lead 20-yard table, two-test combos, Burst Score, CB/S appendix
+# ---------------------------------------------------------------------------
+
+def _std_ols_point(d: pd.DataFrame, ycol: str, xcols: list[str]) -> np.ndarray:
+    """Year-residualized standardized OLS coefficients (per 1 SD of each x)."""
+    Xy = year_controls(d)
+    y = residualize(d[ycol].to_numpy(dtype=float), Xy)
+    cols = []
+    for c in xcols:
+        x = d[c].to_numpy(dtype=float)
+        sd = float(np.std(x, ddof=1))
+        x = (x - x.mean()) / (sd if sd > 1e-12 else 1.0)
+        cols.append(residualize(x, Xy))
+    X = np.column_stack(cols) if cols else np.zeros((len(d), 0))
+    if X.size == 0:
+        return np.array([])
+    A = np.column_stack([np.ones(len(d)), X])
+    coef, *_ = np.linalg.lstsq(A, y, rcond=None)
+    return np.asarray(coef[1:], dtype=float)
+
+
+def _std_ols_boot(d: pd.DataFrame, ycol: str, xcols: list[str],
+                  seed: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Point estimate plus 95% bootstrap CI for standardized year-controlled OLS."""
+    d = d.reset_index(drop=True)
+    point = _std_ols_point(d, ycol, xcols)
+    rng = np.random.default_rng(seed)
+    n = len(d)
+    boots = []
+    for _ in range(N_BOOT):
+        ib = rng.integers(0, n, size=n)
+        try:
+            boots.append(_std_ols_point(d.iloc[ib], ycol, xcols))
+        except Exception:
+            continue
+    if len(boots) < max(50, N_BOOT // 20):
+        nan = np.full_like(point, np.nan)
+        return point, nan, nan
+    arr = np.vstack(boots)
+    lo = np.percentile(arr, 2.5, axis=0)
+    hi = np.percentile(arr, 97.5, axis=0)
+    return point, lo, hi
+
+
+def _ols_lr_test(y: np.ndarray, X_red: np.ndarray, X_full: np.ndarray
+                 ) -> tuple[float, int, float, float, float]:
+    """Likelihood-ratio test of nested OLS models. Returns lr, df, p, R2_red, R2_full."""
+    def _fit(X):
+        A = sm.add_constant(X, has_constant="add") if X.size and X.shape[1] else np.ones((len(y), 1))
+        return sm.OLS(y, A).fit()
+    try:
+        red = _fit(X_red)
+        full = _fit(X_full)
+    except Exception:
+        return np.nan, 0, np.nan, np.nan, np.nan
+    df = int(X_full.shape[1] - (X_red.shape[1] if X_red.size else 0))
+    if df <= 0:
+        return np.nan, 0, np.nan, float(red.rsquared), float(full.rsquared)
+    lr = float(2.0 * (full.llf - red.llf))
+    p = float(chi2.sf(max(lr, 0.0), df))
+    return lr, df, p, float(red.rsquared), float(full.rsquared)
+
+
+def _ols_cv_r2(X: np.ndarray, y: np.ndarray, splits: list) -> np.ndarray:
+    """Out-of-fold R² for unpenalized OLS, using precomputed (train, test) splits."""
+    out = np.full(len(splits), np.nan)
+    for i, (tr, te) in enumerate(splits):
+        if len(tr) < 5 or len(te) < 3:
+            continue
+        if np.unique(y[tr]).size < 2:
+            continue
+        sc = StandardScaler()
+        try:
+            Xtr = sc.fit_transform(X[tr])
+            Xte = sc.transform(X[te])
+        except Exception:
+            continue
+        A = np.column_stack([np.ones(len(tr)), Xtr])
+        try:
+            coef, *_ = np.linalg.lstsq(A, y[tr], rcond=None)
+        except Exception:
+            continue
+        pred = np.column_stack([np.ones(len(te)), Xte]) @ coef
+        if np.unique(y[te]).size < 2:
+            continue
+        try:
+            out[i] = r2_score(y[te], pred)
+        except Exception:
+            continue
+    return out
+
+
+def _logit_cv_auc(X: np.ndarray, y: np.ndarray, splits: list) -> np.ndarray:
+    """Out-of-fold AUC for L2 logistic, using precomputed splits."""
+    out = np.full(len(splits), np.nan)
+    clf_kw = dict(C=1.0, solver="lbfgs", max_iter=4000)
+    for i, (tr, te) in enumerate(splits):
+        if np.unique(y[tr]).size < 2 or np.unique(y[te]).size < 2:
+            continue
+        sc = StandardScaler()
+        try:
+            Xtr = sc.fit_transform(X[tr])
+            Xte = sc.transform(X[te])
+            clf = LogisticRegression(**clf_kw)
+            clf.fit(Xtr, y[tr])
+            proba = clf.predict_proba(Xte)[:, 1]
+            out[i] = roc_auc_score(y[te], proba)
+        except Exception:
+            continue
+    return out
+
+
+def _wilcoxon_greater(a: np.ndarray, b: np.ndarray) -> tuple[float, float, int]:
+    """Paired Wilcoxon: is a greater than b? Returns (mean_diff, p, n_pairs)."""
+    mask = np.isfinite(a) & np.isfinite(b)
+    if mask.sum() < 8:
+        return np.nan, np.nan, int(mask.sum())
+    diff = a[mask] - b[mask]
+    mean_d = float(np.mean(diff))
+    if np.allclose(diff, 0):
+        return mean_d, 1.0, int(mask.sum())
+    try:
+        res = stats.wilcoxon(diff, alternative="greater", zero_method="pratt")
+        return mean_d, float(res.pvalue), int(mask.sum())
+    except Exception:
+        return mean_d, np.nan, int(mask.sum())
+
+
+def _aligned_z(X: np.ndarray, cols: list[str], mean: np.ndarray, sd: np.ndarray) -> np.ndarray:
+    """Sign-align (higher = more athletic) and z-score with provided moments."""
+    signs = np.array([TEST_SIGN.get(c, 1) for c in cols], dtype=float)
+    # TEST_SIGN is -1 for times (lower better): multiplying flips them.
+    Z = (X - mean) / np.where(sd > 1e-12, sd, 1.0)
+    return Z * signs
+
+
+def _pct_0_100(s: np.ndarray) -> np.ndarray:
+    s = np.asarray(s, dtype=float)
+    if len(s) <= 1 or np.all(s == s[0]):
+        return np.full(len(s), 50.0)
+    return 100.0 * (rankdata(s, method="average") - 1) / (len(s) - 1)
+
+
+def _oof_spearman(score: np.ndarray, y: np.ndarray, year: pd.Series) -> dict:
+    d = pd.DataFrame({"x": score, "y": y, "draft_year": year}).dropna()
+    res = spearman_year(d["x"], d["y"], d["draft_year"])
+    lo, hi, n_ok = np.nan, np.nan, 0
+    if res["n"] >= MIN_SPEARMAN_N and np.isfinite(res["rho"]):
+        lo, hi, n_ok = bootstrap_year_ci(d["x"], d["y"], d["draft_year"],
+                                         seed=BOOT_SEED + 17000 + int(res["n"]))
+    return {"n": res["n"], "rho": res["rho"], "p": res["p"],
+            "rho_lo": lo, "rho_hi": hi, "n_boot_ok": n_ok}
+
+
+def lead_twenty(sp: pd.DataFrame, table: pd.DataFrame) -> pd.DataFrame:
+    """Lead-test table: tracking 20-yard split vs each group's key metric."""
+    log("\n==== Lead test: 20-yard split (tracking-derived, not official electronic) ====")
+    log("  There is no official electronic 20-yard time in this file. Times are")
+    log("  interpolated from 40-yard-dash tracking (start line = max(x) − 40).")
+    rows = []
+    for pos in POS_ORDER:
+        oc = next(o for o in OUTCOMES[pos] if o["key"])
+        elig = eligible_for(table, pos, oc)
+        group = table[table["pos_group"] == pos]
+        n_group = len(group)
+        n_t20_group = int(group["c_t20_derived"].notna().sum()) if "c_t20_derived" in group.columns else 0
+        n_elig = len(elig)
+        n_t20 = int(elig["c_t20_derived"].notna().sum()) if n_elig else 0
+        r = sp[(sp["pos_group"] == pos) & (sp["test"] == "c_t20_derived") & (sp["is_key"])]
+        if r.empty:
+            log(f"  {pos}: no 20-yard Spearman cell")
+            continue
+        rr = r.iloc[0]
+        others = sp[(sp["pos_group"] == pos) & (sp["is_key"])
+                    & (sp["test"] != "c_t20_derived") & sp["rho"].notna()].copy()
+        other_lab, other_rho, other_p, other_fdr = "", np.nan, np.nan, np.nan
+        if len(others):
+            others = others.assign(_abs=others["rho"].abs()).sort_values(
+                ["fdr_p", "p", "_abs"], ascending=[True, True, False]
+            )
+            ob = others.iloc[0]
+            other_lab, other_rho = ob["test_label"], float(ob["rho"])
+            other_p, other_fdr = float(ob["p"]), float(ob["fdr_p"])
+        # DB role caveat
+        cb_med = s_med = cb_n = s_n = np.nan
+        if pos == "DB" and "db_role" in elig.columns:
+            for role, var_n, var_m in (("CB", "cb_n", "cb_med"), ("S", "s_n", "s_med")):
+                sub = elig[elig["db_role"] == role]
+                if var_n == "cb_n":
+                    cb_n, cb_med = len(sub), (float(sub["tackle_rate"].median()) if len(sub) else np.nan)
+                else:
+                    s_n, s_med = len(sub), (float(sub["tackle_rate"].median()) if len(sub) else np.nan)
+            log(f"  DB caveat: among ≥50-snap eligible, CB n={int(cb_n)} median tackle "
+                f"rate={cb_med:.3f}; S n={int(s_n)} median tackle rate={s_med:.3f}. "
+                f"A pooled DB median can confound role with athleticism.")
+        rows.append({
+            "pos_group": pos,
+            "key_outcome": oc["col"],
+            "key_outcome_label": oc["label"],
+            "test": "c_t20_derived",
+            "test_label": "20-yard (tracking)",
+            "source": "tracking-derived from the 40-yard dash; not official electronic",
+            "n_group": n_group,
+            "n_t20_group": n_t20_group,
+            "coverage_group": n_t20_group / n_group if n_group else np.nan,
+            "n_eligible": n_elig,
+            "n": int(rr["n"]),
+            "coverage_eligible": int(rr["n"]) / n_elig if n_elig else np.nan,
+            "rho": float(rr["rho"]) if np.isfinite(rr["rho"]) else np.nan,
+            "rho_lo": float(rr["rho_lo"]) if np.isfinite(rr["rho_lo"]) else np.nan,
+            "rho_hi": float(rr["rho_hi"]) if np.isfinite(rr["rho_hi"]) else np.nan,
+            "p": float(rr["p"]) if np.isfinite(rr["p"]) else np.nan,
+            "holm_p": float(rr["holm_p"]) if np.isfinite(rr["holm_p"]) else np.nan,
+            "fdr_p": float(rr["fdr_p"]) if np.isfinite(rr["fdr_p"]) else np.nan,
+            "sig_holm_05": bool(rr["sig_holm_05"]),
+            "sig_fdr_05": bool(rr["sig_fdr_05"]),
+            "expected_sign": int(rr["expected_sign"]),
+            "direction_matches": rr["direction_matches"],
+            "best_other_test": other_lab,
+            "best_other_rho": other_rho,
+            "best_other_p": other_p,
+            "best_other_fdr_p": other_fdr,
+            "db_cb_n_eligible": cb_n,
+            "db_s_n_eligible": s_n,
+            "db_cb_median_tackle": cb_med,
+            "db_s_median_tackle": s_med,
+        })
+        star = " FDR-significant" if rr["sig_fdr_05"] else " (not FDR-significant)"
+        log(f"  {pos} vs {oc['label']}: n={int(rr['n'])}/{n_elig} eligible "
+            f"({int(rr['n'])/n_elig:.0%} coverage), group coverage "
+            f"{n_t20_group}/{n_group} ({n_t20_group/n_group:.0%})  "
+            f"ρ={fmt_rho(rr['rho'])}  95% CI [{fmt_rho(rr['rho_lo'])}, {fmt_rho(rr['rho_hi'])}]  "
+            f"p={fmt_p(rr['p'])}  Holm={fmt_p(rr['holm_p'])}  FDR={fmt_p(rr['fdr_p'])}{star}")
+        if other_lab:
+            log(f"      Best other test on the same key metric: {other_lab}  "
+                f"ρ={fmt_rho(other_rho)}  p={fmt_p(other_p)}  FDR={fmt_p(other_fdr)}")
+    return pd.DataFrame(rows)
+
+
+def _combo_sample(elig: pd.DataFrame, cols: list[str], ycol: str) -> pd.DataFrame:
+    need = [c for c in cols if c in elig.columns] + [ycol, "draft_year", "year_idx"]
+    d = elig.dropna(subset=need).copy().reset_index(drop=True)
+    return d
+
+
+def run_combos(table: pd.DataFrame) -> pd.DataFrame:
+    """Two- and three-test combos vs the 20-yard split alone, year only.
+
+    Primary comparison is on the common complete case (20-yard AND vertical
+    AND broad) so every recipe is scored on the same players and the same
+    CV folds. Each 2-test recipe is also reported on its own (larger)
+    complete case.
+    """
+    log("\n==== Combos: 20-yard ± jumps vs 20-yard alone (year only) ====")
+    rows = []
+    seed_i = 9000
+    for pos in POS_ORDER:
+        oc = next(o for o in OUTCOMES[pos] if o["key"])
+        elig = eligible_for(table, pos, oc)
+        ycol = oc["col"]
+        median = float(elig[ycol].median())
+        elig = elig.copy()
+        elig["success"] = ((elig[ycol] > median) if oc["higher_better"]
+                           else (elig[ycol] < median)).astype(int)
+        common_cols = ["c_t20_derived", "vertical", "broad_jump"]
+        common = _combo_sample(elig, common_cols, ycol)
+        samples = [("common", common)]
+        # Own-sample 2-test recipes (may be larger than the three-test intersection)
+        for key, cols in COMBO_RECIPES.items():
+            if key == "t20_vert_broad":
+                continue
+            own = _combo_sample(elig, cols, ycol)
+            samples.append((f"own_{key}", own))
+
+        # Deduplicate identical frames (if everyone has all three, own==common)
+        seen_n = {}
+        for sample_name, d in samples:
+            if len(d) < MIN_SPEARMAN_N:
+                log(f"  {pos} {sample_name}: n={len(d)} too small, skip")
+                continue
+            # Skip an "own" sample that is the exact same n and index as common
+            tag = (sample_name, len(d), tuple(sorted(d["nfl_id"].tolist())) if "nfl_id" in d.columns else len(d))
+            if tag in seen_n:
+                continue
+            seen_n[tag] = True
+
+            n_splits = 5 if len(d) >= 25 else 3
+            # Same regression folds for every recipe on this sample
+            rkf = RepeatedKFold(n_splits=n_splits, n_repeats=CV_REPEATS, random_state=CV_SEED)
+            Xdummy = np.zeros((len(d), 1))
+            reg_splits = list(rkf.split(Xdummy))
+            # Same classification folds
+            ybin = d["success"].to_numpy(dtype=int)
+            if np.unique(ybin).size >= 2:
+                rskf = RepeatedStratifiedKFold(
+                    n_splits=n_splits, n_repeats=CV_REPEATS, random_state=CV_SEED
+                )
+                try:
+                    clf_splits = list(rskf.split(Xdummy, ybin))
+                except Exception:
+                    clf_splits = reg_splits
+            else:
+                clf_splits = []
+
+            # 20-yard alone first, so we can difference against it
+            stored = {}
+            for recipe, cols in COMBO_RECIPES.items():
+                if any(c not in d.columns for c in cols):
+                    continue
+                if d[cols].isna().any().any():
+                    # This sample may not have a 3-test column complete; skip that recipe
+                    if d[cols].dropna().shape[0] < len(d):
+                        continue
+                seed_i += 1
+                y = d[ycol].to_numpy(dtype=float)
+                # Design matrices: year_idx + tests (raw; scaled inside CV)
+                X_tests = d[cols].to_numpy(dtype=float)
+                year_idx = d[["year_idx"]].to_numpy(dtype=float)
+                X_full = np.column_stack([X_tests, year_idx])
+                # Standardized coeffs + bootstrap CI (year residualized)
+                point, lo, hi = _std_ols_boot(d, ycol, cols, seed=BOOT_SEED + seed_i)
+                # LR vs 20-yard alone (year dummies in both)
+                Xy = year_controls(d)
+                # residualize y and x on year, then LR of resid ~ tests (equivalent nested)
+                y_res = residualize(y, Xy)
+                Z = []
+                for c in cols:
+                    x = d[c].to_numpy(dtype=float)
+                    sd = float(np.std(x, ddof=1))
+                    Z.append((x - x.mean()) / (sd if sd > 1e-12 else 1.0))
+                Z = np.column_stack(Z)
+                # Reduced: 20-yard only (always first column of a recipe that includes it)
+                if "c_t20_derived" in cols:
+                    i20 = cols.index("c_t20_derived")
+                    X_red = Z[:, [i20]]
+                    lr, lr_df, lr_p, r2_red, r2_full = _ols_lr_test(y_res, X_red, Z)
+                else:
+                    lr = lr_df = lr_p = r2_red = r2_full = np.nan
+
+                r2_folds = _ols_cv_r2(X_full, y, reg_splits)
+                auc_folds = _logit_cv_auc(X_full, ybin, clf_splits) if clf_splits else np.array([])
+                stored[recipe] = {
+                    "r2_folds": r2_folds,
+                    "auc_folds": auc_folds,
+                }
+                # Equal-weight sign-aligned composite, full-sample (descriptive)
+                mean = X_tests.mean(axis=0)
+                sd = X_tests.std(axis=0, ddof=1)
+                z_eq = _aligned_z(X_tests, cols, mean, sd)
+                eq = z_eq.mean(axis=1)
+                eq_res = _oof_spearman(eq, y, d["draft_year"])
+
+                # Paired tests vs 20-yard, filled after the loop if t20 is stored
+                row = {
+                    "pos_group": pos,
+                    "key_outcome": ycol,
+                    "key_outcome_label": oc["label"],
+                    "recipe": recipe,
+                    "recipe_label": COMBO_LABELS[recipe],
+                    "sample": sample_name,
+                    "n": len(d),
+                    "n_success": int(d["success"].sum()),
+                    "lr_stat": lr,
+                    "lr_df": lr_df,
+                    "lr_p": lr_p,
+                    "r2_20yd": r2_red,
+                    "r2_combo": r2_full,
+                    "delta_r2": (r2_full - r2_red) if np.isfinite(r2_full) and np.isfinite(r2_red) else np.nan,
+                    "cv_r2_mean": float(np.nanmean(r2_folds)) if np.isfinite(r2_folds).any() else np.nan,
+                    "cv_r2_sd": float(np.nanstd(r2_folds, ddof=1)) if np.isfinite(r2_folds).sum() > 1 else np.nan,
+                    "cv_auc_mean": float(np.nanmean(auc_folds)) if np.isfinite(auc_folds).any() else np.nan,
+                    "cv_auc_sd": float(np.nanstd(auc_folds, ddof=1)) if np.isfinite(auc_folds).sum() > 1 else np.nan,
+                    "equal_weight_rho": eq_res["rho"],
+                    "equal_weight_rho_lo": eq_res["rho_lo"],
+                    "equal_weight_rho_hi": eq_res["rho_hi"],
+                    "equal_weight_p": eq_res["p"],
+                    "equal_weight_n": eq_res["n"],
+                    "delta_cv_r2_vs_t20": np.nan,
+                    "delta_cv_r2_p": np.nan,
+                    "delta_cv_auc_vs_t20": np.nan,
+                    "delta_cv_auc_p": np.nan,
+                }
+                for i, c in enumerate(cols):
+                    row[f"coef_{c}"] = float(point[i]) if i < len(point) else np.nan
+                    row[f"coef_{c}_lo"] = float(lo[i]) if i < len(lo) else np.nan
+                    row[f"coef_{c}_hi"] = float(hi[i]) if i < len(hi) else np.nan
+                rows.append(row)
+
+            # Fill paired deltas vs 20-yard on the SAME folds
+            if "t20" in stored:
+                base = stored["t20"]
+                for row in rows:
+                    if row["pos_group"] != pos or row["sample"] != sample_name:
+                        continue
+                    if row["recipe"] == "t20":
+                        continue
+                    st = stored.get(row["recipe"])
+                    if not st:
+                        continue
+                    d_r2, p_r2, _ = _wilcoxon_greater(st["r2_folds"], base["r2_folds"])
+                    d_auc, p_auc, _ = _wilcoxon_greater(st["auc_folds"], base["auc_folds"])
+                    row["delta_cv_r2_vs_t20"] = d_r2
+                    row["delta_cv_r2_p"] = p_r2
+                    row["delta_cv_auc_vs_t20"] = d_auc
+                    row["delta_cv_auc_p"] = p_auc
+
+            # Log the common-sample (or only) comparison
+            if sample_name == "common" or sample_name.startswith("own_"):
+                recs = [r for r in rows if r["pos_group"] == pos and r["sample"] == sample_name]
+                for r in recs:
+                    extra = ""
+                    if r["recipe"] != "t20" and np.isfinite(r.get("lr_p", np.nan)):
+                        extra = (f"  LR vs 20-yd p={fmt_p(r['lr_p'])}  "
+                                 f"ΔR²={r['delta_r2']:+.3f}  "
+                                 f"ΔCV-AUC={r['delta_cv_auc_vs_t20']:+.3f} "
+                                 f"(p={fmt_p(r['delta_cv_auc_p'])})")
+                    log(f"  {pos} [{sample_name} n={r['n']}] {r['recipe_label']}: "
+                        f"CV R²={r['cv_r2_mean']:+.3f}  CV AUC={r['cv_auc_mean']:.3f}  "
+                        f"equal-wt ρ={fmt_rho(r['equal_weight_rho'])}{extra}")
+    return pd.DataFrame(rows)
+
+
+def _learned_oof(X: np.ndarray, y: np.ndarray, year: pd.DataFrame, cols: list[str],
+                 kind: str, splits: list) -> tuple[np.ndarray, np.ndarray, list]:
+    """Out-of-fold predictions and fold weights for ridge or lasso.
+
+    Features are sign-aligned and z-scored on the training fold only.
+    The target is residualized on year (train year dummies) so the weights
+    are an athletic composite, not a year effect. The score applied to the
+    test fold is X_aligned_z @ coef — no year term — so it is a pure Burst
+    Score. Returns (oof_mean, mean_weights, list_of_fold_weights).
+    """
+    n, k = X.shape
+    oof_sum = np.zeros(n, dtype=float)
+    oof_cnt = np.zeros(n, dtype=float)
+    fold_w = []
+    inner_k = 5 if n >= 30 else 3
+    for tr, te in splits:
+        Xtr, Xte = X[tr], X[te]
+        ytr = y[tr]
+        mean = Xtr.mean(axis=0)
+        sd = Xtr.std(axis=0, ddof=1)
+        Ztr = _aligned_z(Xtr, cols, mean, sd)
+        Zte = _aligned_z(Xte, cols, mean, sd)
+        ytr_r = residualize(ytr, year_controls(year.iloc[tr]))
+        if np.unique(ytr_r).size < 2 or Ztr.shape[0] < max(8, k + 2):
+            continue
+        inner = KFold(n_splits=min(inner_k, max(2, len(tr) // 4)), shuffle=True, random_state=CV_SEED)
+        try:
+            if kind == "ridge":
+                model = RidgeCV(alphas=np.logspace(-2, 3, 12), cv=inner).fit(Ztr, ytr_r)
+            else:
+                model = LassoCV(
+                    cv=inner, max_iter=8000, random_state=CV_SEED,
+                    alphas=np.logspace(-3, 1, 16),
+                ).fit(Ztr, ytr_r)
+            coef = np.asarray(model.coef_, dtype=float).ravel()
+            pred = Zte @ coef + float(model.intercept_)
+        except Exception:
+            continue
+        oof_sum[te] += pred
+        oof_cnt[te] += 1
+        fold_w.append(coef)
+    oof = np.divide(oof_sum, oof_cnt, out=np.full(n, np.nan), where=oof_cnt > 0)
+    mean_w = np.mean(np.vstack(fold_w), axis=0) if fold_w else np.full(k, np.nan)
+    return oof, mean_w, fold_w
+
+
+def _equal_oof(X: np.ndarray, cols: list[str], splits: list) -> np.ndarray:
+    """Out-of-fold equal-weight sign-aligned z-mean (train moments only)."""
+    n = X.shape[0]
+    oof_sum = np.zeros(n, dtype=float)
+    oof_cnt = np.zeros(n, dtype=float)
+    for tr, te in splits:
+        mean = X[tr].mean(axis=0)
+        sd = X[tr].std(axis=0, ddof=1)
+        Zte = _aligned_z(X[te], cols, mean, sd)
+        oof_sum[te] += Zte.mean(axis=1)
+        oof_cnt[te] += 1
+    return np.divide(oof_sum, oof_cnt, out=np.full(n, np.nan), where=oof_cnt > 0)
+
+
+def run_burst(table: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Burst Score: 2–3 test composites, equal-weight and learned-inside-CV.
+
+    For each group, every 2- or 3-test recipe (20-yard + broad and/or
+    vertical) is scored two ways, both evaluated out-of-fold:
+
+      1. Equal-weight mean of sign-aligned z-scores (train moments only).
+      2. Ridge and lasso weights fit on the training fold, applied to the
+         held-out fold.
+
+    The winning recipe + method is the one with the highest year-controlled
+    out-of-fold Spearman ρ against the key in-game metric. The 20-yard
+    split alone is the comparison baseline, not a Burst candidate. The
+    winning score is scaled 0–100 within the position (percentile rank).
+    If a learned method wins, the top-10 uses averaged OOF predictions;
+    if equal-weight wins, the top-10 uses the full-sample equal-weight
+    composite (weights are not learned from the outcome).
+    """
+    log(f"\n==== {BURST_NAME}: equal-weight vs learned-inside-CV, picked by OOF ρ ====")
+    summary_rows = []
+    player_frames = []
+    top_frames = []
+    burst_recipes = {k: v for k, v in COMBO_RECIPES.items() if k != "t20"}
+
+    for pos in POS_ORDER:
+        oc = next(o for o in OUTCOMES[pos] if o["key"])
+        elig = eligible_for(table, pos, oc)
+        ycol = oc["col"]
+        median = float(elig[ycol].median())
+        candidates = []  # (recipe, method, oof_rho, n, payload)
+
+        # 20-yard-alone OOF baseline, on each recipe's own sample and on common
+        for recipe, cols in {**{"t20": COMBO_RECIPES["t20"]}, **burst_recipes}.items():
+            d = _combo_sample(elig, cols, ycol)
+            if len(d) < MIN_SPEARMAN_N:
+                log(f"  {pos} {COMBO_LABELS[recipe]}: n={len(d)} too small")
+                continue
+            n_splits = 5 if len(d) >= 25 else 3
+            splits = list(RepeatedKFold(
+                n_splits=n_splits, n_repeats=CV_REPEATS, random_state=CV_SEED
+            ).split(np.zeros((len(d), 1))))
+            X = d[cols].to_numpy(dtype=float)
+            y = d[ycol].to_numpy(dtype=float)
+            year = d[["draft_year"]].reset_index(drop=True)
+
+            methods = {}
+            # Equal-weight OOF (for t20 this is just sign-aligned z of 20-yard)
+            eq_oof = _equal_oof(X, cols, splits)
+            methods["equal"] = {
+                "oof": eq_oof,
+                "weights": np.full(len(cols), 1.0 / len(cols)),
+                "weight_source": "equal, 1/k on sign-aligned z (train moments in OOF eval)",
+            }
+            if recipe != "t20":
+                for kind in ("ridge", "lasso"):
+                    oof, mean_w, fold_w = _learned_oof(X, y, year, cols, kind, splits)
+                    methods[kind] = {
+                        "oof": oof,
+                        "weights": mean_w,
+                        "weight_source": (
+                            f"{kind} coefficients on sign-aligned z, mean across "
+                            f"{len(fold_w)} CV folds (fit on year-residualized {ycol})"
+                        ),
+                        "n_folds_fit": len(fold_w),
+                    }
+            for method, payload in methods.items():
+                spr = _oof_spearman(payload["oof"], y, d["draft_year"])
+                # Full-sample equal-weight (descriptive; used for top-10 if equal wins)
+                mean = X.mean(axis=0)
+                sd = X.std(axis=0, ddof=1)
+                eq_full = _aligned_z(X, cols, mean, sd).mean(axis=1)
+                eq_full_spr = _oof_spearman(eq_full, y, d["draft_year"])
+                rec = {
+                    "pos_group": pos,
+                    "key_outcome": ycol,
+                    "key_outcome_label": oc["label"],
+                    "recipe": recipe,
+                    "recipe_label": COMBO_LABELS[recipe],
+                    "method": method,
+                    "n": len(d),
+                    "oof_rho": spr["rho"],
+                    "oof_rho_lo": spr["rho_lo"],
+                    "oof_rho_hi": spr["rho_hi"],
+                    "oof_p": spr["p"],
+                    "equal_full_rho": eq_full_spr["rho"],
+                    "equal_full_rho_lo": eq_full_spr["rho_lo"],
+                    "equal_full_rho_hi": eq_full_spr["rho_hi"],
+                    "beats_t20": np.nan,  # filled later
+                    "is_winner": False,
+                    "weight_source": payload["weight_source"],
+                }
+                for i, c in enumerate(cols):
+                    rec[f"weight_{c}"] = float(payload["weights"][i]) if i < len(payload["weights"]) and np.isfinite(payload["weights"][i]) else np.nan
+                # Normalized coach weights (if all finite and positive after a shift? report raw + share of |w|)
+                w = np.array([rec.get(f"weight_{c}", np.nan) for c in cols], dtype=float)
+                if np.all(np.isfinite(w)) and np.nansum(np.abs(w)) > 0:
+                    rec["weights_normalized"] = ", ".join(
+                        f"{TEST_LABELS.get(c, c)} {100*abs(w[i])/np.nansum(np.abs(w)):.0f}%"
+                        + (" (rev)" if w[i] < 0 else "")
+                        for i, c in enumerate(cols)
+                    )
+                else:
+                    rec["weights_normalized"] = ""
+                candidates.append((recipe, method, spr["rho"] if np.isfinite(spr["rho"]) else -np.inf,
+                                   len(d), rec, payload, d, eq_full, cols, y, median))
+                summary_rows.append(rec)
+
+        # Baseline 20-yard OOF ρ on its own sample, for beat-the-baseline flags
+        t20_rows = [r for r in summary_rows
+                    if r["pos_group"] == pos and r["recipe"] == "t20" and r["method"] == "equal"]
+        t20_rho = float(t20_rows[0]["oof_rho"]) if t20_rows and np.isfinite(t20_rows[0]["oof_rho"]) else np.nan
+
+        # Pick the winning Burst (2- or 3-test only) by OOF ρ
+        burst_cands = [c for c in candidates if c[0] != "t20"]
+        winner = None
+        if burst_cands:
+            # Highest OOF ρ; ties: more n, then fewer tests, then equal-weight
+            def _key(c):
+                recipe, method, rho, n, rec, *_ = c
+                n_tests = len(COMBO_RECIPES[recipe])
+                method_rank = 0 if method == "equal" else (1 if method == "ridge" else 2)
+                return (rho, n, -n_tests, -method_rank)
+            winner = max(burst_cands, key=_key)
+            winner[4]["is_winner"] = True
+
+        # Flag beats_t20 on the same n as each candidate when possible
+        for rec in summary_rows:
+            if rec["pos_group"] != pos:
+                continue
+            rec["t20_oof_rho_own_or_ref"] = t20_rho
+            if np.isfinite(rec.get("oof_rho", np.nan)) and np.isfinite(t20_rho):
+                rec["beats_t20"] = bool(rec["oof_rho"] > t20_rho + 1e-12)
+
+        if winner is None:
+            log(f"  {pos}: no valid Burst candidate")
+            continue
+
+        recipe, method, rho, n, rec, payload, d, eq_full, cols, y, median = winner
+        # Build the 0-100 score used for the named list
+        if method == "equal":
+            raw = eq_full  # full-sample equal-weight
+            score_note = "full-sample equal-weight sign-aligned z-mean"
+        else:
+            raw = payload["oof"]  # averaged OOF predictions (honest)
+            score_note = f"mean out-of-fold {method} predictions"
+        # Players with a missing OOF pred (failed folds) fall back to equal-weight
+        raw = np.asarray(raw, dtype=float)
+        if np.isnan(raw).any():
+            raw = np.where(np.isfinite(raw), raw, eq_full)
+        burst100 = _pct_0_100(raw)
+        rec["score_source"] = score_note
+        rec["burst_name"] = BURST_NAME
+        rec["burst_subtitle"] = (
+            f"{pos} {BURST_NAME} ({COMBO_LABELS[recipe]}, "
+            f"{'equal-weight' if method == 'equal' else 'learned ' + method})"
+        )
+        beats = (f"beats 20-yard alone OOF ρ={fmt_rho(t20_rho)}"
+                 if rec.get("beats_t20") else
+                 f"does NOT beat 20-yard alone OOF ρ={fmt_rho(t20_rho)}")
+        log(f"  WINNER {pos}: {rec['burst_subtitle']}  n={n}  "
+            f"OOF ρ={fmt_rho(rec['oof_rho'])}  "
+            f"95% CI [{fmt_rho(rec['oof_rho_lo'])}, {fmt_rho(rec['oof_rho_hi'])}]  "
+            f"p={fmt_p(rec['oof_p'])}  {beats}")
+        log(f"      weights: {rec['weights_normalized']}  ({rec['weight_source']})")
+
+        # Player-level frame
+        pf = d.copy()
+        pf["burst_raw"] = raw
+        pf["burst_0_100"] = burst100
+        pf["burst_name"] = BURST_NAME
+        pf["burst_subtitle"] = rec["burst_subtitle"]
+        pf["recipe"] = recipe
+        pf["recipe_label"] = COMBO_LABELS[recipe]
+        pf["method"] = method
+        pf["score_source"] = score_note
+        pf["key_outcome"] = ycol
+        pf["key_value"] = y
+        pf["success"] = ((pf[ycol] > median) if oc["higher_better"]
+                         else (pf[ycol] < median)).astype(int)
+        pf["pos_group"] = pos
+        keep = [
+            "nfl_id", "display_name", "pos_group", "nfl_position", "db_role",
+            "college_name", "draft_year", "burst_name", "burst_subtitle",
+            "recipe", "recipe_label", "method", "score_source",
+            "burst_raw", "burst_0_100", "key_outcome", "key_value", "success",
+            "c_t20_derived", "vertical", "broad_jump",
+        ]
+        keep = [c for c in keep if c in pf.columns]
+        player_frames.append(pf[keep])
+
+        top = pf.sort_values("burst_0_100", ascending=False).head(10).copy()
+        top["rank"] = np.arange(1, len(top) + 1)
+        top_cols = ["rank"] + [c for c in keep if c != "score_source"]
+        top_frames.append(top[[c for c in top_cols if c in top.columns]])
+        log(f"      Top 10 {pos}:")
+        for _, trow in top.iterrows():
+            name = trow.get("display_name", "?")
+            role = trow.get("db_role", "") if pos == "DB" else ""
+            role_s = f" ({role})" if isinstance(role, str) and role else ""
+            log(f"        {int(trow['rank']):2d}. {name}{role_s}   "
+                f"Burst={trow['burst_0_100']:.0f}  "
+                f"{oc['short']}={trow['key_value']:.3f}  "
+                f"20yd={trow.get('c_t20_derived', np.nan):.3f}")
+
+    summary = pd.DataFrame(summary_rows)
+    players = pd.concat(player_frames, ignore_index=True) if player_frames else pd.DataFrame()
+    top10 = pd.concat(top_frames, ignore_index=True) if top_frames else pd.DataFrame()
+    return summary, players, top10
+
+
+def appendix_cb_s(table: pd.DataFrame) -> pd.DataFrame:
+    """Small appendix: year-only Spearman within CB and within S.
+
+    Not used in the heatmap, the models, the Bayesian pool, or Burst Score.
+    Documents the tackle-rate role difference that a pooled DB median can
+    confound.
+    """
+    log("\n==== Appendix: CB vs S (not in headline) ====")
+    d = table[table["pos_group"] == "DB"].copy()
+    if "db_role" not in d.columns or d["db_role"].dropna().empty:
+        log("  No db_role column; skipping appendix.")
+        return pd.DataFrame()
+    rows = []
+    seed_i = 11000
+    for role in ["CB", "S"]:
+        outs = CB_S_OUTCOMES[role]
+        sub = d[d["db_role"] == role].copy()
+        for oc in outs:
+            elig = sub.copy()
+            if oc.get("min_col") and oc["min_n"]:
+                elig = elig[elig[oc["min_col"]] >= oc["min_n"]]
+            elig = elig[elig[oc["col"]].notna()]
+            if oc["key"]:
+                med = float(elig[oc["col"]].median()) if len(elig) else np.nan
+                log(f"  {role} {oc['short']}: {len(elig)} eligible, median={med:.3f}")
+            for test in TEST_ORDER:
+                seed_i += 1
+                if test not in elig.columns:
+                    continue
+                pair = elig[[test, oc["col"], "draft_year"]].dropna()
+                res = spearman_year(pair[test], pair[oc["col"]], pair["draft_year"])
+                lo, hi, n_ok = np.nan, np.nan, 0
+                if res["n"] >= MIN_SPEARMAN_N and np.isfinite(res["rho"]):
+                    lo, hi, n_ok = bootstrap_year_ci(
+                        pair[test], pair[oc["col"]], pair["draft_year"],
+                        seed=BOOT_SEED + seed_i,
+                    )
+                rows.append({
+                    "db_role": role,
+                    "test": test,
+                    "test_label": TEST_LABELS.get(test, test),
+                    "outcome": oc["col"],
+                    "outcome_label": oc["label"],
+                    "is_key": oc["key"],
+                    "n": res["n"],
+                    "rho": res["rho"],
+                    "p": res["p"],
+                    "rho_lo": lo,
+                    "rho_hi": hi,
+                })
+                if test == "c_t20_derived" and oc["key"]:
+                    log(f"    {role} 20-yard vs {oc['short']}: n={res['n']} "
+                        f"ρ={fmt_rho(res['rho'])} p={fmt_p(res['p'])}")
+    ap = pd.DataFrame(rows)
+    ap["fdr_p"] = np.nan
+    ap["holm_p"] = np.nan
+    for role in ["CB", "S"]:
+        mask = (ap["db_role"] == role) & ap["p"].notna() & np.isfinite(ap["p"])
+        if mask.sum() == 0:
+            continue
+        pvals = ap.loc[mask, "p"].to_numpy(dtype=float)
+        holm = multipletests(pvals, alpha=0.05, method="holm")
+        fdr = multipletests(pvals, alpha=0.05, method="fdr_bh")
+        ap.loc[mask, "holm_p"] = holm[1]
+        ap.loc[mask, "fdr_p"] = fdr[1]
+        log(f"  {role}: {int(mask.sum())} cells, "
+            f"{int((ap.loc[mask, 'fdr_p'] < 0.05).sum())} FDR-significant")
+    return ap
+
+
+def make_burst_figure(summary: pd.DataFrame, players: pd.DataFrame) -> Path | None:
+    """Figure 13: Burst Score OOF ρ vs 20-yard alone, and 0–100 scatters."""
+    if summary is None or len(summary) == 0 or players is None or len(players) == 0:
+        return None
+    _style()
+    fig = plt.figure(figsize=(15.4, 11.2))
+    # Top: grouped bars — 20-yard alone, equal-weight winner recipe, learned winner recipe
+    ax_bar = fig.add_axes([0.08, 0.60, 0.88, 0.30])
+    x = np.arange(len(POS_ORDER))
+    width = 0.22
+    # For each group, look up 20-yd equal OOF, and the winning recipe's equal / ridge / lasso
+    series = {
+        "20-yard alone": {"rho": [], "lo": [], "hi": [], "color": "#777777"},
+        "Equal-weight Burst": {"rho": [], "lo": [], "hi": [], "color": "#0072B2"},
+        "Ridge Burst": {"rho": [], "lo": [], "hi": [], "color": "#CC79A7"},
+        "Lasso Burst": {"rho": [], "lo": [], "hi": [], "color": "#D55E00"},
+    }
+    winners = {}
+    for pos in POS_ORDER:
+        sub = summary[summary["pos_group"] == pos]
+        t20 = sub[(sub["recipe"] == "t20") & (sub["method"] == "equal")]
+        win = sub[sub["is_winner"] == True]  # noqa: E712
+        win_recipe = win.iloc[0]["recipe"] if len(win) else None
+        winners[pos] = (win.iloc[0]["method"] if len(win) else None,
+                        win.iloc[0]["recipe_label"] if len(win) else "",
+                        win.iloc[0]["method"] if len(win) else "")
+        def _grab(df):
+            if df is None or len(df) == 0 or not np.isfinite(df.iloc[0]["oof_rho"]):
+                return (np.nan, np.nan, np.nan)
+            r = df.iloc[0]
+            return (float(r["oof_rho"]), float(r["oof_rho_lo"]) if np.isfinite(r["oof_rho_lo"]) else np.nan,
+                    float(r["oof_rho_hi"]) if np.isfinite(r["oof_rho_hi"]) else np.nan)
+        series["20-yard alone"]["rho"].append(_grab(t20)[0])
+        series["20-yard alone"]["lo"].append(_grab(t20)[1])
+        series["20-yard alone"]["hi"].append(_grab(t20)[2])
+        if win_recipe:
+            eq = sub[(sub["recipe"] == win_recipe) & (sub["method"] == "equal")]
+            rg = sub[(sub["recipe"] == win_recipe) & (sub["method"] == "ridge")]
+            la = sub[(sub["recipe"] == win_recipe) & (sub["method"] == "lasso")]
+        else:
+            eq = rg = la = sub.iloc[0:0]
+        for name, df in (("Equal-weight Burst", eq), ("Ridge Burst", rg), ("Lasso Burst", la)):
+            rho, lo, hi = _grab(df)
+            series[name]["rho"].append(rho)
+            series[name]["lo"].append(lo)
+            series[name]["hi"].append(hi)
+
+    for i, (name, s) in enumerate(series.items()):
+        offs = x + (i - 1.5) * width
+        rho = np.array(s["rho"], dtype=float)
+        lo = np.array(s["lo"], dtype=float)
+        hi = np.array(s["hi"], dtype=float)
+        yerr = np.vstack([
+            np.where(np.isfinite(rho) & np.isfinite(lo), rho - lo, 0),
+            np.where(np.isfinite(rho) & np.isfinite(hi), hi - rho, 0),
+        ])
+        bars = ax_bar.bar(offs, np.nan_to_num(rho, nan=0.0), width, color=s["color"],
+                          label=name, zorder=3, edgecolor="white", linewidth=0.6)
+        ax_bar.errorbar(offs, rho, yerr=yerr, fmt="none", ecolor="#333333",
+                        elinewidth=0.9, capsize=2.5, zorder=4)
+        # Gold edge on the winning method for each group
+        for j, pos in enumerate(POS_ORDER):
+            wmethod, _, _ = winners.get(pos, (None, "", ""))
+            match = (
+                (name == "Equal-weight Burst" and wmethod == "equal")
+                or (name == "Ridge Burst" and wmethod == "ridge")
+                or (name == "Lasso Burst" and wmethod == "lasso")
+            )
+            if match and np.isfinite(rho[j]):
+                bars[j].set_edgecolor("#E6B800")
+                bars[j].set_linewidth(2.4)
+                bars[j].set_zorder(5)
+
+    ax_bar.axhline(0, color="#444444", lw=0.8)
+    ax_bar.set_xticks(x)
+    xt_labs = []
+    for pos in POS_ORDER:
+        _, rlab, meth = winners.get(pos, (None, "", ""))
+        if rlab:
+            short = rlab.replace("20-yard + ", "+").replace("vertical", "vert").replace("broad jump", "broad")
+            xt_labs.append(f"{pos}\n{short}")
+        else:
+            xt_labs.append(pos)
+    ax_bar.set_xticklabels(xt_labs, fontsize=9)
+    ax_bar.set_ylabel("Out-of-fold Spearman ρ  (year-controlled)", fontsize=10)
+    ax_bar.set_title(
+        f"{BURST_NAME}: out-of-fold correlation with the key in-game metric",
+        fontsize=13, fontweight="bold", loc="left",
+    )
+    ax_bar.legend(loc="upper right", frameon=True, fontsize=8, ncol=4)
+    ax_bar.grid(axis="x", visible=False)
+    ax_bar.set_ylim(-0.55, 1.05)
+
+    # Bottom: 2×2 scatter, Burst 0–100 vs key metric
+    positions_with = [p for p in POS_ORDER if p in set(players["pos_group"])]
+    n_sc = len(positions_with)
+    for i, pos in enumerate(positions_with):
+        left = 0.08 + (i % n_sc) * (0.90 / n_sc)
+        width_s = (0.90 / n_sc) - 0.04
+        ax = fig.add_axes([left, 0.13, width_s, 0.38])
+        sub = players[players["pos_group"] == pos]
+        ycol_label = sub["key_outcome"].iloc[0] if len(sub) else ""
+        # Pretty y label from OUTCOMES
+        ylab = KEY_LABEL.get(pos, ycol_label)
+        if pos == "DB" and "db_role" in sub.columns:
+            for role, color, marker in (("CB", "#D55E00", "o"), ("S", "#009E73", "s")):
+                ss = sub[sub["db_role"] == role]
+                if len(ss) == 0:
+                    continue
+                ax.scatter(ss["burst_0_100"], ss["key_value"], c=color, marker=marker,
+                           s=32, alpha=0.85, edgecolors="white", linewidths=0.5,
+                           label=role, zorder=3)
+            ax.legend(fontsize=7, loc="best", frameon=True, title="Role")
+        else:
+            ax.scatter(sub["burst_0_100"], sub["key_value"], c=POS_COLOR[pos],
+                       s=32, alpha=0.85, edgecolors="white", linewidths=0.5, zorder=3)
+        # Annotate a couple of top names
+        top = sub.nlargest(3, "burst_0_100")
+        for _, trow in top.iterrows():
+            ax.annotate(
+                str(trow.get("display_name", "")).split()[-1],
+                (trow["burst_0_100"], trow["key_value"]),
+                textcoords="offset points", xytext=(4, 3), fontsize=6.5, color="#222",
+            )
+        win = summary[(summary["pos_group"] == pos) & (summary["is_winner"] == True)]  # noqa: E712
+        if len(win):
+            wr = win.iloc[0]
+            ax.set_title(
+                f"{pos}  ·  OOF ρ={wr['oof_rho']:+.2f}  n={int(wr['n'])}",
+                fontsize=10, fontweight="bold", color=POS_COLOR[pos], loc="left",
+            )
+        else:
+            ax.set_title(pos, fontsize=10, fontweight="bold", color=POS_COLOR[pos], loc="left")
+        ax.set_xlabel(f"{BURST_NAME} (0–100)", fontsize=8)
+        ax.set_ylabel(ylab, fontsize=8)
+        ax.set_xlim(-4, 104)
+        ax.grid(axis="x", visible=True, alpha=0.35)
+
+    fig.suptitle(
+        f"{BURST_NAME}: a coach-readable 2– or 3-test composite, by position",
+        fontsize=15, fontweight="bold", y=0.98, va="top",
+    )
+    fig.text(
+        0.08, 0.012,
+        "Gold outline marks the winning method (highest out-of-fold ρ) for that group.  "
+        "Error bars are 95% bootstrap CIs on the year-controlled Spearman.\n"
+        "Learned weights are fit inside each training fold (ridge / lasso) and scored on the held-out fold; "
+        "equal-weight uses training-fold means and SDs only.  "
+        "0–100 is the percentile rank within the position.\n"
+        "The 20-yard split is tracking-derived from the 40-yard dash, not an official electronic time.  "
+        "CB and S are pooled as DB (scatter colored by role: safeties typically have higher tackle rates).  "
+        "Year only, no draft pick.  RB excluded.",
+        fontsize=7.6, color="#333333", va="bottom",
+    )
+    path = FIGS / "fig13_burst_score.png"
+    FIGS.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=160, facecolor="white")
+    plt.close(fig)
+    log(f"  Wrote {path}")
+    return path
+
+
+# ---------------------------------------------------------------------------
 # Figures
 # ---------------------------------------------------------------------------
 def make_heatmap(sp: pd.DataFrame) -> Path:
@@ -1749,7 +2712,7 @@ def make_heatmap(sp: pd.DataFrame) -> Path:
         ax.axvline(key_j - 0.5, color="#333333", lw=1.1, alpha=0.55)
         ax.axvline(key_j + 0.5, color="#333333", lw=1.1, alpha=0.55)
 
-    fig.subplots_adjust(left=0.16, right=0.86, top=0.90, bottom=0.10, hspace=0.55)
+    fig.subplots_adjust(left=0.16, right=0.86, top=0.90, bottom=0.12, hspace=0.55)
     cax = fig.add_axes([0.88, 0.18, 0.015, 0.62])
     cb = fig.colorbar(last_im, cax=cax)
     cb.set_label("Spearman ρ  (year-controlled)", fontsize=10)
@@ -1766,7 +2729,8 @@ def make_heatmap(sp: pd.DataFrame) -> Path:
         "20-yard split and Combine top speed / accel are tracking-derived from the 40-yard dash "
         "(there is no official 20-yard time).  "
         "Closing speed and defender yards-allowed are not in this file.  "
-        "DL is one combined group.  RB is excluded.  "
+        "DL is one combined group.  CB and S are pooled as one DB group "
+        "(a CB vs S appendix is in the text).  RB is excluded.  "
         "Family for FDR/Holm = every valid (test × outcome) cell at that position.",
         fontsize=8.2, color="#333333", va="center", wrap=True,
     )
@@ -1831,24 +2795,24 @@ def make_forest(post: pd.DataFrame, bag: dict) -> Path:
         axes[k // ncols, k % ncols].set_visible(False)
     fig.suptitle(
         "Bayesian hierarchical logistic: Combine-test odds ratios\n"
-        "Partial pooling across WR, TE, CB, S, and one combined DL  ·  "
+        "Partial pooling across WR, TE, DB, and one combined DL  ·  "
         "year only, no draft pick",
         fontsize=15, fontweight="bold", y=0.99, va="top",
     )
     fig.text(
-        0.06, 0.015,
+        0.06, 0.012,
         "Filled markers: P(direction) ≥ 0.90 (posterior share on the pre-declared athletic side: "
         "faster times OR < 1, higher jumps / top speed / accel OR > 1).  "
-        "Height and weight have no pre-declared side; P(direction) is omitted.  "
+        "Height and weight have no pre-declared side; P(direction) is omitted.\n"
         f"Pooled n={bag['n']}.  PSIS-LOO AUC={bag['loo_auc']:.3f}.  "
         f"5-fold CV AUC={bag['cv5_auc']:.3f} (one pass, not 20×5).  "
-        f"max R̂={bag['rhat_max']:.3f}, divergences={bag['divergences']}.  "
+        f"max R̂={bag['rhat_max']:.3f}, divergences={bag['divergences']}.\n"
         "Binary outcome is above-median key success at each position "
-        "(WR/TE yards per route, CB/S tackle rate, DL pressure rate).  "
-        "RB is excluded.  DL is one combined group.",
-        fontsize=8.0, color="#333333", va="bottom",
+        "(WR/TE yards per route, DB tackle rate, DL pressure rate).  "
+        "RB is excluded.  DL is one combined group.  CB and S are pooled as DB.",
+        fontsize=7.8, color="#333333", va="bottom",
     )
-    fig.subplots_adjust(left=0.12, right=0.97, top=0.86, bottom=0.13, wspace=0.45, hspace=0.38)
+    fig.subplots_adjust(left=0.12, right=0.97, top=0.86, bottom=0.14, wspace=0.45, hspace=0.38)
     path = FIGS / "fig11_bayes_hierarchical.png"
     fig.savefig(path, dpi=160, facecolor="white")
     plt.close(fig)
@@ -1913,14 +2877,15 @@ def make_auc_chart(auc: pd.DataFrame) -> Path:
         fontsize=14, fontweight="bold",
     )
     fig.text(
-        0.06, 0.02,
+        0.06, 0.015,
         "Dashed line is the year-only baseline.  Error bars are the SD of fold AUCs.  "
         "† Bayesian AUCs are PSIS-LOO or a single 5-fold pass, not 20×5, and are not "
-        "directly comparable.  Trees often overfit (see train AUC in the table).  "
-        "DL is one combined group.  RB is excluded.",
-        fontsize=8, color="#333",
+        "directly comparable.\n"
+        "Trees often overfit (see train AUC in the table).  "
+        "DL is one combined group.  CB and S are pooled as DB.  RB is excluded.",
+        fontsize=8, color="#333", va="bottom",
     )
-    fig.subplots_adjust(left=0.22, right=0.98, top=0.84, bottom=0.14, wspace=0.12)
+    fig.subplots_adjust(left=0.22, right=0.98, top=0.84, bottom=0.16, wspace=0.12)
     # first axis already has labels; that's the point of sharey
     path = FIGS / "fig12_model_comparison.png"
     fig.savefig(path, dpi=160, facecolor="white")
@@ -1965,7 +2930,38 @@ def _rebuild_cc_all(table: pd.DataFrame) -> dict:
     return cc_all
 
 
-def _finish(table, sp, best, auc, stab, coef, cont, appendix, post, bag, rec, cc_all):
+def _write_extras(lead, combos, burst, burst_players, top10, appendix_db):
+    if lead is not None and len(lead):
+        lead.to_csv(OUT / "combine_to_game_lead20.csv", index=False)
+    if combos is not None and len(combos):
+        combos.to_csv(OUT / "combine_to_game_combos.csv", index=False)
+    if burst is not None and len(burst):
+        burst.to_csv(OUT / "combine_to_game_burst.csv", index=False)
+    if burst_players is not None and len(burst_players):
+        burst_players.to_csv(OUT / "combine_to_game_burst_players.csv", index=False)
+    if top10 is not None and len(top10):
+        top10.to_csv(OUT / "combine_to_game_burst_top10.csv", index=False)
+    if appendix_db is not None and len(appendix_db):
+        appendix_db.to_csv(OUT / "combine_to_game_appendix_cb_s.csv", index=False)
+
+
+def _load_csv(name: str) -> pd.DataFrame:
+    path = OUT / name
+    return pd.read_csv(path) if path.exists() else pd.DataFrame()
+
+
+def _recompute_extras(table, sp):
+    """Rebuild the 20-yard / combo / Burst / CB-S outputs from an assembled table."""
+    lead = lead_twenty(sp, table)
+    appendix_db = appendix_cb_s(table)
+    combos = run_combos(table)
+    burst, burst_players, top10 = run_burst(table)
+    return lead, combos, burst, burst_players, top10, appendix_db
+
+
+def _finish(table, sp, best, auc, stab, coef, cont, appendix, post, bag, rec, cc_all,
+            lead=None, combos=None, burst=None, burst_players=None,
+            top10=None, appendix_db=None):
     table.to_csv(OUT / "combine_to_game_players.csv", index=False)
     sp.to_csv(OUT / "combine_to_game_spearman.csv", index=False)
     best.to_csv(OUT / "combine_to_game_best.csv", index=False)
@@ -1979,27 +2975,57 @@ def _finish(table, sp, best, auc, stab, coef, cont, appendix, post, bag, rec, cc
     if len(appendix):
         appendix.to_csv(OUT / "combine_to_game_appendix_edge_interior.csv", index=False)
     rec.to_csv(OUT / "combine_to_game_recommendations.csv", index=False)
+    _write_extras(lead, combos, burst, burst_players, top10, appendix_db)
     log("\nWrote CSVs under out/combine_to_game_*.csv")
     fig10 = make_heatmap(sp)
     fig11 = make_forest(post, bag) if len(post) else None
     fig12 = make_auc_chart(auc) if len(auc) else None
+    fig13 = None
+    if burst is not None and len(burst) and burst_players is not None and len(burst_players):
+        fig13 = make_burst_figure(burst, burst_players)
+
+    log("\n==== LEAD TEST: 20-yard split (tracking-derived, not official electronic) ====")
+    if lead is not None and len(lead):
+        cols = [c for c in [
+            "pos_group", "key_outcome_label", "n", "coverage_eligible",
+            "rho", "rho_lo", "rho_hi", "p", "holm_p", "fdr_p", "sig_fdr_05",
+            "best_other_test", "best_other_rho",
+        ] if c in lead.columns]
+        print(lead[cols].to_string(index=False))
+
     log("\n==== HEADLINE: best Combine test for each group's key metric ====")
     if len(best):
         print(best[[
             "pos_group", "key_outcome_label", "best_test_label", "n",
             "rho", "rho_lo", "rho_hi", "p", "holm_p", "fdr_p", "sig_fdr_05",
         ]].to_string(index=False))
+
+    log(f"\n==== {BURST_NAME} (picked by out-of-fold ρ; 0–100 within position) ====")
+    if burst is not None and len(burst):
+        win = burst[burst["is_winner"] == True] if "is_winner" in burst.columns else burst.iloc[0:0]  # noqa: E712
+        # CSV may have stored is_winner as bool or as 0/1 / True-string
+        if win is not None and "is_winner" in burst.columns and len(win) == 0:
+            flag = burst["is_winner"].astype(str).str.lower().isin(["true", "1"])
+            win = burst[flag]
+        if len(win):
+            show = [c for c in [
+                "pos_group", "burst_subtitle", "n", "method", "recipe_label",
+                "oof_rho", "oof_rho_lo", "oof_rho_hi", "oof_p",
+                "t20_oof_rho_own_or_ref", "beats_t20", "weights_normalized",
+            ] if c in win.columns]
+            print(win[show].to_string(index=False))
+    if top10 is not None and len(top10):
+        log("  Top-10 named lists are in out/combine_to_game_burst_top10.csv")
+
     log("\n==== Recommendations (for Kevin to decide; he leans lasso) ====")
     if len(rec):
         for _, r in rec.iterrows():
             log(f"  {r['pos_group']}: {r['recommended_label']}")
             log(f"      {r['reason']}")
     log("\nFigures:")
-    log(f"  {fig10}")
-    if fig11:
-        log(f"  {fig11}")
-    if fig12:
-        log(f"  {fig12}")
+    for fig in (fig10, fig11, fig12, fig13):
+        if fig:
+            log(f"  {fig}")
     log("Done.")
     return 0
 
@@ -2007,7 +3033,8 @@ def _finish(table, sp, best, auc, stab, coef, cont, appendix, post, bag, rec, cc
 def main() -> int:
     FIGS.mkdir(parents=True, exist_ok=True)
     log("combine_to_game.py  —  Combine → Sunday, year only, no draft pick")
-    log("Groups: WR, TE, CB, S, DL (one combined group).  RB excluded.")
+    log("Groups: WR, TE, DB, DL (one combined group).  RB excluded.")
+    log("20-yard tracking split is the lead test (not official electronic).")
 
     if "--bayes-only" in sys.argv:
         log("Resuming from checkpoint (Spearman and 20×5 models already on disk).")
@@ -2019,15 +3046,26 @@ def main() -> int:
         auc = auc[~auc["model"].isin(["bayes_loo", "bayes_5fold"])].copy()
         stab = pd.read_csv(OUT / "combine_to_game_lasso_stability.csv")
         coef = pd.read_csv(OUT / "combine_to_game_coefficients.csv")
-        cont_p = OUT / "combine_to_game_continuous.csv"
-        cont = pd.read_csv(cont_p) if cont_p.exists() else pd.DataFrame()
-        ap_p = OUT / "combine_to_game_appendix_edge_interior.csv"
-        appendix = pd.read_csv(ap_p) if ap_p.exists() else pd.DataFrame()
+        cont = _load_csv("combine_to_game_continuous.csv")
+        appendix = _load_csv("combine_to_game_appendix_edge_interior.csv")
+        lead = _load_csv("combine_to_game_lead20.csv")
+        combos = _load_csv("combine_to_game_combos.csv")
+        burst = _load_csv("combine_to_game_burst.csv")
+        burst_players = _load_csv("combine_to_game_burst_players.csv")
+        top10 = _load_csv("combine_to_game_burst_top10.csv")
+        appendix_db = _load_csv("combine_to_game_appendix_cb_s.csv")
+        if lead.empty or burst.empty:
+            log("  Burst / lead-test CSVs missing; recomputing from the assembled table.")
+            lead, combos, burst, burst_players, top10, appendix_db = _recompute_extras(table, sp)
         cc_all = _rebuild_cc_all(table)
         post, bag, _extra = run_bayes(cc_all)
         auc = _attach_bayes_auc(auc, bag, cc_all)
         rec = recommend(auc, stab, best)
-        return _finish(table, sp, best, auc, stab, coef, cont, appendix, post, bag, rec, cc_all)
+        return _finish(
+            table, sp, best, auc, stab, coef, cont, appendix, post, bag, rec, cc_all,
+            lead=lead, combos=combos, burst=burst, burst_players=burst_players,
+            top10=top10, appendix_db=appendix_db,
+        )
 
     table = assemble()
     # Never carry a pick column into the analysis outputs.
@@ -2038,12 +3076,16 @@ def main() -> int:
     sp = run_spearman(table)
     best = pick_best(sp)
     appendix = appendix_edge_interior(table)
+    lead = lead_twenty(sp, table)
+    appendix_db = appendix_cb_s(table)
+    combos = run_combos(table)
+    burst, burst_players, top10 = run_burst(table)
 
     auc, stab, coef, cc_all = run_models(table)
     cont = run_continuous(table)
 
     # Checkpoint before the Bayesian step so a later failure does not
-    # throw away the Spearman matrix and the 20×5 model comparison.
+    # throw away the Spearman matrix, the 20×5 models, or the Burst Score.
     table.to_csv(OUT / "combine_to_game_players.csv", index=False)
     sp.to_csv(OUT / "combine_to_game_spearman.csv", index=False)
     best.to_csv(OUT / "combine_to_game_best.csv", index=False)
@@ -2054,68 +3096,27 @@ def main() -> int:
         cont.to_csv(OUT / "combine_to_game_continuous.csv", index=False)
     if len(appendix):
         appendix.to_csv(OUT / "combine_to_game_appendix_edge_interior.csv", index=False)
-    log("  Checkpointed Spearman and model CSVs.")
+    _write_extras(lead, combos, burst, burst_players, top10, appendix_db)
+    log("  Checkpointed Spearman, combo/Burst, and model CSVs.")
+
+    if "--skip-bayes" in sys.argv:
+        log("  --skip-bayes: skipping the hierarchical model.")
+        post, bag = pd.DataFrame(), {}
+        rec = recommend(auc, stab, best)
+        return _finish(
+            table, sp, best, auc, stab, coef, cont, appendix, post, bag, rec, cc_all,
+            lead=lead, combos=combos, burst=burst, burst_players=burst_players,
+            top10=top10, appendix_db=appendix_db,
+        )
 
     post, bag, _extra = run_bayes(cc_all)
-    # Attach Bayesian AUCs to the comparison table
-    if bag:
-        for pos, info in bag.get("per_group_loo", {}).items():
-            auc = pd.concat([auc, pd.DataFrame([_auc_row(
-                pos, "bayes_loo", info["n"], np.nan,
-                np.array([info["auc"]]), np.array([info["brier"]]), np.array([np.nan]),
-                np.nan,
-                extra={"protocol": "PSIS-LOO (hierarchical, pooled fit; not 20×5)"},
-            )])], ignore_index=True)
-        for pos, a in bag.get("per_group_5", {}).items():
-            folds = np.array(bag.get("cv5_folds", [a]), dtype=float)
-            auc = pd.concat([auc, pd.DataFrame([_auc_row(
-                pos, "bayes_5fold", int(cc_all[pos][5]["n_complete"]), 5,
-                np.array([a]), np.array([np.nan]), np.array([np.nan]),
-                np.nan,
-                extra={"protocol": "5-fold CV, one pass, seed 2027 (hierarchical; not 20×5)"},
-            )])], ignore_index=True)
-
+    auc = _attach_bayes_auc(auc, bag, cc_all)
     rec = recommend(auc, stab, best)
-
-    # Write CSVs
-    table.to_csv(OUT / "combine_to_game_players.csv", index=False)
-    sp.to_csv(OUT / "combine_to_game_spearman.csv", index=False)
-    best.to_csv(OUT / "combine_to_game_best.csv", index=False)
-    auc.to_csv(OUT / "combine_to_game_auc.csv", index=False)
-    stab.to_csv(OUT / "combine_to_game_lasso_stability.csv", index=False)
-    coef.to_csv(OUT / "combine_to_game_coefficients.csv", index=False)
-    if len(cont):
-        cont.to_csv(OUT / "combine_to_game_continuous.csv", index=False)
-    if len(post):
-        post.to_csv(OUT / "combine_to_game_bayes.csv", index=False)
-    if len(appendix):
-        appendix.to_csv(OUT / "combine_to_game_appendix_edge_interior.csv", index=False)
-    rec.to_csv(OUT / "combine_to_game_recommendations.csv", index=False)
-    log("\nWrote CSVs under out/combine_to_game_*.csv")
-
-    fig10 = make_heatmap(sp)
-    fig11 = make_forest(post, bag) if len(post) else None
-    fig12 = make_auc_chart(auc) if len(auc) else None
-
-    log("\n==== HEADLINE: best Combine test for each group's key metric ====")
-    if len(best):
-        print(best[[
-            "pos_group", "key_outcome_label", "best_test_label", "n",
-            "rho", "rho_lo", "rho_hi", "p", "holm_p", "fdr_p", "sig_fdr_05",
-        ]].to_string(index=False))
-    log("\n==== Recommendations (for Kevin to decide; he leans lasso) ====")
-    if len(rec):
-        for _, r in rec.iterrows():
-            log(f"  {r['pos_group']}: {r['recommended_label']}")
-            log(f"      {r['reason']}")
-    log("\nFigures:")
-    log(f"  {fig10}")
-    if fig11:
-        log(f"  {fig11}")
-    if fig12:
-        log(f"  {fig12}")
-    log("Done.")
-    return 0
+    return _finish(
+        table, sp, best, auc, stab, coef, cont, appendix, post, bag, rec, cc_all,
+        lead=lead, combos=combos, burst=burst, burst_players=burst_players,
+        top10=top10, appendix_db=appendix_db,
+    )
 
 
 if __name__ == "__main__":
