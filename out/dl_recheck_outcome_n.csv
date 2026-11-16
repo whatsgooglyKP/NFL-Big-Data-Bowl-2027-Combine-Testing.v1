@@ -1,0 +1,13 @@
+,DL,Edge,Interior
+pressure_rate,89,50,39
+sack_rate,89,50,39
+speed_1s_mph,89,50,39
+ttp_median,70,44,26
+tfl_rate,76,45,31
+run_stop_rate,78,43,35
+run_stop_near_rate,78,43,35
+run_tackle_depth,74,42,32
+pen_max_2s,87,48,39
+pen_2s,87,48,39
+pen_run_2s,88,50,38
+pen_pass_2s,86,48,38

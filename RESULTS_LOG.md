@@ -571,3 +571,63 @@ Kevin asked to solidify a tie-in to NFL Next Gen Stats (the AWS-powered public s
 Coach-facing takeaway: NGS is now a documented, reproducible external check that our tracking separation and cushion are measuring the same underlying thing as the public Next Gen numbers. It does not, after multiple-testing correction, add a new Combine-to-NGS success headline. Keep NGS in the supporting layer; keep the writeup on the Kaggle tracking story (DL Burst, 20-yard lead test, Sunday Re-Burst/Brakes).
 
 Outputs: `out/ngs_columns.csv`, `out/ngs_match_rates.csv`, `out/ngs_id_map.csv`, `out/ngs_unmatched.csv`, `out/ngs_coverage.csv`, `out/ngs_player_seasons.csv`, `out/ngs_career.csv`, `out/ngs_validation.csv`, `out/ngs_spearman.csv`. Caches: `external/ngs_{receiving,rushing,passing}.parquet`, `external/ngs_timestamp.json`. No draft-pick column is in any of these analysis files.
+
+## 11/2026 (America/New_York) — DB tackling sweep and DL re-check (every Combine measure)
+
+Kevin approved two runs: (1) every Combine measure vs DB tackling, (2) every Combine measure vs wider DL outcomes beyond pressure. Draft slot / round is not loaded anywhere (asserted in code). RB excluded. Scripts: `track_extract.py` (one pass over game tracking → gitignored caches in `out/cache/`), `bdb_stats.py` (shared stats), `db_tackling.py`, `dl_recheck.py`. Figures: `out/figs/fig18_db_tackling.png`, `out/figs/fig19_dl_recheck.png`.
+
+**Method (both runs).** Spearman ρ controlled for draft year (both variables demeaned within draft-year cells, then rank-correlated), 2,000-player bootstrap 95% CI, BH-FDR across every cell in the pooled family. Sensitivity: pooled group controlled for year × role (CB vs S) or year × subtype (Edge vs Interior) cells, which removes the "safeties tackle more / edges rush in space" composition. Breakouts (CB, S, Edge, Interior) are secondary with their own FDR. Outcome reliability is odd/even-play split-half with Spearman-Brown (SB). Minimum n = 12 per cell. Tests: 12 official (10-yard, 40, vertical, broad, 3-cone, shuttle, bench, arm, hand, wingspan, weight, height) + tracking 20-yard and 10-yard splits, Combine top speed, 40-yard peak accel, Burst Score; DB adds Combine Brakes / Re-Burst (DB drill peak decel / accel); DL adds 3-cone and shuttle tracked Brakes / Re-Burst.
+
+### 1. DB tackling (CB + SS + FS + DB, n = 118: 65 CB, 53 S)
+
+**Outcomes and floors.** REG snaps that stood, on defense. Per-snap rates need ≥100 snaps (69 eligible: 38 CB, 31 S): tackles (solo + assist), solo, assisted, solo share (≥10 tackles), TFL, forced fumbles. Tracking (80% of 5,756 involved plays have a tracked tackle frame): tackle depth = tackler's x at the `tackle` event minus the line of scrimmage, in yards downfield (median 6.0 yd; LOS formula validated — DL sit 0.6 yd off it at the snap); run-play tackle depth (≥8 run tackles, n = 56); closing speed = his mean speed in the 1.0 s before the tackle; closing rate = straight-line distance to the tackle spot covered in that 1.0 s (≥10 tracked tackles, n = 69). Game tracking has no ball and almost no ball carriers (rookies only), so closing is "toward where the tackle happened", not a true carrier-relative approach. PFR (nflverse): missed tackle % (≥15 attempts, n = 71) and yards per target allowed (≥20 targets, n = 61).
+
+**Reliability (SB).** Tackle rate 0.78, assist 0.68, run-tackle depth 0.64, solo 0.61, closing rate 0.40, closing speed 0.38, TFL 0.31, yards gained on his tackles 0.30, tackle depth 0.24, forced fumbles 0.02. TFL and forced fumbles are too rare for DBs to rank players; all-tackle depth is mostly alignment / role.
+
+**Headline: no Combine measure survives FDR for DB tackling.** 247 pooled cells, 19 at raw p < 0.05 (≈12 expected by chance), 0 at FDR < 0.05 (smallest FDR 0.058). Same with year × role control (0/247, min 0.086), CB (0/234, min 0.075) and S (0/219, min 0.99).
+
+Strongest cells (pooled DB, year-controlled):
+
+| Combine | Outcome | n | ρ | 95% CI | FDR | Read |
+|---|---|---:|---:|---|---:|---|
+| Weight | PFR yards / target allowed | 61 | +0.44 | +0.17 to +0.61 | 0.058 | Composition: vanishes with role control (ρ +0.03) |
+| Height | Tackle depth (tracking) | 69 | +0.41 | +0.17 to +0.60 | 0.058 | Holds with role control (+0.40, FDR 0.086); CB +0.55, n=38, FDR 0.075 — longer DBs make tackles deeper downfield (deployment, low-reliability outcome) |
+| Wingspan | Tackle depth | 69 | +0.38 | +0.14 to +0.57 | 0.097 | Same story as height |
+| Combine Brakes (DB drill) | Closing rate to tackle spot | 69 | +0.27 | +0.03 to +0.46 | 0.46 | **Best athletic test in the good direction**; holds with role control (+0.25, CI +0.01 to +0.47) |
+| Official 40 | Closing speed, last 1 s | 59 | −0.28 | −0.53 to −0.02 | 0.51 | Faster 40, faster closing (lean) |
+| Broad jump | PFR yards / target | CB 29 | +0.58 | +0.18 to +0.82 | 0.075 | CB only; longer broad, more yards/target (counter-intuitive, small n) |
+| Official 40 | PFR yards / target | CB 33 | −0.43 | −0.76 to −0.01 | 0.42 | CB only; faster 40, fewer yards/target (matches the PFR exploration) |
+
+**Notable nulls.** Lead 20-yard split vs tackle rate ρ = −0.12 (n = 58, CI −0.40 to +0.16, FDR 0.83); official 10-yard vs tackle rate +0.06 (n = 59); Burst Score vs tackle rate +0.16 (n = 53, FDR 0.83); Combine Re-Burst vs every tackling outcome (|ρ| ≤ 0.14); nothing predicts PFR missed tackle % in pooled DB (best 40-yard accel +0.21, FDR 0.71). Bench, hand size, 3-cone and shuttle have too few DBs (n ≈ 15–30) to say anything.
+
+**Answer for DB.** No Combine test translates to DB tackling production after multiple-testing correction. If a coach wants one athletic number, Combine Brakes (peak decel in the DB drill) is the most consistent lean: harder Combine brakers close faster to the tackle spot (ρ +0.27, n = 69, CI excludes 0, FDR 0.46). Keep it a lean.
+
+### 2. DL re-check (DE + DT + NT + OLB, n = 118: 66 Edge, 52 Interior)
+
+**Outcomes and floors.** REG snaps that stood, lined up EDGE or INTERIOR_LINE (49,766 snaps; 20,966 run snaps). Reference: pressure rate, sack rate, Sunday get-off (speed at 1.0 s), ≥20 pass-rush snaps, n = 89 (from `dl_burst.py`). New: median time to pressure (≥5 pressures, n = 70); TFL per snap (≥100 snaps, n = 76); run stops per run snap (tackle or assist on a run that is an offensive failure: < 40% of distance on 1st, < 60% on 2nd, < 100% on 3rd/4th; ≥50 run snaps, n = 78); run tackles at ≤2 yards per run snap (n = 78); run-tackle depth past LOS (tracking, ≥8, n = 74); penetration = yards upfield past the LOS toward the offense's backfield, from the snap to 2.0 s (max and value at 2.0 s; all snaps, run-only and pass-only; ≥50 tracked snaps, n = 86–88). Median DL starts 0.6 yd on his side of the LOS and is 2.25 yd past it at 2.0 s.
+
+**Reliability (SB).** Get-off 0.97, penetration 0.93–0.96, TFL 0.64, run stops 0.58, run-tackle depth 0.54, near-line run tackles 0.48, **time to pressure 0.12** (not a stable player trait in these samples).
+
+**Reference chain reproduced (year-controlled).** Official 10-yard → get-off ρ = −0.80 (n = 72, CI −0.87 to −0.65); 10-yard → pressure −0.47 (n = 72, CI −0.65 to −0.24, FDR 1e-4); get-off → pressure +0.51 (n = 89, CI +0.31 to +0.68). Controlling Sunday get-off, the 10-yard → pressure partial falls to −0.12 (p = 0.31). With year × subtype control, 10-yard → pressure is only −0.25 (FDR 0.20), so part of the pooled 10-yard result is still Edge-vs-Interior composition.
+
+**FDR counts.** Pooled DL 79/252 cells (23 of them production outcomes, the rest get-off / penetration); year × subtype 31/252 (only **one** production cell); Edge 8/246; Interior 27/227.
+
+**Beyond the 10-yard — the strongest new finding is the 3-cone vs pressure.**
+
+| Combine | Outcome | Group | n | ρ | 95% CI | FDR |
+|---|---|---|---:|---:|---|---:|
+| **3-cone** | **Pressure rate** | DL, year | 34 | **−0.65** | −0.83 to −0.36 | **0.0002** |
+| 3-cone | Pressure rate | DL, year × subtype | 34 | −0.57 | −0.81 to −0.19 | **0.006** (only production cell to survive subtype control) |
+| 3-cone | Pressure rate | Interior | 16 | −0.60 | −0.91 to 0.00 | 0.096 |
+| 3-cone | Pressure rate | Edge | 18 | −0.52 | −0.88 to +0.08 | 0.33 |
+| Short shuttle | Pressure rate | DL, year | 35 | −0.59 | −0.81 to −0.25 | 0.001 |
+
+The 3-cone link is not just the 10-yard or weight in disguise: partial ρ controlling the 10-yard = −0.52 (n = 30, p = 0.003), controlling weight = −0.41 (p = 0.015), controlling Sunday get-off = −0.43 (p = 0.011), controlling the official 40 = −0.34 (p = 0.067). Caveat: only 34 of 89 rushers ran the 3-cone (18 Edge, 16 Interior) — players who skip it are not a random subset.
+
+**New outcomes.** TFL rate: Burst Score ρ = +0.43 (n = 54, CI +0.16 to +0.63, FDR 0.006); 20-yard split −0.37 (n = 59, CI −0.57 to −0.10, FDR 0.017); vertical +0.34 (n = 68, FDR 0.017); 10-yard −0.28 (n = 60, FDR 0.089). With subtype control Burst vs TFL is +0.31 (CI +0.02 to +0.55, FDR 0.16), and Burst still holds after controlling weight (partial +0.35, p = 0.010) and get-off (+0.30, p = 0.027). Penetration in the first 2 s: almost every speed / power test and weight correlate strongly (e.g., broad jump vs pass-play penetration +0.79, n = 74; with subtype control +0.57, FDR < 0.001; Interior +0.70, n = 33, FDR 0.002), but penetration is essentially a longer get-off (get-off vs pass-play penetration ρ = +0.93), so it is a movement outcome, not production. Interior Combine top speed vs sack rate +0.48 (n = 33, FDR 0.038).
+
+**Notable nulls.** Run stops: no Combine test survives FDR in any group (best pooled 3-cone −0.39, n = 28, FDR 0.11; Interior arm length +0.37, n = 35, FDR 0.16). The 10-yard does not predict run stops (+0.08, n = 62). Faster DL make slightly *fewer* near-line run tackles (Combine top speed −0.26, n = 61, FDR 0.11) — a pass-rush-vs-run-fit trade-off, not a clean Combine signal. Time to pressure: nothing (and SB 0.12). Bench, arm length, hand size, wingspan, height: no pressure or sack link (e.g., arm length vs pressure −0.06, n = 89; bench vs pressure 0.00, n = 42). Tracked 3-cone / shuttle Brakes and Re-Burst: no FDR cells.
+
+**Answer for DL beyond the 10-yard.** The 3-cone is the best additional Combine test: it predicts pressure rate more strongly than the 10-yard, survives Edge/Interior control (the 10-yard does not), and adds information beyond the 10-yard, weight and Sunday get-off — on a small, self-selected 34-player sample. For a new outcome, the Burst Score is the best Combine predictor of TFL rate.
+
+Outputs: `out/db_tackle_{players,tests,reliability,qc,outcome_n}.csv`, `out/dl_recheck_{players,tests,chain,reliability,qc,outcome_n}.csv`. Tracking caches `out/cache/*.parquet` are gitignored (derived Kaggle tracking). No draft-pick column is in any of these files.
