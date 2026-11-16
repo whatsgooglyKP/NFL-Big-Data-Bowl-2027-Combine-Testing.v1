@@ -27,3 +27,13 @@ Downloaded 11/2026. If you refresh the files, re-run `athletic_comps.py`.
   This is the nflverse go-to ID map; a separate `ff_playerids` release is not published under nflverse-data.
 
 Downloaded 11/2026 for `explore_pfr.py`.
+
+- `ngs_receiving.parquet`, `ngs_rushing.parquet`, `ngs_passing.parquet` — NFL Next Gen Stats (powered by AWS) receiving, rushing, and passing, 2016 onward, as published in the free public nflverse release. Week 0 regular-season rows are season totals; weekly rows cover weeks that meet NGS's publishing floor (typically ≥5 targets in a week for receiving).
+  Source: https://github.com/nflverse/nflverse-data/releases/tag/nextgen_stats
+  Access: `nflreadr::load_nextgen_stats()` / `nflreadpy.load_nextgen_stats()` / https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/
+  Original public source: https://nextgenstats.nfl.com/
+  These files are supporting / validation evidence only. The competition writeup still has to be built on the provided Kaggle tracking data.
+
+- `ngs_timestamp.json` — nflverse release timestamp for the nextgen_stats tag.
+
+Downloaded 11/2026 for `explore_ngs.py`.
