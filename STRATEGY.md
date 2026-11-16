@@ -75,7 +75,7 @@ Units: data are yd/s; report mph = yd/s × 2.0455.
 5. Stability: split-half scatter (WR vs DB).
 6. CB speed tax: start rate by draft-round bucket × faster/slower than median 40 speed.
 7. Phase-2: which Combine drill best predicts Sunday Speed per position (bars of CV R²).
-8. SSOE leaderboard table (top/bottom 5 per position, mph, with draft pick) — the scouting card.
+8. SSOE leaderboard table (top/bottom 15 per position, mph; full roster when n < 30) — the scouting card.
 
 ## 7. Writeup outline (≤2,000 words)
 Intro & hook (180) · Data & definitions (300) · WR: speed is real (300) · DBs: speed isn't the trait (300) · Speed tax & draft implications (250) · Which drill to trust (250) · SSOE for development (200) · Limitations (nulls, sample, rookies only, untracked opponents) (150) · Conclusion/actions (70).

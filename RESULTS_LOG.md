@@ -16,45 +16,131 @@ Reliability flag on the scouting card: High (≥80 opportunity plays), Medium (4
 
 ### 2. SSOE scouting-card leaderboard
 
-121 players. Figure 4 shows the top 5 and bottom 5 at each position. For receivers this is a true over/under-the-40 flag. For corners and safeties the 40 barely predicts Sunday Speed, so SSOE is close to faster or slower than the position average — the figure caption says so.
+121 players. Figure 4 shows the top 15 and bottom 15 at WR (n=62) and CB (n=33). Safeties (n=26) are fewer than 30 unique players, so the figure and the tables below show the full roster once, split at the zero line (11 faster than the 40 predicted, 15 slower). For receivers this is a true over/under-the-40 flag. For corners and safeties the 40 barely predicts Sunday Speed, so SSOE is close to faster or slower than the position average — the figure caption says so. Draft slot and round are not used on the scouting card.
 
-**Top 5 SSOE, wide receivers (n=62)**
+**Top 15 SSOE, wide receivers (n=62)**
 
-| Player | Draft | College | Combine mph | Expected | Actual | SSOE | Plays | Flag |
-|---|---|---|---:|---:|---:|---:|---:|---|
-| Ronnie Bell | 2023 R7 #253 | Michigan | 22.02 | 18.08 | 19.31 | **+1.22** | 73 | Medium |
-| Devontez Walker | 2024 R4 #113 | North Carolina | 23.14 | 18.83 | 19.90 | **+1.07** | 42 | Medium |
-| Jalen Brooks | 2023 R7 #244 | South Carolina | 22.00 | 18.06 | 19.12 | **+1.05** | 114 | High |
-| Marvin Mims | 2023 R2 #63 | Oklahoma | 22.81 | 18.61 | 19.49 | **+0.88** | 361 | High |
-| Jimmy Horn | 2025 R6 #208 | Colorado | 23.21 | 18.88 | 19.66 | **+0.78** | 36 | Limited |
+| Player | College | Combine mph | Expected | Actual | SSOE | Plays | Flag |
+|---|---|---:|---:|---:|---:|---:|---|
+| Ronnie Bell | Michigan | 22.02 | 18.08 | 19.30 | **+1.22** | 73 | Medium |
+| Devontez Walker | North Carolina | 23.14 | 18.83 | 19.91 | **+1.07** | 42 | Medium |
+| Jalen Brooks | South Carolina | 22.00 | 18.06 | 19.12 | **+1.05** | 114 | High |
+| Marvin Mims | Oklahoma | 22.81 | 18.61 | 19.49 | **+0.88** | 361 | High |
+| Jimmy Horn | Colorado | 23.21 | 18.88 | 19.66 | **+0.78** | 36 | Limited |
+| Jermaine Burton | Alabama | 23.24 | 18.90 | 19.57 | **+0.67** | 73 | Medium |
+| Tez Johnson | Oregon | 22.58 | 18.46 | 19.08 | **+0.62** | 133 | High |
+| Kyle Williams | Washington State | 22.89 | 18.66 | 19.23 | **+0.57** | 92 | High |
+| Jacob Cowing | Arizona | 22.84 | 18.63 | 19.13 | **+0.50** | 28 | Limited |
+| Arian Smith | Georgia | 23.48 | 19.07 | 19.54 | **+0.48** | 109 | High |
+| Tre Tucker | Cincinnati | 23.45 | 19.05 | 19.51 | **+0.47** | 650 | High |
+| Konata Mumpfield | Pittsburgh | 21.45 | 17.70 | 18.11 | **+0.41** | 67 | Medium |
+| Derius Davis | Texas Christian | 23.91 | 19.35 | 19.74 | **+0.40** | 62 | Medium |
+| Troy Franklin | Oregon | 23.30 | 18.94 | 19.31 | **+0.37** | 330 | High |
+| Luther Burden | Missouri | 22.80 | 18.61 | 18.92 | **+0.31** | 67 | Medium |
 
-Largest WR unders: Rashee Rice −1.20 (High, 121 plays), Mitch Tinsley −1.00 (Medium), Elic Ayomanor −0.96 (High), Xavier Legette −0.85 (High), Malik Washington −0.82 (High).
+**Bottom 15 SSOE, wide receivers (n=62)**
 
-**Top 5 SSOE, cornerbacks (n=33)**
+| Player | College | Combine mph | Expected | Actual | SSOE | Plays | Flag |
+|---|---|---:|---:|---:|---:|---:|---|
+| Andrei Iosivas | Princeton | 23.12 | 18.82 | 18.37 | **−0.45** | 460 | High |
+| Jaylin Noel | Iowa State | 23.18 | 18.86 | 18.38 | **−0.48** | 65 | Medium |
+| Chimere Dike | Florida | 23.37 | 18.99 | 18.48 | **−0.51** | 157 | High |
+| Jonathan Mingo | Mississippi | 23.17 | 18.85 | 18.34 | **−0.52** | 296 | High |
+| Ricky Pearsall | Florida | 22.79 | 18.60 | 18.07 | **−0.53** | 195 | High |
+| Ryan Flournoy | Southeast Missouri | 22.68 | 18.52 | 17.96 | **−0.56** | 137 | High |
+| Jason Brownlee | Southern Mississippi | 22.27 | 18.25 | 17.67 | **−0.57** | 89 | High |
+| Jamari Thrash | Louisville | 22.27 | 18.25 | 17.66 | **−0.59** | 98 | High |
+| Devaughn Vele | Utah | 22.48 | 18.39 | 17.77 | **−0.61** | 179 | High |
+| Rakim Jarrett | Maryland | 23.49 | 19.07 | 18.33 | **−0.74** | 66 | Medium |
+| Malik Washington | Virginia | 22.52 | 18.42 | 17.59 | **−0.82** | 159 | High |
+| Xavier Legette | South Carolina | 23.43 | 19.03 | 18.18 | **−0.85** | 321 | High |
+| Elic Ayomanor | Stanford | 22.82 | 18.62 | 17.66 | **−0.96** | 177 | High |
+| Mitch Tinsley | Penn State | 22.23 | 18.22 | 17.23 | **−1.00** | 65 | Medium |
+| Rashee Rice | Southern Methodist | 22.37 | 18.32 | 17.12 | **−1.20** | 121 | High |
 
-| Player | Draft | College | Combine mph | Expected | Actual | SSOE | Plays | Flag |
-|---|---|---|---:|---:|---:|---:|---:|---|
-| Billy Bowman | 2025 R4 #118 | Oklahoma | 23.13 | 17.38 | 18.72 | **+1.33** | 51 | Medium |
-| Andru Phillips | 2024 R3 #70 | Kentucky | 22.45 | 17.32 | 18.02 | **+0.69** | 314 | High |
-| Cam Hart | 2024 R5 #140 | Notre Dame | 22.16 | 17.29 | 17.92 | **+0.62** | 392 | High |
-| Terrion Arnold | 2024 R1 #24 | Alabama | 22.05 | 17.28 | 17.78 | **+0.49** | 581 | High |
-| Upton Stout | 2025 R3 #100 | Western Kentucky | 22.93 | 17.37 | 17.86 | **+0.49** | 91 | High |
+**Top 15 SSOE, cornerbacks (n=33)**
 
-Largest CB unders: Denzel Burke −1.36, Julius Brents −0.79, Jaylon Jones −0.68, Darrell Luter −0.58, Max Melton −0.55 (all High).
+| Player | College | Combine mph | Expected | Actual | SSOE | Plays | Flag |
+|---|---|---:|---:|---:|---:|---:|---|
+| Billy Bowman | Oklahoma | 23.13 | 17.38 | 18.72 | **+1.33** | 51 | Medium |
+| Andru Phillips | Kentucky | 22.45 | 17.32 | 18.02 | **+0.69** | 314 | High |
+| Cam Hart | Notre Dame | 22.16 | 17.29 | 17.92 | **+0.62** | 392 | High |
+| Terrion Arnold | Alabama | 22.05 | 17.28 | 17.77 | **+0.49** | 581 | High |
+| Upton Stout | Western Kentucky | 22.93 | 17.36 | 17.86 | **+0.49** | 91 | High |
+| Kris Abrams-Draine | Missouri | 22.19 | 17.30 | 17.77 | **+0.48** | 142 | High |
+| Clark Phillips | Utah | 22.72 | 17.34 | 17.81 | **+0.46** | 285 | High |
+| Nehemiah Pritchett | Auburn | 23.33 | 17.40 | 17.85 | **+0.45** | 88 | High |
+| Myles Harden | South Dakota | 22.27 | 17.30 | 17.73 | **+0.42** | 172 | High |
+| Trey Amos | Mississippi | 22.82 | 17.35 | 17.68 | **+0.33** | 198 | High |
+| Kei'Trel Clark | Louisville | 22.87 | 17.36 | 17.68 | **+0.32** | 222 | High |
+| Riley Moss | Iowa | 23.22 | 17.39 | 17.71 | **+0.32** | 851 | High |
+| Renardo Green | Florida State | 22.63 | 17.34 | 17.58 | **+0.24** | 516 | High |
+| Jarrian Jones | Florida State | 23.07 | 17.38 | 17.62 | **+0.24** | 318 | High |
+| Kelee Ringo | Georgia | 24.01 | 17.47 | 17.55 | **+0.09** | 231 | High |
 
-**Top 5 SSOE, safeties (n=26)**
+**Bottom 15 SSOE, cornerbacks (n=33)**
 
-| Player | Draft | College | Combine mph | Expected | Actual | SSOE | Plays | Flag |
-|---|---|---|---:|---:|---:|---:|---:|---|
-| Brandon Joseph | UDFA | Notre Dame | 21.97 | 16.08 | 16.89 | **+0.81** | 78 | Medium |
-| Brian Branch | 2023 R2 #45 | Alabama | 22.49 | 16.19 | 16.91 | **+0.71** | 666 | High |
-| Sydney Brown | 2023 R3 #66 | Illinois | 23.41 | 16.39 | 17.02 | **+0.62** | 168 | High |
-| Calen Bullock | 2024 R3 #78 | Southern California | 22.54 | 16.20 | 16.79 | **+0.58** | 713 | High |
-| Antonio Johnson | 2023 R5 #160 | Texas A&M | 22.11 | 16.11 | 16.59 | **+0.48** | 455 | High |
+| Player | College | Combine mph | Expected | Actual | SSOE | Plays | Flag |
+|---|---|---:|---:|---:|---:|---:|---|
+| Mike Sainristil | Michigan | 22.00 | 17.28 | 17.18 | **−0.10** | 560 | High |
+| Nohl Williams | California | 22.64 | 17.34 | 17.22 | **−0.12** | 162 | High |
+| Maxwell Hairston | Kentucky | 24.25 | 17.49 | 17.23 | **−0.25** | 109 | High |
+| Alex Austin | Oregon State | 22.43 | 17.32 | 17.06 | **−0.26** | 231 | High |
+| Deonte Banks | Maryland | 22.91 | 17.36 | 17.07 | **−0.30** | 808 | High |
+| Cam Smith | South Carolina | 23.29 | 17.40 | 17.07 | **−0.33** | 63 | Medium |
+| Darien Porter | Iowa State | 23.89 | 17.45 | 17.05 | **−0.40** | 190 | High |
+| Chau Smith-Wade | Washington State | 21.82 | 17.26 | 16.83 | **−0.43** | 145 | High |
+| Quincy Riley | Louisville | 22.66 | 17.34 | 16.88 | **−0.46** | 271 | High |
+| Josh Newton | Texas Christian | 22.74 | 17.35 | 16.88 | **−0.47** | 280 | High |
+| Max Melton | Rutgers | 23.36 | 17.41 | 16.86 | **−0.55** | 355 | High |
+| Darrell Luter | South Alabama | 22.87 | 17.36 | 16.78 | **−0.58** | 126 | High |
+| Jaylon Jones | Texas A&M | 22.38 | 17.31 | 16.63 | **−0.68** | 760 | High |
+| Julius Brents | Kansas State | 22.22 | 17.30 | 16.50 | **−0.79** | 242 | High |
+| Denzel Burke | Ohio State | 22.51 | 17.33 | 15.96 | **−1.36** | 210 | High |
 
-Largest S unders: Evan Williams −0.82, Jay Ward −0.65 (Medium), DeMarcco Hellams −0.51, Kamren Kinchens −0.46, Demani Richardson −0.39.
+Three corners sit between these lists and are not shown: Quinyon Mitchell +0.06 (High, 750 plays); Cobee Bryant +0.02 (Limited, 34 plays); Cameron Mitchell +0.01 (High, 324 plays).
 
-Do not treat Limited names (Jimmy Horn, 36 deep routes) as a finished grade. Do not claim SSOE predicts starts or production; those tests were already null.
+**Safeties (n=26): full roster**
+
+The safety sample is smaller than 15 top + 15 bottom, so nobody is listed twice. The 11 players above the dashed line in Figure 4 were faster than the 40 predicted; the 15 below it were slower.
+
+**Faster than the 40 predicted, safeties (n=11 of 26)**
+
+| Player | College | Combine mph | Expected | Actual | SSOE | Plays | Flag |
+|---|---|---:|---:|---:|---:|---:|---|
+| Brandon Joseph | Notre Dame | 21.97 | 16.08 | 16.89 | **+0.81** | 78 | Medium |
+| Brian Branch | Alabama | 22.49 | 16.19 | 16.91 | **+0.71** | 666 | High |
+| Sydney Brown | Illinois | 23.41 | 16.39 | 17.02 | **+0.62** | 168 | High |
+| Calen Bullock | Southern California | 22.54 | 16.20 | 16.79 | **+0.58** | 713 | High |
+| Antonio Johnson | Texas A&M | 22.11 | 16.11 | 16.59 | **+0.48** | 455 | High |
+| Jonas Sanker | Virginia | 22.77 | 16.25 | 16.57 | **+0.32** | 305 | High |
+| Quan Martin | Illinois | 22.54 | 16.20 | 16.44 | **+0.23** | 745 | High |
+| Anthony Johnson | Iowa State | 22.55 | 16.21 | 16.43 | **+0.22** | 145 | High |
+| Chamarri Conner | Virginia Tech | 22.35 | 16.16 | 16.34 | **+0.17** | 435 | High |
+| Cole Bishop | Utah | 22.02 | 16.09 | 16.24 | **+0.15** | 420 | High |
+| Kaevon Merriweather | Iowa | 21.92 | 16.07 | 16.21 | **+0.14** | 149 | High |
+
+**Slower than the 40 predicted, safeties (n=15 of 26)**
+
+| Player | College | Combine mph | Expected | Actual | SSOE | Plays | Flag |
+|---|---|---:|---:|---:|---:|---:|---|
+| Marques Sigle | Kansas State | 23.53 | 16.42 | 16.42 | **−0.00** | 107 | High |
+| Craig Woodson | California | 22.67 | 16.23 | 16.18 | **−0.05** | 289 | High |
+| Javon Bullard | Georgia | 22.56 | 16.21 | 16.14 | **−0.06** | 278 | High |
+| Tykee Smith | Georgia | 22.43 | 16.18 | 16.10 | **−0.08** | 346 | High |
+| Dadrion Taylor-Demerson | Texas Tech | 23.00 | 16.30 | 16.21 | **−0.09** | 217 | High |
+| Malaki Starks | Georgia | 23.12 | 16.33 | 16.19 | **−0.14** | 425 | High |
+| Rayuan Lane | Navy | 22.74 | 16.25 | 16.05 | **−0.20** | 50 | Medium |
+| Kitan Crawford | Nevada | 23.31 | 16.37 | 16.10 | **−0.27** | 33 | Limited |
+| Jordan Battle | Alabama | 22.72 | 16.24 | 15.89 | **−0.35** | 632 | High |
+| Demani Richardson | Texas A&M | 22.00 | 16.09 | 15.70 | **−0.39** | 125 | High |
+| R.J. Mickens | Clemson | 23.10 | 16.32 | 15.94 | **−0.39** | 82 | High |
+| Kamren Kinchens | Miami | 22.11 | 16.11 | 15.65 | **−0.46** | 446 | High |
+| DeMarcco Hellams | Alabama | 22.70 | 16.24 | 15.73 | **−0.51** | 158 | High |
+| Jay Ward | Louisiana State | 22.30 | 16.15 | 15.51 | **−0.65** | 71 | Medium |
+| Evan Williams | Oregon | 21.98 | 16.08 | 15.26 | **−0.82** | 442 | High |
+
+Do not treat Limited names (Jimmy Horn, 36 deep routes; Jacob Cowing, 28; Kitan Crawford, 33; Cobee Bryant, 34 coverage plays, not shown in the CB top/bottom 15) as a finished grade. Do not claim SSOE predicts starts or production; those tests were already null.
 
 ### 3. Incremental test over `ngs_athleticism_score`
 
@@ -631,3 +717,9 @@ The 3-cone link is not just the 10-yard or weight in disguise: partial ρ contro
 **Answer for DL beyond the 10-yard.** The 3-cone is the best additional Combine test: it predicts pressure rate more strongly than the 10-yard, survives Edge/Interior control (the 10-yard does not), and adds information beyond the 10-yard, weight and Sunday get-off — on a small, self-selected 34-player sample. For a new outcome, the Burst Score is the best Combine predictor of TFL rate.
 
 Outputs: `out/db_tackle_{players,tests,reliability,qc,outcome_n}.csv`, `out/dl_recheck_{players,tests,chain,reliability,qc,outcome_n}.csv`. Tracking caches `out/cache/*.parquet` are gitignored (derived Kaggle tracking). No draft-pick column is in any of these files.
+
+## 11/2026 (America/New_York) — SSOE scouting card expanded to top / bottom 15
+
+Kevin asked to change the per-position results from top 5 to top 15. Figure 4 and the Section 2 tables above now show top 15 and bottom 15 SSOE at WR (n=62) and CB (n=33). Safeties (n=26) are fewer than 30 unique players, so the figure and tables show the full roster once, split at the zero line (11 faster than the 40 predicted, 15 slower). Draft slot and round are not used on the scouting card or in Figure 4. Limited names remain directional only.
+
+Outputs: `out/ssoe_leaderboard.csv`, `out/figs/fig4_ssoe_leaderboard.png`.

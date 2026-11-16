@@ -33,7 +33,7 @@ POS_COLOR = {"WR": "#0072B2", "CB": "#D55E00", "S": "#009E73"}
 POS_LABEL = {"WR": "Wide receivers", "CB": "Cornerbacks", "S": "Safeties"}
 N_PERM = 5000
 RNG_SEED = 2027
-TOP_N = 5
+TOP_N = 15
 
 
 def log(msg: str) -> None:
@@ -124,6 +124,24 @@ def perm_partial_p(x: pd.Series, y: pd.Series, pick: pd.Series, n_perm: int = N_
     return (hits + 1) / (n_perm + 1)
 
 
+def select_top_bottom(sub: pd.DataFrame, n: int = TOP_N) -> tuple[pd.DataFrame, bool]:
+    """Top n and bottom n by SSOE, with no player listed twice.
+
+    If the position has fewer than 2n players, return the full roster
+    sorted by SSOE (descending) and showed_all=True so the figure caption
+    can say the sample is smaller than n top + n bottom.
+    """
+    sub_sorted = sub.sort_values(
+        ["ssoe_mph", "player_name"], ascending=[False, True], kind="mergesort"
+    ).reset_index(drop=True)
+    if len(sub_sorted) <= 2 * n:
+        return sub_sorted, True
+    top = sub_sorted.head(n)
+    bot = sub_sorted.tail(n)
+    bot = bot[~bot["nfl_id"].isin(set(top["nfl_id"]))]
+    return pd.concat([top, bot], ignore_index=True), False
+
+
 def _style() -> None:
     plt.rcParams.update({
         "figure.facecolor": "white",
@@ -164,12 +182,11 @@ def build_leaderboard(M: pd.DataFrame, slopes: dict) -> pd.DataFrame:
 
     d["n_opportunity_plays"] = np.where(d["pos_group"] == "WR", d["n_deep_reg"], d["n_cov_reg"])
     d["reliability"] = d["n_opportunity_plays"].map(reliability)
-    d["draft_info"] = d.apply(fmt_pick, axis=1)
     d["rank_in_position"] = d.groupby("pos_group")["ssoe_mph"].rank(ascending=False, method="min").astype(int)
 
+    # Draft slot and round are never used on the scouting card, even as a label.
     cols = [
         "nfl_id", "display_name", "nfl_position", "pos_group", "college_name",
-        "draft_year", "draft_round", "draft_overall_pick", "draft_info",
         "c_top_mph", "expected_sunday_speed_mph", "sunday_speed_mph", "ssoe_mph",
         "realization", "n_opportunity_plays", "n_plays_reg", "reliability",
         "rank_in_position",
@@ -194,61 +211,95 @@ def build_leaderboard(M: pd.DataFrame, slopes: dict) -> pd.DataFrame:
 
 def make_figure(board: pd.DataFrame) -> Path:
     _style()
-    fig, axes = plt.subplots(1, 3, figsize=(13.6, 6.6), sharex=False)
     over_color = "#009E73"
     under_color = "#D55E00"
 
-    for ax, pos in zip(axes, POS_ORDER):
+    panels = []
+    for pos in POS_ORDER:
         sub = board[board["position_group"] == pos].copy()
-        top = sub.nlargest(TOP_N, "ssoe_mph")
-        bot = sub.nsmallest(TOP_N, "ssoe_mph").sort_values("ssoe_mph", ascending=False)
-        plot = pd.concat([top, bot], ignore_index=True)
-        # Draw top 5, a visual break, then bottom 5 — keep SSOE descending.
+        plot, showed_all = select_top_bottom(sub)
+        panels.append((pos, sub, plot, showed_all))
+
+    # One row per position keeps 15+15 names readable. Height scales with
+    # how many bars each panel actually draws.
+    height = sum(1.05 + 0.28 * len(plot) for _, _, plot, _ in panels) + 1.35
+    fig, axes = plt.subplots(
+        3, 1, figsize=(11.2, height), sharex=False,
+        gridspec_kw={"height_ratios": [len(plot) for _, _, plot, _ in panels]},
+    )
+
+    caption_notes = []
+    for ax, (pos, sub, plot, showed_all) in zip(axes, panels):
         labels = []
         for _, r in plot.iterrows():
             flag = "" if r["reliability"] == "High" else f"  ({r['reliability']})"
-            labels.append(f"{r['player_name']}{flag}\n{r['draft_info']}")
+            labels.append(f"{r['player_name']}{flag}")
         colors = [over_color if v >= 0 else under_color for v in plot["ssoe_mph"]]
         y = np.arange(len(plot))
         ax.barh(y, plot["ssoe_mph"], color=colors, edgecolor="white", height=0.72, zorder=3)
         ax.axvline(0, color="#444444", lw=0.9, zorder=2)
-        # Visual break between top and bottom.
-        ax.axhline(TOP_N - 0.5, color="#AAAAAA", lw=0.8, ls="--", zorder=1)
+        # Visual break: between top n and bottom n, or at the zero crossing
+        # when the full roster is shown because the sample is smaller than 2n.
+        if showed_all:
+            n_nonneg = int((plot["ssoe_mph"] >= 0).sum())
+            if 0 < n_nonneg < len(plot):
+                ax.axhline(n_nonneg - 0.5, color="#AAAAAA", lw=0.8, ls="--", zorder=1)
+            caption_notes.append(
+                f"{POS_LABEL[pos]}: all {len(sub)} players shown "
+                f"(sample is smaller than {TOP_N} top + {TOP_N} bottom, so nobody is listed twice)."
+            )
+        else:
+            ax.axhline(TOP_N - 0.5, color="#AAAAAA", lw=0.8, ls="--", zorder=1)
         ax.set_yticks(y, labels, fontsize=8)
         ax.invert_yaxis()
         ax.set_xlabel("SSOE (mph)")
-        # Annotate values on the bars.
         span = max(0.4, float(plot["ssoe_mph"].abs().max()))
         for i, v in enumerate(plot["ssoe_mph"]):
             ax.text(
                 v + (0.04 if v >= 0 else -0.04), i,
                 f"{v:+.2f}",
                 va="center", ha="left" if v >= 0 else "right",
-                fontsize=8, fontweight="bold",
+                fontsize=7.5, fontweight="bold",
                 color="#222222",
             )
         ax.set_xlim(-span - 0.35, span + 0.45)
-        ax.set_title(f"{POS_LABEL[pos]}  (n={len(sub)})", loc="left", fontweight="bold", color=POS_COLOR[pos])
+        title = f"{POS_LABEL[pos]}  (n={len(sub)})"
+        if showed_all:
+            title += "  — full roster"
+        else:
+            title += f"  — top {TOP_N} / bottom {TOP_N}"
+        ax.set_title(title, loc="left", fontweight="bold", color=POS_COLOR[pos])
         if pos == "WR":
             ax.text(
-                0.02, 0.02, "Over the 40  →", color=over_color, fontsize=8,
+                0.01, 0.02, "Over the 40  →", color=over_color, fontsize=8,
                 transform=ax.transAxes, fontweight="bold",
             )
 
+    if any(not showed_all for _, _, _, showed_all in panels):
+        shown_partial = [
+            POS_LABEL[pos] for pos, _, _, showed_all in panels if not showed_all
+        ]
+        caption_notes.insert(
+            0,
+            f"{' and '.join(shown_partial)}: top {TOP_N} and bottom {TOP_N} shown."
+            if len(shown_partial) <= 2
+            else f"Top {TOP_N} and bottom {TOP_N} shown at each position unless noted.",
+        )
+
     fig.suptitle(
         "Sunday Speed Over Expected: who plays faster than their Combine 40 predicted",
-        x=0.01, ha="left", fontweight="bold", fontsize=14, y=1.03,
+        x=0.01, ha="left", fontweight="bold", fontsize=14, y=1.01,
     )
     fig.text(
-        0.01, -0.04,
+        0.01, -0.01,
         "SSOE (mph) = actual Sunday Speed − the speed expected from the player's Combine 40-yard top speed at his position.  "
-        "Top 5 and bottom 5 shown.  "
+        + "  ".join(caption_notes) + "  "
         "For receivers the 40 is a real predictor, so this is a true over/under-the-40 flag.  "
         "For corners and safeties the 40 barely predicts Sunday Speed, so SSOE is close to faster or slower than the position average.  "
         "Limited/Medium in parentheses means fewer than 80 (or 40) opportunity plays — treat those names as directional.",
         fontsize=8, color="#555555", ha="left", wrap=True,
     )
-    fig.tight_layout()
+    fig.tight_layout(rect=(0, 0.02, 1, 0.99))
     path = FIGS / "fig4_ssoe_leaderboard.png"
     fig.savefig(path, dpi=200, bbox_inches="tight")
     plt.close(fig)
@@ -378,20 +429,37 @@ def speed_tax(M: pd.DataFrame) -> pd.DataFrame:
 
 
 def print_top(board: pd.DataFrame) -> None:
-    log("\n==== Scouting card: top 5 and bottom 5 SSOE by position ====")
+    log(f"\n==== Scouting card: top {TOP_N} and bottom {TOP_N} SSOE by position ====")
+    show_cols = [
+        "player_name", "college_name",
+        "combine_top_speed_mph", "expected_sunday_speed_mph",
+        "actual_sunday_speed_mph", "ssoe_mph",
+        "n_opportunity_plays", "reliability",
+    ]
     for pos in POS_ORDER:
         sub = board[board["position_group"] == pos]
+        plot, showed_all = select_top_bottom(sub)
         log(f"\n{POS_LABEL[pos]} (n={len(sub)})")
-        show_cols = [
-            "player_name", "draft_info", "college_name",
-            "combine_top_speed_mph", "expected_sunday_speed_mph",
-            "actual_sunday_speed_mph", "ssoe_mph",
-            "n_opportunity_plays", "reliability",
-        ]
-        log("  TOP 5 (faster than the 40 predicted)")
-        log(sub.nlargest(TOP_N, "ssoe_mph")[show_cols].to_string(index=False))
-        log("  BOTTOM 5 (slower than the 40 predicted)")
-        log(sub.nsmallest(TOP_N, "ssoe_mph")[show_cols].to_string(index=False))
+        if showed_all:
+            n_nonneg = int((plot["ssoe_mph"] >= 0).sum())
+            log(
+                f"  ALL {len(sub)} players shown (sample is smaller than "
+                f"{TOP_N} top + {TOP_N} bottom; nobody is listed twice)"
+            )
+            if n_nonneg:
+                log(f"  FASTER than the 40 predicted (n={n_nonneg})")
+                log(plot[plot["ssoe_mph"] >= 0][show_cols].to_string(index=False))
+            n_neg = int((plot["ssoe_mph"] < 0).sum())
+            if n_neg:
+                log(f"  SLOWER than the 40 predicted (n={n_neg})")
+                log(plot[plot["ssoe_mph"] < 0][show_cols].to_string(index=False))
+        else:
+            top = plot.head(TOP_N)
+            bot = plot.iloc[TOP_N:]
+            log(f"  TOP {TOP_N} (faster than the 40 predicted)")
+            log(top[show_cols].to_string(index=False))
+            log(f"  BOTTOM {TOP_N} (slower than the 40 predicted)")
+            log(bot[show_cols].to_string(index=False))
 
 
 def main() -> int:
