@@ -499,3 +499,51 @@ Script still `combine_to_game.py` (edited in place). New outputs: `out/combine_t
 **Appendix Edge/Interior (unchanged story).** Official 10-yard vs pressure is an Edge lean (ρ=−0.36, n=39, p=0.025, FDR=0.077), not Interior (ρ=−0.15, n=33, p=0.41). 10-yard vs get-off holds in both. Tracking 20-yard vs pressure is a weaker Edge lean (ρ=−0.29, n=38, p=0.076) and near zero at Interior.
 
 Outputs as listed in `MULTI_TEST_MODELS.md`. No draft-pick column is in any of these analysis files. Never committed raw Kaggle data.
+
+## 11/2026 (America/New_York) — Route COD, Sunday Re-Burst/Brakes, and PFR coverage
+
+Three explorations after the Burst Score work. All are labeled exploratory. No draft slot. No raw Kaggle data was committed. Scripts: `explore_route_cod.py`, `eda_accel_decel.py`, `explore_pfr.py`. Figures: `out/figs/fig14_accel_decel_profiles.png`, `fig15_combine_vs_game_cod.png`, `fig16_archetypes.png`. Public nflverse/PFR caches live in `external/` with `ATTRIBUTION.md`.
+
+### 1. Route running and coverage: can we measure change of direction vs in-game separation?
+
+Feasibility audit of the competition-page example. Game tracking is 10 Hz and covers only the 510-rookies cohort (no football entity, no veterans). Official `separation_at_pass_forward` is separation at throw, not at arrival, and is charted for WR/TE only. There is no general nearest-defender separation. DB cushion is pre-snap. Coverage assignment is a scheme role, not a receiver identity.
+
+Cut detection used rolling heading-change peaks (≥50° over ~0.6 s) with an entry-speed filter, then peak deceleration into the break and peak acceleration out. Combine 3-cone and shuttle tracking is thin for DBs; WR and DB skill-drill tracking is rich.
+
+**Exploratory findings (unadjusted).** Official 3-cone vs all-throw separation for WRs: ρ=−0.42, n=24, p=0.044 — a hint only, small n. WR route-drill change-of-direction vs separation is a null at usable n: peak decel vs all-throw sep ρ=−0.00, n=76, p=0.99; vs target sep ρ=+0.18, n=75, p=0.13; peak accel vs all-throw sep ρ=−0.11, n=76, p=0.34. The Kaggle data supports building our own start/stop traits. It does not, by itself, support a clean “cuts vs separation” success metric for defensive backs.
+
+Outputs: `out/route_cod_*.csv`.
+
+### 2. Acceleration and deceleration EDA, and original Sunday cards
+
+Kevin’s brief: we do not need to tie accel/decel to an existing NFL success metric; we can create our own. Speed positions are WR, CB, and S, with TE as a comparison and RB (Sione Vaki) anecdote only. RB remains excluded from headline groups (n=1).
+
+**Sunday Re-Burst** and **Sunday Brakes** are 0–100 within-position percentiles of game peak acceleration out of cuts and peak deceleration into cuts, among players meeting the play floor (20 opportunity plays for WR/TE, 30 for CB/S). Usable Sunday samples: WR 73, CB 42, S 34, TE 25.
+
+**Position style (holds at the Combine and on Sunday).** Receivers are brake-dominant plant-and-cutters (Sunday brakes-to-gas median 1.82, n=73). Corners and safeties are more gas-dominant and snappier (CB median 1.21, n=42; S median 1.08, n=34). Tight ends sit in between (median 1.62, n=25). Pooled WR+CB+S correlations are inflated by this style gap — always read within-position tests.
+
+**Combine skill-drill cuts mostly do not translate to Sunday cuts, within a position (exploratory, unadjusted).** Combine Re-Burst vs Sunday Re-Burst: WR ρ=−0.07, n=73, p=0.56; CB ρ=−0.11, n=42, p=0.50; S ρ=−0.16, n=34, p=0.38; TE ρ=+0.08, n=25, p=0.70. Combine Brakes vs Sunday Brakes: WR is a modest exception, ρ=+0.24, n=73, p=0.042; CB ρ=−0.14, n=42, p=0.38; S ρ=+0.04, n=34, p=0.82; TE ρ=+0.20, n=25, p=0.34. A named example is Quinyon Mitchell (CB, 2024, Toledo): Combine Brakes 95 and Combine Re-Burst 98, but Sunday Brakes 21 and Sunday Re-Burst 12, on 1,143 coverage plays and 313 cuts.
+
+**Split-half reliability (even/odd plays, Spearman-Brown; exploratory).** Sunday Re-Burst is stable: WR SB 0.94, CB 0.86, S 0.84, TE 0.92. Sunday Brakes is usable but noisier, especially for corners: WR 0.74, CB 0.64, S 0.89, TE 0.78.
+
+**Three Combine movement archetypes (k-means, k=3, silhouette 0.23; exploratory).** Explosive two-way cutters (n=57; examples Tre Tucker, Ja'Lynn Polk, Myles Harden; extreme: Jordan Addison). Heavy brakes, slow restart (n=47; Jay Ward, Julius Brents, Cedric Tillman; extreme: Brian Branch). Snappy, short turns, gas-dominant (n=85; Nehemiah Pritchett, Ladd McConkey, Jha'Quan Jackson; extreme: Elijhah Badger).
+
+**Secondary links to existing outcomes (exploratory, unadjusted, not a success claim).** WR Sunday Re-Burst vs target separation at throw: ρ=+0.31, n=73, p=0.009. Other WR Re-Burst links (all-throw sep, yards per route, target rate) are not significant. WR Sunday Brakes vs target rate ρ=−0.23, n=73, p=0.049. CB Sunday Brakes vs pre-snap cushion ρ=−0.35, n=42, p=0.024 (more braking, slightly tighter cushion — interpret cautiously).
+
+Coach-facing recommendation from this EDA: lead with the Sunday Re-Burst and Sunday Brakes 0–100 card. Do not use Combine Re-Burst to predict Sunday Re-Burst. Combine Brakes is only a weak WR pre-draft hint.
+
+Outputs: `out/eda_accel_*.csv` (draft-pick columns were stripped from the player table). Figures 14–16.
+
+### 3. Free PFR / nflverse coverage for the 510 rookies
+
+Public nflverse GitHub release data (`pfr_advstats` season and weekly defense/receiving for 2023–2025, plus `players.parquet` as the ID map). There is no `ff_playerids` release under nflverse-data. PFF grades are not in these free files. Primary window is 2023–2025 to line up with Kaggle tracking; 2026 rows exist in the files (partial as of 11/16/2026) and were not used in the Spearman.
+
+**Columns present** on season defense: missed tackles, missed-tackle %, coverage targets, completions and yards allowed, yards/target, passer rating allowed, ADOT, air yards, YAC allowed, blitzes, hurries, QB knocks, sacks, pressures, combined tackles. Batted passes start in 2024. Season receiving has drops, drop %, broken tackles, YAC, and YAC/reception. Weekly defense has the same ideas; weekly receiving is thinner. Season published rates are the primary totals (split rows from mid-season trades were summed). Weekly REG `comb`/games can disagree with the season file.
+
+**Join to Kaggle `nfl_id`.** Direct match on nflverse `players.nfl_id`: **485/510 (95.1%)**. Name disagreements are almost all Jr/II/III suffixes. Missing `pfr_id` values were filled only when name + combine/draft year + college uniquely agreed (combine `season` used when `draft_year` is blank for UDFAs). Never last-name + college alone. This correctly keeps Myles Murphy 2024 North Carolina DT (`MurpMy01`) apart from the 2023 Clemson DE (`MurpMy00`). After that fill: **505/510 (99.0%) have a `pfr_id`**. Still unmatched: Alan Ali, D.J. Dale, Rashad Torrence, Mello Dotson. Gabe Hall matches by `nfl_id` but has no `pfr_id`. Almost none of the late fills have 2023–2025 advstats.
+
+**Usable 2023–2025 season samples.** CB: 50 with a def row; **38 with ≥20 coverage targets and the same 38 with ≥15 tackle attempts** (median 68.5 targets, 7.21 yards/target allowed, 9.1% missed tackles). S: 39 with a def row; **23 with ≥20 targets, 33 with ≥15 tackle attempts** (coverage-floor medians: 68 targets, 8.40 yards/target, 7.9% missed tackles). The five generic “DB” rookies have no PFR stats. DL (DE/DT/NT): 0 at ≥20 coverage targets; 46 at ≥15 tackle attempts; **13 at ≥15 pressures**. EDGE/OLB: 18 at ≥15 tackle attempts, **9 at ≥15 pressures**. Off-ball LB: only 2 of 3 reach 15 tackle attempts. WR: **58 with ≥20 receiving targets** (median drop % 4.8, 3.92 YAC/rec). TE: **19 with ≥20 receiving targets**.
+
+**Exploratory Spearman vs missed-tackle % and yards/target allowed (unadjusted, 2023–2025 season aggregates).** Missed-tackle % is mostly a null against official Combine tests and against Sunday Re-Burst. A soft safety hint only: Sunday Brakes vs missed-tackle % ρ=−0.36, n=23, p=0.094. Coverage efficiency: faster official 40 for CBs goes with fewer yards allowed per target, ρ=−0.47, n=33, p=0.006; longer broad jump goes the other way, ρ=+0.47, n=29, p=0.010. Faster tracking-derived 20-yard split for safeties goes with fewer yards/target, ρ=−0.53, n=20, p=0.018, and in pooled CB+S ρ=−0.31, n=52, p=0.025. Sunday Re-Burst has no relationship with either outcome in these samples. Sunday Brakes is not significant for CBs; at the safety tackle floor vs yards/target ρ=−0.32, n=32, p=0.071. 3-cone and shuttle are too thin (CB n=11 and 16; safeties n=3–5). A later “test every Combine measure against DB outcomes” sweep is feasible at these floors, but it should stay within-position and keep the sample-size cuts.
+
+Outputs: `out/pfr_*.csv`. Caches: `external/advstats_season_{def,rec,rush}.parquet`, weekly def/rec 2023–2025, `external/players.parquet`. The play-level Sunday cache `out/eda_accel_game_plays.parquet` is gitignored (derived Kaggle tracking, not a summary table).

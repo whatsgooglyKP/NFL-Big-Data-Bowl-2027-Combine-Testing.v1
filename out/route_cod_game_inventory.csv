@@ -1,0 +1,9 @@
+group,n_players_in_player_play,n_with_game_tracking,n_usable_reg_stood_plays,n_route_plays,n_players_with_route,n_players_route_ge20,n_players_route_ge50,n_target_plays,n_players_with_target,n_sep_at_pass_forward,n_players_with_sep,n_players_sep_ge20,n_cushion_rows,n_players_with_cushion,n_coverage_plays,n_players_with_coverage,n_players_coverage_ge30,n_man_plays,n_players_with_man
+WR,105,105,34889,34889,82,77,68,6433,78,30566,82,76,33116,82,0,0,0,0,0
+TE,38,38,8242,8242,33,29,24,1405,29,7224,33,27,6573,33,0,0,0,0,0
+CB,58,58,34760,0,0,0,0,0,0,0,0,0,32084,50,21113,49,42,7394,49
+FS,24,24,10260,0,0,0,0,0,0,0,0,0,1735,18,6355,17,13,641,16
+SS,28,28,18529,0,0,0,0,0,0,0,0,0,6556,22,11140,24,21,2023,22
+DB,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+S,52,52,28789,0,0,0,0,0,0,0,0,0,8291,40,17495,41,34,2664,38
+CB+S+DB,115,115,63549,0,0,0,0,0,0,0,0,0,40375,90,38608,90,76,10058,87

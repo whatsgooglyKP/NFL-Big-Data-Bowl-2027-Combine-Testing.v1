@@ -5,3 +5,6 @@ __pycache__/
 out/cache/
 .env
 kaggle.json
+
+# Public nflverse release caches under external/ are OK to commit (not Kaggle).
+!external/*.parquet

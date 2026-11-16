@@ -1,0 +1,49 @@
+metric,slice,group,n_players,min_plays,rho,p,spearman_brown,note
+play_peak_decel_mag,all_opportunity,CB,42,30,0.4672164798194687,0.0018117719071076236,0.6368746347191474,even/odd play split; exploratory
+play_peak_decel_mag,all_opportunity,RB,0,20,,,,even/odd play split; exploratory
+play_peak_decel_mag,all_opportunity,S,34,30,0.8054350779813698,9.196213058537853e-09,0.8922337754530778,even/odd play split; exploratory
+play_peak_decel_mag,all_opportunity,TE,28,20,0.5569273186271788,0.0020819070016816505,0.7154185194955017,even/odd play split; exploratory
+play_peak_decel_mag,all_opportunity,WR,77,20,0.6361333880180844,5.069953850658234e-10,0.7776057779600218,even/odd play split; exploratory
+play_peak_decel_mag,all_opportunity,WR+CB+S,153,pos floor (20 WR / 30 DB),0.6659328805234052,5.880268250716511e-21,0.7994714412674074,even/odd play split; exploratory
+play_peak_decel_mag,breaking_or_coverage,CB,42,30,0.4672164798194687,0.0018117719071076236,0.6368746347191474,even/odd play split; exploratory
+play_peak_decel_mag,breaking_or_coverage,RB,0,20,,,,even/odd play split; exploratory
+play_peak_decel_mag,breaking_or_coverage,S,34,30,0.8054350779813698,9.196213058537853e-09,0.8922337754530778,even/odd play split; exploratory
+play_peak_decel_mag,breaking_or_coverage,TE,25,20,0.6368737736362886,0.0006186564775704842,0.7781586874856988,even/odd play split; exploratory
+play_peak_decel_mag,breaking_or_coverage,WR,73,20,0.5850248779909835,5.468777080656046e-08,0.738190152235972,even/odd play split; exploratory
+play_peak_decel_mag,breaking_or_coverage,WR+CB+S,149,pos floor (20 WR / 30 DB),0.6664375383917405,1.7588321492552765e-20,0.7998350049590357,even/odd play split; exploratory
+play_peak_accel,all_opportunity,CB,42,30,0.7550117979748223,7.607717532847867e-09,0.8604065213077887,even/odd play split; exploratory
+play_peak_accel,all_opportunity,RB,0,20,,,,even/odd play split; exploratory
+play_peak_accel,all_opportunity,S,34,30,0.7187068801606076,1.6901639237060852e-06,0.8363344424308661,even/odd play split; exploratory
+play_peak_accel,all_opportunity,TE,28,20,0.7982134279233077,3.599505766985576e-07,0.8877849709365543,even/odd play split; exploratory
+play_peak_accel,all_opportunity,WR,77,20,0.7911780993086128,1.1109233790799355e-17,0.8834164504512468,even/odd play split; exploratory
+play_peak_accel,all_opportunity,WR+CB+S,153,pos floor (20 WR / 30 DB),0.9428042857221323,6.227212811356004e-74,0.9705602284809618,even/odd play split; exploratory
+play_peak_accel,breaking_or_coverage,CB,42,30,0.7550117979748223,7.607717532847867e-09,0.8604065213077887,even/odd play split; exploratory
+play_peak_accel,breaking_or_coverage,RB,0,20,,,,even/odd play split; exploratory
+play_peak_accel,breaking_or_coverage,S,34,30,0.7187068801606076,1.6901639237060852e-06,0.8363344424308661,even/odd play split; exploratory
+play_peak_accel,breaking_or_coverage,TE,25,20,0.8560386633254203,4.85630842841236e-08,0.9224362404085659,even/odd play split; exploratory
+play_peak_accel,breaking_or_coverage,WR,73,20,0.8878408449139301,1.2324416159740346e-25,0.9405886595852399,even/odd play split; exploratory
+play_peak_accel,breaking_or_coverage,WR+CB+S,149,pos floor (20 WR / 30 DB),0.953633169554749,1.5173234870314372e-78,0.9762663578977734,even/odd play split; exploratory
+play_max_s,all_opportunity,CB,42,30,0.41357924740692836,0.006479122317773694,0.5851518380247852,even/odd play split; exploratory
+play_max_s,all_opportunity,RB,0,20,,,,even/odd play split; exploratory
+play_max_s,all_opportunity,S,34,30,0.6285981444393254,6.859747391422287e-05,0.7719499700839113,even/odd play split; exploratory
+play_max_s,all_opportunity,TE,28,20,0.7182366096206726,1.6788808417699254e-05,0.8360159544956203,even/odd play split; exploratory
+play_max_s,all_opportunity,WR,77,20,0.8214029814309428,5.704737062057467e-20,0.9019453572933396,even/odd play split; exploratory
+play_max_s,all_opportunity,WR+CB+S,153,pos floor (20 WR / 30 DB),0.9168381930007702,4.3487131206170315e-62,0.956615113731096,even/odd play split; exploratory
+play_max_s,breaking_or_coverage,CB,42,30,0.41357924740692836,0.006479122317773694,0.5851518380247852,even/odd play split; exploratory
+play_max_s,breaking_or_coverage,RB,0,20,,,,even/odd play split; exploratory
+play_max_s,breaking_or_coverage,S,34,30,0.6285981444393254,6.859747391422287e-05,0.7719499700839113,even/odd play split; exploratory
+play_max_s,breaking_or_coverage,TE,25,20,0.7863050732103866,3.167468464879047e-06,0.8803704193676412,even/odd play split; exploratory
+play_max_s,breaking_or_coverage,WR,73,20,0.7811304205545356,3.5860350405373364e-16,0.8771176007552991,even/odd play split; exploratory
+play_max_s,breaking_or_coverage,WR+CB+S,149,pos floor (20 WR / 30 DB),0.9067148007921871,5.516734616908053e-57,0.9510754313287674,even/odd play split; exploratory
+play_t90,all_opportunity,CB,41,30,0.5289779486221424,0.00037693310270178396,0.691936661478784,even/odd play split; exploratory
+play_t90,all_opportunity,RB,0,20,,,,even/odd play split; exploratory
+play_t90,all_opportunity,S,33,30,0.5202362552815414,0.0019130948631849553,0.6844150091463196,even/odd play split; exploratory
+play_t90,all_opportunity,TE,28,20,0.7213536459006589,1.4818107142057346e-05,0.838123702957305,even/odd play split; exploratory
+play_t90,all_opportunity,WR,76,20,0.6517027129143586,1.8197413394234615e-10,0.7891283435194668,even/odd play split; exploratory
+play_t90,all_opportunity,WR+CB+S,150,pos floor (20 WR / 30 DB),0.931249746280198,9.055457492324376e-67,0.964401158445601,even/odd play split; exploratory
+play_t90,breaking_or_coverage,CB,41,30,0.5289779486221424,0.00037693310270178396,0.691936661478784,even/odd play split; exploratory
+play_t90,breaking_or_coverage,RB,0,20,,,,even/odd play split; exploratory
+play_t90,breaking_or_coverage,S,33,30,0.5202362552815414,0.0019130948631849553,0.6844150091463196,even/odd play split; exploratory
+play_t90,breaking_or_coverage,TE,24,20,0.5779309906178641,0.0030987921276784667,0.7325174472827434,even/odd play split; exploratory
+play_t90,breaking_or_coverage,WR,73,20,0.48989163700060745,1.0877107384870643e-05,0.6576204937787804,even/odd play split; exploratory
+play_t90,breaking_or_coverage,WR+CB+S,147,pos floor (20 WR / 30 DB),0.9135149699685817,1.6604890261449594e-58,0.9548030554300612,even/odd play split; exploratory

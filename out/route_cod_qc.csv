@@ -1,0 +1,8 @@
+check,n_attempts,mean,median,p10,p90,frac_ge_1,frac_ge_2,note
+cuts_per_SHORT_SHUTTLE_attempt,223.0,1.9417040358744395,2.0,2.0,2.0,0.9865470852017937,0.9461883408071748,3-cone typically 3–4 turns; shuttle typically 2
+cuts_per_THREE_CONE_DRILL_attempt,203.0,3.502463054187192,4.0,3.0,4.0,0.9950738916256158,0.9901477832512315,3-cone typically 3–4 turns; shuttle typically 2
+combine_sample_rate,6310.0,10.0,0.1,,,1.0,,PLAYER frames; dt exactly 0.1 s ⇒ 10 Hz
+game_sample_rate,22654290.0,10.0,,,,1.0,,football entity present=False; extra_ids=0
+game_events,,,,,,,,"ball_snap=True, pass_forward=True, pass_arrived=True; all=ball_snap, pass_forward, first_contact, tackle, pass_arrived, pass_outcome_caught, handoff, pass_outcome_incomplete, play_action, out_of_bounds, autoevent_passinterrupted, run, qb_sack, man_in_motion, line_set, touchdown, play_submit, dropped_pass, pass_outcome_touchdown, pass_outcome_interception, pass_tipped, fumble, qb_kneel, autoevent_playaction, qb_slide, qb_sneak, fumble_offense_recovered, fumble_defense_recovered, qb_strip_sack, lateral, run_attempt, pass_shovel, snap_direct, qb_spike, shift, two_point_conversion, touchback, penalty_flag, huddle_break_offense, safety, huddle_start_offense, penalty_accepted, penalty_declined, kick_recovered, field_goal_attempt, two_point_play, punt_land, punt_fake"
+rookie_overlap_separation,4340.0,,,,,1383.0,,targeted WR/TE plays with a cohort DB: pairs=4340; nearest-rookie-DB within 8 yd at throw=1383; unique DBs=77. This is NOT true nearest-defender separation; veterans are not tracked.
+WR_three_cone_with_sep20,24.0,,,,,,,WR official 3-cone n=32; with sep_all_n>=20 n=24; shuttle with sep20 n=30

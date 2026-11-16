@@ -1,0 +1,46 @@
+group,x,y,label,n,rho,p,note
+WR,c_decel,g_decel,Brakes (peak decel mag),73,0.2384105749138302,0.04223329594421657,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR,c_accel,g_accel,Re-Burst (peak accel out of cuts),73,-0.06895221719706232,0.5621504382396503,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR,c_speed_lost,g_speed_lost,Speed lost through the cut,73,0.22405467599326978,0.05670388226046874,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR,c_time_through,g_time_through,Time through the turn,73,0.09657648025084156,0.4163268055094933,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR,c_brakes_gas,g_brakes_gas,Brakes-to-gas ratio,73,-0.026703278904278427,0.8225588850354453,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR,c_40_t90,g_play_t90,Time to 90% top speed,65,0.18034054709592534,0.1505598213572399,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR,c_40_peak_accel,g_play_accel,Peak accel (40 vs play peak),65,0.1121600472517093,0.37371893570994535,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR,c_decel,g_play_decel,Combine cut brakes vs Sunday play-peak brakes,73,0.3594811473130205,0.001787012463525688,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR,c_accel,g_play_accel,Combine cut Re-Burst vs Sunday play-peak accel,73,-0.18956965093677447,0.10820122443216351,exploratory; unadjusted; Sunday side uses players meeting the play floor
+CB,c_decel,g_decel,Brakes (peak decel mag),42,-0.1401418496108587,0.37605214160394534,exploratory; unadjusted; Sunday side uses players meeting the play floor
+CB,c_accel,g_accel,Re-Burst (peak accel out of cuts),42,-0.10757570685439975,0.49770666757736043,exploratory; unadjusted; Sunday side uses players meeting the play floor
+CB,c_speed_lost,g_speed_lost,Speed lost through the cut,42,-0.09683562262314105,0.5418194534156878,exploratory; unadjusted; Sunday side uses players meeting the play floor
+CB,c_time_through,g_time_through,Time through the turn,42,0.15642187648797293,0.3225440850629652,exploratory; unadjusted; Sunday side uses players meeting the play floor
+CB,c_brakes_gas,g_brakes_gas,Brakes-to-gas ratio,42,0.006563487561785917,0.967094220290152,exploratory; unadjusted; Sunday side uses players meeting the play floor
+CB,c_40_t90,g_play_t90,Time to 90% top speed,36,0.032427486967684466,0.8510745211365099,exploratory; unadjusted; Sunday side uses players meeting the play floor
+CB,c_40_peak_accel,g_play_accel,Peak accel (40 vs play peak),36,0.23384427384671097,0.16985555910573172,exploratory; unadjusted; Sunday side uses players meeting the play floor
+CB,c_decel,g_play_decel,Combine cut brakes vs Sunday play-peak brakes,42,-0.2856333471886065,0.06670422175879179,exploratory; unadjusted; Sunday side uses players meeting the play floor
+CB,c_accel,g_play_accel,Combine cut Re-Burst vs Sunday play-peak accel,42,-0.008211092839223149,0.9588403623151346,exploratory; unadjusted; Sunday side uses players meeting the play floor
+S,c_decel,g_decel,Brakes (peak decel mag),34,0.03959337110333219,0.8240658489038238,exploratory; unadjusted; Sunday side uses players meeting the play floor
+S,c_accel,g_accel,Re-Burst (peak accel out of cuts),34,-0.15619993318503403,0.37769079086141205,exploratory; unadjusted; Sunday side uses players meeting the play floor
+S,c_speed_lost,g_speed_lost,Speed lost through the cut,34,0.02843384951822312,0.8731749186580317,exploratory; unadjusted; Sunday side uses players meeting the play floor
+S,c_time_through,g_time_through,Time through the turn,34,-0.15523633327508352,0.38067693046497464,exploratory; unadjusted; Sunday side uses players meeting the play floor
+S,c_brakes_gas,g_brakes_gas,Brakes-to-gas ratio,34,0.10987163942463907,0.5361995104296545,exploratory; unadjusted; Sunday side uses players meeting the play floor
+S,c_40_t90,g_play_t90,Time to 90% top speed,29,0.25658182811158275,0.17908504162082756,exploratory; unadjusted; Sunday side uses players meeting the play floor
+S,c_40_peak_accel,g_play_accel,Peak accel (40 vs play peak),29,-0.0845471902895407,0.6627965766758747,exploratory; unadjusted; Sunday side uses players meeting the play floor
+S,c_decel,g_play_decel,Combine cut brakes vs Sunday play-peak brakes,34,-0.11627918000589295,0.512542006656122,exploratory; unadjusted; Sunday side uses players meeting the play floor
+S,c_accel,g_play_accel,Combine cut Re-Burst vs Sunday play-peak accel,34,-0.12534453024155565,0.4799809225335804,exploratory; unadjusted; Sunday side uses players meeting the play floor
+TE,c_decel,g_decel,Brakes (peak decel mag),25,0.19815315048904902,0.342364757900179,exploratory; unadjusted; Sunday side uses players meeting the play floor
+TE,c_accel,g_accel,Re-Burst (peak accel out of cuts),25,0.08153846153846152,0.698411076382249,exploratory; unadjusted; Sunday side uses players meeting the play floor
+TE,c_speed_lost,g_speed_lost,Speed lost through the cut,25,0.010769230769230769,0.9592532204663393,exploratory; unadjusted; Sunday side uses players meeting the play floor
+TE,c_time_through,g_time_through,Time through the turn,25,-0.1948166413175997,0.3507176993652521,exploratory; unadjusted; Sunday side uses players meeting the play floor
+TE,c_brakes_gas,g_brakes_gas,Brakes-to-gas ratio,25,-0.0723076923076923,0.7312380568633035,exploratory; unadjusted; Sunday side uses players meeting the play floor
+TE,c_40_t90,g_play_t90,Time to 90% top speed,22,0.019717279368790756,0.9305984328704482,exploratory; unadjusted; Sunday side uses players meeting the play floor
+TE,c_40_peak_accel,g_play_accel,Peak accel (40 vs play peak),22,-0.07953583393863936,0.7249596027759692,exploratory; unadjusted; Sunday side uses players meeting the play floor
+TE,c_decel,g_play_decel,Combine cut brakes vs Sunday play-peak brakes,25,0.27385337947504235,0.1852850880139032,exploratory; unadjusted; Sunday side uses players meeting the play floor
+TE,c_accel,g_play_accel,Combine cut Re-Burst vs Sunday play-peak accel,25,0.4184978866619055,0.03734058706305626,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR+CB+S,c_decel,g_decel,Brakes (peak decel mag),149,0.6556988840104597,1.1406679273709632e-19,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR+CB+S,c_accel,g_accel,Re-Burst (peak accel out of cuts),149,0.0017053484676538238,0.9835319282079216,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR+CB+S,c_speed_lost,g_speed_lost,Speed lost through the cut,149,0.6977244923388507,4.73909882064413e-23,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR+CB+S,c_time_through,g_time_through,Time through the turn,149,0.4727911928627608,1.1412350534197524e-09,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR+CB+S,c_brakes_gas,g_brakes_gas,Brakes-to-gas ratio,149,0.6681516456173261,1.2956915512814334e-20,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR+CB+S,c_40_t90,g_play_t90,Time to 90% top speed,130,-0.045511632769213294,0.6071350638036144,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR+CB+S,c_40_peak_accel,g_play_accel,Peak accel (40 vs play peak),130,0.09550531677879369,0.2797487312630689,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR+CB+S,c_decel,g_play_decel,Combine cut brakes vs Sunday play-peak brakes,149,0.30407935640105216,0.00016313085772011134,exploratory; unadjusted; Sunday side uses players meeting the play floor
+WR+CB+S,c_accel,g_play_accel,Combine cut Re-Burst vs Sunday play-peak accel,149,-0.20247477851647352,0.013271088647628366,exploratory; unadjusted; Sunday side uses players meeting the play floor

@@ -1,0 +1,29 @@
+concept,present,where
+missed tackles,True,season_def:m_tkl; week_def_2023:def_missed_tackles
+missed tackle %,True,season_def:m_tkl_percent; week_def_2023:def_missed_tackle_pct
+coverage targets,True,season_def:tgt; season_rec:tgt; week_def_2023:def_targets
+completions allowed,True,season_def:cmp; week_def_2023:def_completions_allowed
+completion % allowed,True,season_def:cmp_percent; week_def_2023:def_completion_pct
+yards allowed,True,season_def:yds; season_rec:yds; season_rush:yds; week_def_2023:def_yards_allowed
+yards/target allowed,True,season_def:yds_tgt; week_def_2023:def_yards_allowed_per_tgt
+yards/completion allowed,True,season_def:yds_cmp; week_def_2023:def_yards_allowed_per_cmp
+TDs allowed,True,season_def:td; season_rec:td; season_rush:td; week_def_2023:def_receiving_td_allowed
+passer rating allowed,True,season_def:rat; season_rec:rat; week_def_2023:def_passer_rating_allowed
+depth of target (ADOT),True,season_def:dadot; season_rec:adot; week_def_2023:def_adot
+air yards,True,season_def:air; week_def_2023:def_air_yards_completed
+yards after catch (allowed or rec),True,season_def:yac; season_rec:yac; season_rush:yac; week_def_2023:def_yards_after_catch
+blitzes,True,season_def:bltz; week_def_2023:def_times_blitzed
+hurries,True,season_def:hrry; week_def_2023:def_times_hurried
+QB knocks/hits,True,season_def:qbkd; week_def_2023:def_times_hitqb
+sacks,True,season_def:sk; week_def_2023:def_sacks
+pressures,True,season_def:prss; week_def_2023:def_pressures
+combined tackles,True,season_def:comb; week_def_2023:def_tackles_combined
+batted passes,True,season_def:bats
+interceptions,True,season_def:int; season_rec:int; week_def_2023:def_ints; week_rec_2023:receiving_int
+receptions (receiving),True,season_rec:rec
+receiving yards,True,season_rec:yds
+drops,True,"season_rec:drop; week_rec_2023:passing_drops,receiving_drop"
+drop %,True,"season_rec:drop_percent; week_rec_2023:passing_drop_pct,receiving_drop_pct"
+broken tackles,True,"season_rec:brk_tkl; season_rush:brk_tkl; week_rec_2023:rushing_broken_tackles,receiving_broken_tackles"
+YAC per reception,True,season_rec:yac_r
+yards before catch,True,"season_rec:ybc,ybc_r; season_rush:ybc"
