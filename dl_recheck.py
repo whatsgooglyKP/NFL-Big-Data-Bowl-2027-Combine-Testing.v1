@@ -211,48 +211,262 @@ def chain(d: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def fig19(t: pd.DataFrame, d: pd.DataFrame) -> Path:
-    p = t[(t.group == "DL") & (t.control == "year")]
-    M = p.pivot(index="test", columns="outcome", values="rho").reindex(index=[c for c, *_ in TESTS], columns=[c for c, *_ in OUTCOMES])
+# Display-only grouping / orientation for Figure 19 (stats are not recomputed).
+# Timed drills and lower-is-better outcomes are sign-flipped so red always
+# means "better athlete goes with better on-field result."
+SPEED_AGILITY = [
+    "ten_yd_split", "forty", "three_cone", "short_shuttle",
+    "c_t10_derived", "c_t20_derived",
+    "c_top_mph", "c_40_accel",
+    "tc_peak_decel_mag", "tc_peak_accel",
+    "ss_peak_decel_mag", "ss_peak_accel",
+]
+POWER_SIZE = [
+    "burst_0_100", "vertical", "broad_jump", "bench_reps",
+    "combine_weight", "combine_height", "arm_length", "hand_size", "wing_span",
+]
+PASS_RUSH = [
+    "speed_1s_mph", "pressure_rate", "sack_rate", "ttp_median",
+    "pen_max_2s", "pen_2s", "pen_pass_2s",
+]
+RUN_DEF = [
+    "tfl_rate", "run_stop_rate", "run_stop_near_rate", "run_tackle_depth", "pen_run_2s",
+]
+FLIP_TESTS = {
+    "ten_yd_split", "forty", "three_cone", "short_shuttle",
+    "c_t10_derived", "c_t20_derived",
+}
+FLIP_OUTCOMES = {"ttp_median", "run_tackle_depth"}
+
+FIG19_ROW_LABELS = {
+    "ten_yd_split": "Official 10-yard  †",
+    "forty": "Official 40  †",
+    "three_cone": "3-cone  †",
+    "short_shuttle": "Short shuttle  †",
+    "c_t10_derived": "10-yard split (tracking)  †",
+    "c_t20_derived": "20-yard split (tracking)  †",
+    "c_top_mph": "Combine top speed",
+    "c_40_accel": "40-yard peak accel",
+    "tc_peak_decel_mag": "3-cone Brakes (peak decel)",
+    "tc_peak_accel": "3-cone Re-Burst (peak accel)",
+    "ss_peak_decel_mag": "Shuttle Brakes (peak decel)",
+    "ss_peak_accel": "Shuttle Re-Burst (peak accel)",
+    "burst_0_100": "Burst Score (0–100)",
+    "vertical": "Vertical",
+    "broad_jump": "Broad jump",
+    "bench_reps": "Bench reps",
+    "combine_weight": "Weight",
+    "combine_height": "Height",
+    "arm_length": "Arm length",
+    "hand_size": "Hand size",
+    "wing_span": "Wingspan",
+}
+FIG19_COL_LABELS = {
+    "speed_1s_mph": "Sunday get-off (1.0 s)",
+    "pressure_rate": "Pressure rate",
+    "sack_rate": "Sack rate",
+    "ttp_median": "Time to pressure (faster = higher)",
+    "pen_max_2s": "Penetration, max in first 2 s",
+    "pen_2s": "Penetration at 2.0 s",
+    "pen_pass_2s": "Penetration at 2.0 s, pass",
+    "tfl_rate": "TFL per snap",
+    "run_stop_rate": "Run stops per run snap",
+    "run_stop_near_rate": "Run tackles at ≤2 yd / run snap",
+    "run_tackle_depth": "Run-tackle depth (shallower = higher)",
+    "pen_run_2s": "Penetration at 2.0 s, run",
+}
+_FIG19_GAP = 0.55
+
+
+def _fig19_edges(n1: int, n2: int, gap: float = _FIG19_GAP) -> np.ndarray:
+    e = list(np.arange(n1 + 1, dtype=float))
+    start = n1 + gap
+    e += list(start + np.arange(n2 + 1, dtype=float))
+    return np.asarray(e)
+
+
+def _fig19_fill_gap(src: np.ndarray, n1r: int, n1c: int) -> np.ndarray:
+    """Insert a NaN gap row and column into a (n1r+n2r) x (n1c+n2c) array."""
+    n2r, n2c = src.shape[0] - n1r, src.shape[1] - n1c
+    out = np.full((n1r + 1 + n2r, n1c + 1 + n2c), np.nan)
+    out[:n1r, :n1c] = src[:n1r, :n1c]
+    out[:n1r, n1c + 1:] = src[:n1r, n1c:]
+    out[n1r + 1:, :n1c] = src[n1r:, :n1c]
+    out[n1r + 1:, n1c + 1:] = src[n1r:, n1c:]
+    return out
+
+
+def _fig19_centers(edges: np.ndarray, n1: int, n2: int) -> np.ndarray:
+    c1 = 0.5 * (edges[:n1] + edges[1:n1 + 1])
+    c2 = 0.5 * (edges[n1 + 1:n1 + 1 + n2] + edges[n1 + 2:n1 + 2 + n2])
+    return np.concatenate([c1, c2])
+
+
+def fig19(t: pd.DataFrame, d: pd.DataFrame, path: Path | None = None) -> Path:
+    """Coach-oriented heat map plus the 3-cone and Burst Score scatter panels.
+
+    Reuses saved Spearman / FDR values; only the display signs and layout change.
+    """
+    p = t[(t.group == "DL") & (t.control == "year")].copy()
+    rows = SPEED_AGILITY + POWER_SIZE
+    cols = PASS_RUSH + RUN_DEF
+    M = p.pivot(index="test", columns="outcome", values="rho").reindex(index=rows, columns=cols)
     Q = p.pivot(index="test", columns="outcome", values="fdr").reindex_like(M)
-    P = p.pivot(index="test", columns="outcome", values="p").reindex_like(M)
-    fig = plt.figure(figsize=(20, 10))
-    GS = fig.add_gridspec(2, 2, width_ratios=[2.3, 1], hspace=0.45, wspace=0.25, left=0.14, right=0.98, bottom=0.2, top=0.92)
+    Pval = p.pivot(index="test", columns="outcome", values="p").reindex_like(M)
+
+    flip_r = np.array([-1.0 if r in FLIP_TESTS else 1.0 for r in rows])
+    flip_c = np.array([-1.0 if c in FLIP_OUTCOMES else 1.0 for c in cols])
+    oriented = M.to_numpy(float) * flip_r[:, None] * flip_c[None, :]
+
+    n1r, n2r = len(SPEED_AGILITY), len(POWER_SIZE)
+    n1c, n2c = len(PASS_RUSH), len(RUN_DEF)
+    ye, xe = _fig19_edges(n1r, n2r), _fig19_edges(n1c, n2c)
+    C = _fig19_fill_gap(oriented, n1r, n1c)
+    Qm = _fig19_fill_gap(Q.to_numpy(float), n1r, n1c)
+    Pm = _fig19_fill_gap(Pval.to_numpy(float), n1r, n1c)
+
+    fig = plt.figure(figsize=(21.6, 12.0))
+    GS = fig.add_gridspec(
+        2, 2, width_ratios=[2.55, 1], hspace=0.38, wspace=0.30,
+        left=0.200, right=0.985, bottom=0.195, top=0.80,
+    )
     ax = fig.add_subplot(GS[:, 0])
-    im = ax.imshow(M.to_numpy(float), cmap="RdBu_r", vmin=-0.7, vmax=0.7, aspect="auto")
-    for i in range(M.shape[0]):
-        for j in range(M.shape[1]):
-            v = M.iat[i, j]
-            if np.isfinite(v):
-                mark = "**" if Q.iat[i, j] < 0.05 else ("*" if P.iat[i, j] < 0.05 else "")
-                ax.text(j, i, f"{v:+.2f}{mark}", ha="center", va="center", fontsize=7.5)
-    ax.set_xticks(range(M.shape[1])); ax.set_xticklabels([OUT_LABEL[c] for c in M.columns], rotation=40, ha="right", fontsize=8)
-    ax.set_yticks(range(M.shape[0])); ax.set_yticklabels([TEST_LABEL[c] for c in M.index], fontsize=8.5)
-    ax.set_title("DL (DE+DT+NT+OLB) — every Combine measure vs wider DL outcomes\nSpearman ρ controlled for draft year. ** BH-FDR<0.05, * raw p<0.05. Lower times = faster.", fontsize=10)
-    fig.colorbar(im, ax=ax, fraction=0.025, label="ρ")
-    # right: production links beyond the 10-yard (pressure / sack / TFL / run / time to pressure),
-    # (a) strongest after year x subtype control, (b) strongest year-only with n>=50
-    prod = ["pressure_rate", "sack_rate", "ttp_median", "tfl_rate", "run_stop_rate", "run_stop_near_rate", "run_tackle_depth"]
-    base = t[t.outcome.isin(prod) & (t.test != "ten_yd_split") & (t.good_direction == 1) & (t.group == "DL")].dropna(subset=["p"])
-    ra = base[base.control == "year_subtype"].sort_values("p").iloc[0]
-    rb = base[(base.control == "year") & (base.n >= 50) & ~base.outcome.isin(["pressure_rate", "sack_rate"])].sort_values("p").iloc[0]
-    rb = t[(t.group == "DL") & (t.control == "year") & (t.test == rb.test) & (t.outcome == rb.outcome)].iloc[0]
-    ra_y = t[(t.group == "DL") & (t.control == "year") & (t.test == ra.test) & (t.outcome == ra.outcome)].iloc[0]
-    for k, (row, tag) in enumerate([(ra_y, f"Beyond the 10-yard (year×subtype ρ={ra.rho:+.2f}, FDR={fmt_p(ra.fdr)})"),
-                                    (rb, "Beyond pressure/sack: new outcome, n≥50")]):
-        ax2 = fig.add_subplot(GS[k, 1])
-        s_ = d[[row.test, row.outcome, "subtype"]].dropna()
+    cmap = plt.get_cmap("RdBu_r").copy()
+    cmap.set_bad((1, 1, 1, 0))
+    im = ax.pcolormesh(
+        xe, ye, C, cmap=cmap, vmin=-0.7, vmax=0.7,
+        shading="flat", edgecolors="white", linewidth=0.6, antialiased=True,
+    )
+    ax.invert_yaxis()
+
+    for i in range(C.shape[0]):
+        for j in range(C.shape[1]):
+            v = C[i, j]
+            if not np.isfinite(v):
+                continue
+            mark = "**" if Qm[i, j] < 0.05 else ("*" if Pm[i, j] < 0.05 else "")
+            xc = 0.5 * (xe[j] + xe[j + 1])
+            yc = 0.5 * (ye[i] + ye[i + 1])
+            color = "white" if abs(v) >= 0.48 else "black"
+            ax.text(xc, yc, f"{v:+.2f}{mark}", ha="center", va="center",
+                    fontsize=7.3, color=color)
+
+    ax.set_yticks(_fig19_centers(ye, n1r, n2r))
+    ax.set_yticklabels([FIG19_ROW_LABELS[r] for r in rows], fontsize=8.5)
+    ax.set_xticks(_fig19_centers(xe, n1c, n2c))
+    ax.set_xticklabels([FIG19_COL_LABELS[c] for c in cols], rotation=38, ha="right", fontsize=8.0)
+    ax.tick_params(axis="x", pad=3, length=0)
+    ax.tick_params(axis="y", length=0)
+    ax.set_xlim(xe[0], xe[-1])
+    ax.set_ylim(ye[-1], ye[0])
+
+    ygap = 0.5 * (ye[n1r] + ye[n1r + 1])
+    xgap = 0.5 * (xe[n1c] + xe[n1c + 1])
+    ax.axhline(ygap, color="#222222", lw=1.7, zorder=5)
+    ax.axvline(xgap, color="#222222", lw=1.7, zorder=5)
+
+    trans = ax.get_yaxis_transform()
+    y_speed = 0.5 * (ye[0] + ye[n1r])
+    y_power = 0.5 * (ye[n1r + 1] + ye[-1])
+    ax.text(
+        -0.275, y_speed, "Speed & agility\n(timed drills † flipped\nso faster = higher)",
+        transform=trans, rotation=90, ha="center", va="center",
+        fontsize=8.7, fontweight="bold", color="#1a1a1a", linespacing=1.2,
+        clip_on=False,
+    )
+    ax.text(
+        -0.275, y_power, "Power, size & length\n(higher = more)",
+        transform=trans, rotation=90, ha="center", va="center",
+        fontsize=8.7, fontweight="bold", color="#1a1a1a", linespacing=1.2,
+        clip_on=False,
+    )
+
+    transx = ax.get_xaxis_transform()
+    x_pass = 0.5 * (xe[0] + xe[n1c])
+    x_run = 0.5 * (xe[n1c + 1] + xe[-1])
+    for x, lab in ((x_pass, "Pass rush"), (x_run, "TFL & run defense")):
+        ax.text(
+            x, 1.03, lab, transform=transx, ha="center", va="bottom",
+            fontsize=11, fontweight="bold", clip_on=False,
+        )
+    ax.plot([xe[0] + 0.15, xe[n1c] - 0.15], [1.015, 1.015],
+            transform=transx, color="#222222", lw=1.2, clip_on=False, solid_capstyle="butt")
+    ax.plot([xe[n1c + 1] + 0.15, xe[-1] - 0.15], [1.015, 1.015],
+            transform=transx, color="#222222", lw=1.2, clip_on=False, solid_capstyle="butt")
+
+    cbar = fig.colorbar(im, ax=ax, fraction=0.026, pad=0.018, shrink=0.88)
+    cbar.set_ticks([-0.6, -0.3, 0.0, 0.3, 0.6])
+    cbar.set_label("Oriented Spearman ρ\nred = better athlete\nwith better result", fontsize=8.0)
+    cbar.ax.tick_params(labelsize=7.5)
+
+    fig.suptitle(
+        "DL (DE + DT + NT + OLB)  —  Combine measures vs in-game outcomes",
+        fontsize=13.5, fontweight="bold", x=0.50, y=0.975, ha="center",
+    )
+    fig.text(
+        0.50, 0.928,
+        "Spearman ρ controlled for draft year.  Timed drills (†) and lower-is-better outcomes are sign-flipped "
+        "so red always means “better athlete goes with better result.”\n"
+        "** BH-FDR < 0.05,   * raw p < 0.05.   Weight and height have no assumed “better” direction "
+        "(red = heavier / taller with a better result).",
+        ha="center", va="top", fontsize=8.2, linespacing=1.35,
+    )
+
+    def scatter_panel(ax2, test, outcome, xlabel, ylabel, title_lead):
+        row = t[(t.group == "DL") & (t.control == "year") & (t.test == test) & (t.outcome == outcome)].iloc[0]
+        s_ = d[[test, outcome, "subtype"]].dropna()
         for st, col in [("Edge", "#ff7f0e"), ("Interior", "#2ca02c")]:
             q = s_[s_.subtype == st]
-            ax2.scatter(q[row.test], q[row.outcome], s=24, alpha=.75, color=col, label=f"{st} (n={len(q)})")
-        ax2.set_xlabel(TEST_LABEL[row.test], fontsize=8.5); ax2.set_ylabel(OUT_LABEL[row.outcome], fontsize=8.5)
-        ax2.set_title(f"{tag}\nyear-only ρ={row.rho:+.2f} (95% CI {row.lo:+.2f} to {row.hi:+.2f}), n={row.n}, FDR={fmt_p(row.fdr)}", fontsize=8.5)
-        ax2.legend(fontsize=7.5); ax2.grid(alpha=.3)
-    fig.text(0.01, 0.01, "Sample: 2023–2025 rookie DL, REG snaps that stood, lined up EDGE/INTERIOR_LINE. Rates ≥100 snaps; run rates ≥50 run snaps; "
-             "penetration ≥50 tracked snaps; time to pressure ≥5 pressures. No draft slot used.", fontsize=8)
-    path = FIGS / "fig19_dl_recheck.png"
-    fig.savefig(path, dpi=150); plt.close(fig)
+            ax2.scatter(q[test], q[outcome], s=28, alpha=.8, color=col, edgecolors="none",
+                        label=f"{st} (n={len(q)})")
+        ax2.set_xlabel(xlabel, fontsize=8.6)
+        ax2.set_ylabel(ylabel, fontsize=8.6)
+        ax2.set_title(
+            f"{title_lead}\nyear-only ρ = {row.rho:+.2f} (95% CI {row.lo:+.2f} to {row.hi:+.2f}), "
+            f"n = {int(row.n)}, FDR = {fmt_p(row.fdr)}",
+            fontsize=8.5,
+        )
+        ax2.legend(fontsize=7.6, frameon=True, fancybox=False, edgecolor="#cccccc")
+        ax2.grid(alpha=.3)
+
+    ax_a = fig.add_subplot(GS[0, 1])
+    # Raw 3-cone time (faster to the left) so the published ρ = −0.65 matches the downward slope.
+    scatter_panel(
+        ax_a, "three_cone", "pressure_rate",
+        xlabel="3-cone (s)   ← faster",
+        ylabel="Pressure rate",
+        title_lead="3-cone vs pressure  (holds within subtype)",
+    )
+    ax_b = fig.add_subplot(GS[1, 1])
+    scatter_panel(
+        ax_b, "burst_0_100", "tfl_rate",
+        xlabel="Burst Score (0–100)",
+        ylabel="TFL per snap",
+        title_lead="Burst Score vs TFL  (best new production link)",
+    )
+
+    fig.text(
+        0.012, 0.012,
+        "Sample: 2023–2025 rookie DL, REG snaps that stood, lined up EDGE/INTERIOR_LINE.  "
+        "Rates ≥100 snaps; run rates ≥50 run snaps; penetration ≥50 tracked snaps; time to pressure ≥5 pressures.  "
+        "No draft slot used.  † Timed drill (lower raw time is faster) — sign-flipped in the heat map only.  "
+        "The two scatter panels use raw (unflipped) values.",
+        fontsize=7.5,
+    )
+    if path is None:
+        path = FIGS / "fig19_dl_recheck.png"
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
     return path
+
+
+def fig19_from_cache(path: Path | None = None) -> Path:
+    """Redraw Figure 19 from saved CSVs without rerunning the tests."""
+    t = pd.read_csv(OUT / "dl_recheck_tests.csv")
+    d = pd.read_csv(OUT / "dl_recheck_players.csv")
+    return fig19(t, d, path)
 
 
 def main() -> None:
@@ -278,4 +492,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if "--figure-only" in sys.argv:
+        fig19_from_cache()
+    else:
+        main()

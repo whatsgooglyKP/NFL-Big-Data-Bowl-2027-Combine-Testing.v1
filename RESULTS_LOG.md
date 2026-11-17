@@ -723,3 +723,15 @@ Outputs: `out/db_tackle_{players,tests,reliability,qc,outcome_n}.csv`, `out/dl_r
 Kevin asked to change the per-position results from top 5 to top 15. Figure 4 and the Section 2 tables above now show top 15 and bottom 15 SSOE at WR (n=62) and CB (n=33). Safeties (n=26) are fewer than 30 unique players, so the figure and tables show the full roster once, split at the zero line (11 faster than the 40 predicted, 15 slower). Draft slot and round are not used on the scouting card or in Figure 4. Limited names remain directional only.
 
 Outputs: `out/ssoe_leaderboard.csv`, `out/figs/fig4_ssoe_leaderboard.png`.
+
+## 11/2026 (America/New_York) — Figure 19 re-oriented for coaches
+
+Kevin asked to redo the DL heat map so it reads cleanly for coaches: red always means "better athlete goes with better on-field result," with rows split into Speed & agility vs Power, size & length, and columns split into pass rush vs TFL & run defense. The Spearman values, CIs, p-values and FDR stars are unchanged — only the display signs and layout changed. Redraw with `python3 dl_recheck.py --figure-only`, which reads the saved CSVs and does not rerun the tests.
+
+**Orientation.** Timed drills (official 10-yard, official 40, 3-cone, short shuttle, tracking 10- and 20-yard splits) are sign-flipped so faster = higher. Two outcomes where lower is better are also flipped: time to pressure, and run-tackle depth (shallower / closer to the LOS = better). Jumps, Burst Score, top speed, peak accel, Brakes / Re-Burst, bench, and length measures are shown as-is (higher = more). Weight and height have no assumed "better" direction; red would mean heavier / taller with a better result. The two scatter panels still use raw (unflipped) values; the 3-cone axis is labeled "← faster" so the published ρ = −0.65 still matches the downward slope.
+
+**How to read it now.** The pass-rush block is almost uniformly red for speed, agility, jumps and Burst Score. The TFL & run-defense block is mostly pale, except TFL itself and run-play penetration (a movement outcome, not production). Length measures stay near zero. The headline cells are the same as before, just easier to see: 3-cone vs pressure is now +0.65**, official 10-yard vs pressure +0.47**, Burst Score vs TFL +0.43**.
+
+TFL is grouped with run defense because it is a production outcome that can come from either a pass rush or a run stuff, not because it is a pure run-defense stat. The previous figure is archived as `out/figs/fig19_dl_recheck_v1.png`.
+
+Outputs: `out/figs/fig19_dl_recheck.png`, `out/figs/fig19_dl_recheck_v1.png`.
