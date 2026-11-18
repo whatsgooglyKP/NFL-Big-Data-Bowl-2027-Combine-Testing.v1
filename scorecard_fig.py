@@ -48,11 +48,11 @@ for ax, g in zip(axs, ["WR", "TE", "DB", "DL"]):
     for s in ("top", "right"):
         ax.spines[s].set_visible(False)
 leg = [Line2D([0], [0], marker="o", color="w", mfc=COL[k], ms=10, label=k) for k in COL] + \
-      [Line2D([0], [0], marker="D", color="w", mfc="none", mec="#444", ms=7, label="raw ρ (before size control)"),
+      [Line2D([0], [0], marker="D", color="w", mfc="none", mec="#444", ms=7, label="year-controlled ρ (before size control)"),
        Line2D([0], [0], marker="^", color="w", mfc="#777", ms=8, label="DL Edge"), Line2D([0], [0], marker="s", color="w", mfc="#777", ms=8, label="DL Interior")]
 fig.legend(handles=leg, loc="lower center", ncol=8, fontsize=8.5, frameon=False, bbox_to_anchor=(0.5, 0.025))
 fig.suptitle("What translates from the Combine to regular-season games, and what doesn't", fontsize=15, fontweight="bold", x=0.01, ha="left")
-fig.text(0.01, 0.945, "Filled dot = size-controlled ρ with 95% CI (draft year, weight, height held fixed). Hollow diamond = raw ρ: the gap is body size. Green band = better athlete goes with better result.",
+fig.text(0.01, 0.945, "Filled dot = size-controlled ρ with 95% CI (draft year, weight, height held fixed). Hollow diamond = year-controlled ρ before size control: the gap is size (and role). Green band = better athlete goes with better result.",
          fontsize=9, color="#333")
 fig.text(0.01, 0.006, "One row per outcome: the test with the smallest permutation p (n ≥ 25). q = BH false-discovery rate over the full family. 'held-out' = draft classes where adding the test beat a size-only model on unseen data. "
          "Draft slot never used. Source: out/scorecard.csv.", fontsize=7.3, color="#444", wrap=True)

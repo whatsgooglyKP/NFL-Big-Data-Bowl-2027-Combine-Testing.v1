@@ -22,7 +22,7 @@ We checked, one position group at a time, using the 10 Hz Combine tracking and t
 The answer is not "Combine good" or "Combine bad". It is a scorecard.
 
 - **Receivers:** the 40 is real. It shows up as faster game speed on deep routes.
-- **Defensive line:** speed matters, but about half of the raw link is body size.
+- **Defensive line:** speed leans, but against get-off speed most of the link is body size.
 - **Defensive backs:** the headline tests do not translate. That is useful to know.
 - **Tight ends:** too few players to say.
 
@@ -65,7 +65,7 @@ C.append(md("*Figure 1. Receivers' Combine top speed against their regular-seaso
 
 C.append(md("""
 ## 3. Methods, in plain language
-- **Size control.** Big players are slower and sometimes win differently, so a speed "effect" can be a body-size effect. Every correlation is repeated holding weight, height and draft year fixed (plus CB vs safety, edge vs interior where relevant). The gap between the hollow and filled dots in Figure 2 is body size.
+- **Size control.** Big players are slower and sometimes win differently, so a speed "effect" can be a body-size effect. Every correlation is repeated holding weight, height and draft year fixed (plus CB vs safety, edge vs interior where relevant). The hollow dots in Figure 2 are the year-controlled link before size control, so the gap to the filled dots is what size (and role) explains.
 - **Shrinkage.** Rates built on few snaps are noisy. We pull them toward the group average by how many snaps each player has, so a hot 40-snap sample cannot top a leaderboard.
 - **Held-out draft class.** Train on two classes, predict the third, and ask whether adding the Combine test beats a size-only model. We report how many of the three classes improved.
 - **False-discovery control.** Hundreds of tests were run. Every p-value carries a Benjamini-Hochberg q across its whole family, with 10,000 permutations and player-level bootstrap intervals.
@@ -76,7 +76,7 @@ C.append(md("""
 C.append(code("""
 display(Image(str(FIGS / "fig20_forest_size_controlled.png")))
 """))
-C.append(md("*Figure 2. Every Combine test against the main outcome per group: raw ρ (hollow) and size-controlled ρ (filled).*"))
+C.append(md("*Figure 2. Every Combine test against the main outcome per group: year-controlled ρ (hollow) and size-controlled ρ (filled).*"))
 
 C.append(md("""
 ## 4. The scorecard
@@ -98,8 +98,8 @@ display(Image(str(FIGS / "fig21_wr_route_lead.png")))
 C.append(md("*Figure 4. Receiver route-family and man-vs-zone tests, pre-declared. Panel C shows the contrasts that matter.*"))
 
 C.append(md("""
-### Defensive line: speed leans, size explains half
-A faster 40 goes with a higher pressure rate (+0.35, n 72), but the raw link was +0.74, so **about half is body size**. For sacks the raw +0.72 collapses to +0.23: size, not speed. The mechanism is get-off: a faster 10-yard split goes with a faster first second (+0.32, raw +0.81).
+### Defensive line: speed leans, size explains part of it
+A faster 40 goes with a higher pressure rate (+0.35 after size control, n 72, from +0.47 before), so about a quarter of the link is body size. For sacks +0.37 shrinks to +0.23 and the interval crosses zero: it does not translate. The mechanism is get-off: a faster 10-yard split goes with a faster first second (+0.32 after size and role control, from +0.80). Against get-off speed, the jumps, 3-cone, shuttle, top speed and Burst Score all fall from about +0.7 to +0.06 to +0.20: size, not speed.
 
 Edge and interior look alike on get-off (+0.46 and +0.42). Interior rushers show the cleaner 40-to-sack lean (+0.40), though the interval touches zero. Both edge and interior samples are small (39 and 33).
 """))
@@ -110,7 +110,7 @@ C.append(md("*Figure 5. DL heat map, size-controlled, edge and interior split.*"
 
 C.append(md("""
 ### Defensive backs: nothing clears
-No test translates. A faster 40 goes with faster deep-coverage speed only before size control (+0.41 raw, +0.22 after, interval crosses zero). The corner "speed tax" disappears once draft slot is dropped (-0.12). Drill braking leans toward closing speed (+0.25), nowhere near the false-discovery bar.
+No test translates. A faster 40 goes with faster deep-coverage speed only before size control (+0.44 before size control, +0.22 after, interval crosses zero). The corner "speed tax" disappears once draft slot is dropped (-0.12). Drill braking leans toward closing speed (+0.25), nowhere near the false-discovery bar.
 
 ### Tight ends: too few
 Twenty-one players. Every test is labelled too few.
@@ -144,7 +144,9 @@ nul = card.query("verdict in [\\"DOESN'T TRANSLATE\\", 'SIZE, NOT SPEED'] and no
 display(nul.round(2))
 """))
 C.append(md("""
-*Table 2. Best-looking test per result that still does not translate (n at least 25).*
+*Table 2. Best-looking test per result that still does not translate (n at least 25). The raw column is year-controlled only.*
+
+- **DL 40 to sack rate:** +0.37 before size control, +0.23 after, interval -0.04 to +0.48. The same signal as pressure, but weaker.
 
 - **3-cone and shuttle do not separate break routes from vertical routes** for receivers (differences -0.24 and -0.11, intervals wide). Only 22 to 27 receivers have those drills.
 - **Quickness against man coverage:** no clean man-versus-zone edge. The 10-yard difference is +0.15, interval -0.13 to +0.41.

@@ -878,7 +878,7 @@ Sensitivity: man vs zone on break routes only shows no contrast either (diffs +0
 
 ---
 
-## 11/2026 — "What translates and what doesn't" scorecard, fig 22, notebook restructure
+## 11/2026 — "What translates and what doesn't" scorecard, fig 22, notebook restructure **(Raw-ρ numbers in this section were corrected the same day; see the correction section below.)**
 
 **Built.** `scorecard.py` reads only the saved robust outputs (`dl_robust_tests`, `pos_robust_tests`, `wr_route_lead_cells`) and writes `out/scorecard.csv` (card, 4–6 rows per group plus DL Edge/Interior breakout rows), `out/scorecard_full.csv` (every group × test × primary outcome, 10 tests), `out/scorecard_weight.csv` and `out/scorecard.md`. Verdict rules and the row-selection rule were written in METRICS.md §9 before building. Nothing was recomputed or invented. WR break-route separation uses the pre-declared §8 re-test (vertical jump +0.34 LEANS), which supersedes the §7 break family (+0.38, q 0.039).
 
@@ -887,3 +887,22 @@ Sensitivity: man vs zone on break routes only shows no contrast either (diffs +0
 **Figure.** `out/figs/fig22_scorecard.png` (`scorecard_fig.py`). Recommended headline: fig 22 (answers the question in five seconds, honest about size via the raw-vs-controlled diamond). Fig 20 is the supporting methods figure (full grid, dense).
 
 **Notebook.** `notebook/bdb2027_writeup.ipynb` restructured into the 8-section scorecard outline (draft prose 1,363 words, caps total under 2,000), built by `notebook/build_writeup_notebook.py`; the old skeleton is `notebook/bdb2027_writeup_v1_skeleton_backup.ipynb`. Plan: 5 figures (fig 1, 20, 22, 21, 19) + 2 tables = 7 of the 9 allowed. Code cells load saved CSVs only, include the explicit Combine-tracking → regular-season gate (PASS), and expect `out/` to be attached as a Kaggle dataset. Also removed an unused `UDFA_PICK` constant from `ssoe.py`.
+
+## 11/2026 — CORRECTION: scorecard "raw ρ" redefined as year-controlled only
+
+**Problem.** In the first scorecard build (commit 188c068) the DL raw ρ looked inflated against earlier reports (40 → pressure +0.74 vs the earlier year-controlled 0.47; 40 → sack +0.72 vs 0.37; Burst → TFL +0.64 vs +0.43; 10-yard → get-off +0.81 vs 0.80, which was fine).
+
+**Cause.** The card took `rho_raw` from the robust tables. That is a plain Spearman on the **pooled Edge + Interior sample against the empirical-Bayes-shrunk outcome**, with no year or role control. The shrinkage prior is fit separately per subtype, so the shrunk rates carry the Edge-vs-Interior gap and have compressed within-role spread, which inflates a pooled correlation. The earlier numbers were year-controlled Spearman on the as-reported rates (`dl_burst.py` recipe). Nothing else in the pipeline was wrong; size-controlled ρ, CIs, p, q and out-of-sample columns are unchanged.
+
+**Fix.** "Raw" now means the year-controlled Spearman (both sides demeaned within draft year) on the as-reported (unshrunk) outcome, with a 2,000-resample player-level bootstrap CI. The old plain value is kept as `rho_unadjusted_pooled_shrunk` in `out/scorecard_full.csv`. Thresholds, selection rule and the size-controlled model are unchanged (METRICS §9). Fig 20's hollow markers were the same plain pooled Spearman and are redrawn the same way; fig 22 regenerated. The reproduction check matches earlier reports: 10-yard → pressure +0.474 (earlier −0.474), 10-yard → sack +0.371 (−0.371), Burst → TFL +0.426 (earlier +0.43).
+
+| DL pooled, oriented | First build raw | Corrected raw (year-controlled) | Size-controlled | Share lost to size/role (new) | Verdict |
+|---|---:|---:|---:|---:|---|
+| 40 → pressure (n 72) | +0.74 | **+0.47** | +0.35 | 25% | LEANS (unchanged) |
+| 40 → sack (n 72) | +0.72 | **+0.37** | +0.23 | 38% | SIZE, NOT SPEED → **DOESN'T TRANSLATE** |
+| Burst → TFL (n 54) | +0.64 | **+0.43** | +0.32 | 26% | LEANS (unchanged) |
+| 10-yard → get-off (n 72) | +0.81 | **+0.80** | +0.32 | 60% | LEANS (unchanged) |
+
+**Verdict impact.** On the card, one change: DL 40 → sack rate goes from SIZE, NOT SPEED to DOESN'T TRANSLATE (size-controlled +0.23 is 62% of raw, not ≤ half; CI −0.04 to +0.48, perm p 0.060). The card no longer carries any SIZE, NOT SPEED row. In the full grid 14 of 208 rows change, all SIZE, NOT SPEED → DOESN'T TRANSLATE (13) or LEANS (1, DL top speed → pressure); 15 SIZE, NOT SPEED rows remain, all DL, six of them against get-off speed (raw +0.66 to +0.77 → +0.06 to +0.20). The "about half is body size" hook for pressure no longer holds (about a quarter). In pooled DL and DB the controlled model also holds role fixed, so a collapse can be size or role; the rule text says so.
+
+**Caveat on the stale numbers.** The statements "raw +0.74", "raw +0.72" and "raw +0.81" in the first scorecard section above, in the first uploaded fig 22 and scorecard Google Doc, and in the first notebook draft are superseded by this table.

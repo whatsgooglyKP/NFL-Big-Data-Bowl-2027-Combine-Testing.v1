@@ -279,10 +279,12 @@ Module: `robust.py` (generic), `dl_robust.py` (DL), `pos_robust.py` (WR / TE / D
 
 1. **TOO FEW TO TELL**: n < 25 (also when n per fitted control < 5).
 2. **TRANSLATES**: the §7 "survives all checks" rule: size-controlled bootstrap CI excludes 0, BH q < 0.05, raw and size-controlled signs agree, shrunk and unshrunk signs agree, leave-one-class-out ΔR² > 0 with permutation p < 0.10 and a gain in ≥ 2 of 3 classes.
-3. **SIZE, NOT SPEED**: |raw ρ| ≥ 0.30, size-controlled |ρ| ≤ half of raw |ρ|, and the size-controlled CI includes 0 (the effect collapsed). 
-4. **LEANS**: size-controlled CI excludes 0 **or** permutation p < 0.05, same sign as raw, but q ≥ 0.05. Rows where more than half of the raw effect disappears after size control carry "mostly body size" in the coach line.
+3. **SIZE, NOT SPEED**: |raw ρ| ≥ 0.30, size-controlled |ρ| ≤ half of raw |ρ|, and the size-controlled CI includes 0 (the effect collapsed). In pooled DL and DB the controlled model also holds role (edge/interior, CB/S) fixed, so a collapse can be size or role. 
+4. **LEANS**: size-controlled CI excludes 0 **or** permutation p < 0.05, same sign as raw, but q ≥ 0.05. Rows where more than half of the year-controlled effect disappears after size (and role) control say so in the coach line.
 5. **DOESN'T TRANSLATE**: everything else with adequate n (a null, not a proof of zero; the CI is shown).
 
 **Out-of-sample column.** ΔR² of adding the test to a size-only ridge model, trained on two draft classes and scored on the third, plus how many of the three classes improved.
 
 **Combine-tracking gate.** Each row is tagged `combine_source = tracking` for tests derived from the 10 Hz Combine tracking (top speed, tracking splits, Burst Score, DB drill metrics) and `official` for laser/stopwatch results. All outcomes are regular-season game tracking or play data.
+
+**Correction (11/2026, same day, after the first scorecard build).** "Raw ρ" was first taken from the robust tables, where `rho_raw` is a plain Spearman on the pooled sample against the **empirical-Bayes-shrunk** outcome. For DL the shrinkage prior is fit separately for Edge and Interior, so the shrunk outcome carries the Edge-vs-Interior gap in rates, and with no year or role control that inflated the pooled raw ρ (for example 40 → pressure −0.74 instead of the −0.47 reported earlier). That is not the convention used in every earlier report. **"Raw" in the scorecard now means the year-controlled Spearman on the as-reported (unshrunk) outcome**: both sides demeaned within draft-year cells, then Spearman of the residuals, with a 2,000-resample player-level bootstrap CI (same recipe as `dl_burst.py`). The plain pooled/shrunk value is kept as `rho_unadjusted_pooled_shrunk` in `out/scorecard_full.csv`. Thresholds (0.30, one half) and the row-selection rule were not changed; the SIZE rule and the "% of the link" share use the corrected raw. Weight rows use the same raw definition.
