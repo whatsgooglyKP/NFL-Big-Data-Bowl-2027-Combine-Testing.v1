@@ -257,7 +257,7 @@ Module: `robust.py` (generic), `dl_robust.py` (DL), `pos_robust.py` (WR / TE / D
 
 **Formal contrast test.** The difference in partial correlations is tested on the same players with (a) a paired player-level bootstrap (2,000) CI and (b) a within-player swap permutation (10,000) of the two standardized, control-residualized outcomes. **A contrast SURVIVES** if the difference has the predicted sign, the bootstrap 95% CI excludes 0, the swap-permutation p < 0.05 and BH q < 0.05 across the five contrasts (H1 ×2, H3 ×3). LEAN if the first three hold and q ≥ 0.05. Otherwise NOT SUPPORTED (sign opposite to prediction is reported as REVERSED). Two separate correlations that differ in significance are **not** evidence of a difference.
 
-**Cell verdicts** use the §7 rule (SURVIVES / LEAN / small n) with BH q taken across all Part-B cells (H1, H2, H3: 18 cells). S1 gets its own BH family (6 cells).
+**Cell verdicts** use the §7 rule (SURVIVES / LEAN / small n) with BH q taken across all Part-B cells (H1 4 cells, H2 4 cells — two break plus two vertical-route reference — and H3 6 cells: 14). S1 gets its own BH family (6 cells).
 
 **Hypothesis verdicts.** H1 and H3 survive only if at least one of their contrasts SURVIVES. H2 survives only if at least one of vertical jump / Burst Score is a SURVIVES cell for break routes; LEAN is reported as LEAN. We state in advance that with ~55–75 WRs a paired-contrast CI has half-width ≈ 0.30, so a null contrast here is "not detected", not "no difference".
 
