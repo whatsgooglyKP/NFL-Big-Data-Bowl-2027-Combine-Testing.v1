@@ -14,7 +14,7 @@ Success is a median split on a gameplay outcome, among rookies who clear a
 minimum-snap (or route) floor. Playing time is not the outcome.
 
 Small n, so the models are conservative: L2-penalized and Firth logistic,
-repeated stratified CV against a pick+year baseline, shallow decision
+repeated stratified CV against a draft-year-only baseline, shallow decision
 trees and Gaussian naive Bayes as alternatives, and blunt reporting of
 null results and overfitting.
 
@@ -53,7 +53,6 @@ DATA = ROOT / "data"
 OUT = ROOT / "out"
 FIGS = OUT / "figs"
 
-UDFA_PICK = 260
 N_BOOT = 2000
 BOOT_SEED = 2027
 CV_REPEATS = 20
@@ -88,8 +87,8 @@ EXPECTED_SIGN = {
     "broad_jump": 1,
     "combine_weight": 0,  # size control, no pre-declared direction
 }
-CONTROLS = ["log_pick", "year_idx"]
-CONTROL_LABELS = {"log_pick": "Log draft pick", "year_idx": "Draft year"}
+CONTROLS = ["year_idx"]
+CONTROL_LABELS = {"year_idx": "Draft year"}
 
 POS_ORDER = ["WR", "TE", "CB", "S"]
 POS_COLOR = {"WR": "#0072B2", "TE": "#CC79A7", "CB": "#D55E00", "S": "#009E73"}
@@ -136,41 +135,38 @@ def _residualize(y: np.ndarray, X: np.ndarray) -> np.ndarray:
     return y - A @ coef
 
 
-def year_pick_controls(d: pd.DataFrame) -> pd.DataFrame:
-    year_dummies = pd.get_dummies(d["draft_year"], prefix="yr", drop_first=True)
-    log_pick = np.log(d["pick"].astype(float)).to_frame("log_pick")
-    if year_dummies.shape[1] >= 1:
-        return pd.concat([log_pick, year_dummies], axis=1)
-    return log_pick
+def year_controls(d: pd.DataFrame) -> pd.DataFrame:
+    """Draft-year dummies only. No draft slot / pick / round (Kevin's rule, 11/2026)."""
+    return pd.get_dummies(d["draft_year"], prefix="yr", drop_first=True).astype(float)
 
 
 def spearman_controlled(x: pd.Series, y: pd.Series, df: pd.DataFrame) -> dict:
     d = pd.DataFrame({
-        "x": x, "y": y, "pick": df["pick"], "draft_year": df["draft_year"],
+        "x": x, "y": y, "draft_year": df["draft_year"],
     }).dropna()
     out = {
         "n": int(len(d)), "rho": np.nan, "p": np.nan,
-        "partial_year_pick_rho": np.nan, "partial_year_pick_p": np.nan,
+        "partial_year_rho": np.nan, "partial_year_p": np.nan,
     }
     if len(d) < 8 or d["x"].nunique() < 2 or d["y"].nunique() < 2:
         return out
     rho, p = stats.spearmanr(d["x"], d["y"])
     out["rho"], out["p"] = float(rho), float(p)
-    controls = year_pick_controls(d)
+    controls = year_controls(d)
     X = controls.to_numpy(dtype=float)
     if np.unique(X, axis=0).shape[0] >= 2:
         rx = _residualize(d["x"].to_numpy(dtype=float), X)
         ry = _residualize(d["y"].to_numpy(dtype=float), X)
         if np.unique(rx).size >= 2 and np.unique(ry).size >= 2:
             pr, pp = stats.spearmanr(rx, ry)
-            out["partial_year_pick_rho"], out["partial_year_pick_p"] = float(pr), float(pp)
+            out["partial_year_rho"], out["partial_year_p"] = float(pr), float(pp)
     return out
 
 
-def bootstrap_year_pick_ci(x: pd.Series, y: pd.Series, df: pd.DataFrame,
+def bootstrap_year_ci(x: pd.Series, y: pd.Series, df: pd.DataFrame,
                            n_boot: int = N_BOOT, seed: int = BOOT_SEED) -> tuple[float, float, int]:
     base = pd.DataFrame({
-        "x": x, "y": y, "pick": df["pick"], "draft_year": df["draft_year"],
+        "x": x, "y": y, "draft_year": df["draft_year"],
     }).dropna().reset_index(drop=True)
     if len(base) < 8:
         return np.nan, np.nan, 0
@@ -180,7 +176,7 @@ def bootstrap_year_pick_ci(x: pd.Series, y: pd.Series, df: pd.DataFrame,
         b = base.iloc[rng.integers(0, len(base), size=len(base))].reset_index(drop=True)
         if b["x"].nunique() < 2 or b["y"].nunique() < 2:
             continue
-        controls = year_pick_controls(b)
+        controls = year_controls(b)
         X = controls.to_numpy(dtype=float)
         if np.unique(X, axis=0).shape[0] < 2:
             continue
@@ -225,9 +221,7 @@ def load_players_combine() -> pd.DataFrame:
     players = pd.read_csv(DATA / "players.csv")
     comb = pd.read_csv(DATA / "combine_results.csv")
     M = players.merge(comb, on=["nfl_id", "draft_year"], how="left")
-    M["pick"] = M["draft_overall_pick"].fillna(UDFA_PICK)
-    M["is_udfa"] = M["draft_overall_pick"].isna()
-    M["log_pick"] = np.log(M["pick"].astype(float))
+    M = M.drop(columns=[c for c in M.columns if "pick" in c.lower() or c == "draft_round"], errors="ignore")
     M["year_idx"] = (M["draft_year"] - 2023).astype(float)
     M["pos_group"] = M["nfl_position"].map({
         "WR": "WR", "TE": "TE", "RB": "RB", "FB": "FB",
@@ -363,7 +357,7 @@ SPECS = {
             "PBU, INT) exists for a defender. Tackle involvement rate is the "
             "fallback. The earlier safety gauntlet → tackle-rate link was "
             "wrong-signed (faster gauntlet, lower tackle involvement after "
-            "year and pick), so this outcome is a weak coverage proxy."
+            "year), so this outcome is a weak coverage proxy."
         ),
     ),
 }
@@ -423,8 +417,7 @@ def coverage_rows(M: pd.DataFrame, table: pd.DataFrame, rb_note: pd.DataFrame) -
                 "n_2023": int((df["draft_year"] == 2023).sum()) if len(df) else 0,
                 "n_2024": int((df["draft_year"] == 2024).sum()) if len(df) else 0,
                 "n_2025": int((df["draft_year"] == 2025).sum()) if len(df) else 0,
-                "n_udfa": int(df["is_udfa"].sum()) if len(df) and "is_udfa" in df.columns else 0,
-                "feasible": pos != "RB",
+                                "feasible": pos != "RB",
                 "exclusion_reason": (
                     "Only one RB in the 2023–2025 rookie file (Sione Vaki). "
                     "Excluded from every model; athletic comps are an anecdote."
@@ -677,17 +670,12 @@ def english_tree_rules(clf: DecisionTreeClassifier, feature_names: list[str],
 
     def uname(j: int) -> str:
         n = feature_names[j]
-        if n == "log_pick":
-            return "draft pick"
         if n == "year_idx":
             return "draft year"
         return COMBINE_LABELS.get(n, n)
 
     def uthresh(j: int, t: float) -> str:
         n = feature_names[j]
-        if n == "log_pick":
-            pick = float(np.exp(t))
-            return f"{pick:.0f} (pick number)"
         if n == "year_idx":
             return f"{2023 + t:.1f}"
         u = units.get(n, "")
@@ -752,9 +740,9 @@ def model_factories(min_leaf: int) -> dict:
 
 
 MODEL_LABELS = {
-    "baseline_l2": "Pick + year only (L2)",
-    "logistic_l2": "L2 logistic (tests + pick + year)",
-    "firth": "Firth logistic (tests + pick + year)",
+    "baseline_l2": "Year only (L2)",
+    "logistic_l2": "L2 logistic (tests + year)",
+    "firth": "Firth logistic (tests + year)",
     "tree_d2": "Decision tree (depth 2)",
     "tree_d3": "Decision tree (depth 3)",
     "gaussian_nb": "Gaussian naive Bayes",
@@ -898,10 +886,10 @@ def analyze_position(pos: str, table: pd.DataFrame) -> dict:
     # --- Partial Spearman on the continuous outcome (eligible, pairwise) ---
     sp_rows = []
     for feat in COMBINE_PREDS:
-        d = elig[[feat, spec.outcome, "pick", "draft_year"]].dropna()
+        d = elig[[feat, spec.outcome, "draft_year"]].dropna()
         # residualize on the eligible complete-for-this-test sample, not only joint CC
         res = spearman_controlled(d[feat], d[spec.outcome], d)
-        lo, hi, nb = bootstrap_year_pick_ci(d[feat], d[spec.outcome], d)
+        lo, hi, nb = bootstrap_year_ci(d[feat], d[spec.outcome], d)
         sp_rows.append({
             "pos_group": pos,
             "feature": feat,
@@ -909,18 +897,18 @@ def analyze_position(pos: str, table: pd.DataFrame) -> dict:
             "n": res["n"],
             "rho": res["rho"],
             "p": res["p"],
-            "partial_year_pick_rho": res["partial_year_pick_rho"],
-            "partial_year_pick_p": res["partial_year_pick_p"],
+            "partial_year_rho": res["partial_year_rho"],
+            "partial_year_p": res["partial_year_p"],
             "partial_ci_lo": lo,
             "partial_ci_hi": hi,
             "n_boot": nb,
             "outcome": spec.outcome,
         })
     spearman = pd.DataFrame(sp_rows)
-    if len(spearman) and spearman["partial_year_pick_p"].notna().any():
-        ok = spearman["partial_year_pick_p"].notna()
+    if len(spearman) and spearman["partial_year_p"].notna().any():
+        ok = spearman["partial_year_p"].notna()
         rej, p_adj, _, _ = multipletests(
-            spearman.loc[ok, "partial_year_pick_p"], alpha=0.05, method="holm",
+            spearman.loc[ok, "partial_year_p"], alpha=0.05, method="holm",
         )
         spearman.loc[ok, "holm_p"] = p_adj
         spearman.loc[ok, "sig_holm_05"] = rej
@@ -932,7 +920,7 @@ def analyze_position(pos: str, table: pd.DataFrame) -> dict:
 
     # --- Ridge / OLS on continuous outcome, complete cases ---
     y_cont = cc[spec.outcome].to_numpy(dtype=float)
-    # residualize outcome and features? Report raw ridge with pick+year in the model.
+    # residualize outcome and features? Report raw ridge with year in the model.
     Xc, scc = standardize_fit(X)
     ridge = RidgeCV(alphas=np.logspace(-2, 3, 16), cv=min(5, n_splits_for(y) + 1) if len(cc) >= 12 else 3)
     try:
@@ -1013,7 +1001,7 @@ def analyze_position(pos: str, table: pd.DataFrame) -> dict:
     tree_rules = []
     importances = []
     raw_names = pred_cols
-    units = {**COMBINE_UNITS, "log_pick": "", "year_idx": ""}
+    units = {**COMBINE_UNITS, "year_idx": ""}
     for depth, key in [(2, "tree_d2"), (3, "tree_d3")]:
         clf = DecisionTreeClassifier(
             max_depth=depth, min_samples_leaf=min_leaf, random_state=CV_SEED,
@@ -1093,7 +1081,7 @@ def analyze_position(pos: str, table: pd.DataFrame) -> dict:
     l2_auc = float(auc_df.loc[auc_df.model == "logistic_l2", "cv_auc_mean"].iloc[0])
     l2_sd = float(auc_df.loc[auc_df.model == "logistic_l2", "cv_auc_sd"].iloc[0])
     dlt = float(auc_df.loc[auc_df.model == "logistic_l2", "delta_vs_baseline_mean"].iloc[0]) if "delta_vs_baseline_mean" in auc_df.columns else np.nan
-    log(f"  CV AUC  L2 multi-test {l2_auc:.3f} ± {l2_sd:.3f}  vs  pick+year {base_auc:.3f}  "
+    log(f"  CV AUC  L2 multi-test {l2_auc:.3f} ± {l2_sd:.3f}  vs  year-only {base_auc:.3f}  "
         f"(Δ={dlt:+.3f})")
 
     return {
@@ -1199,7 +1187,7 @@ def make_figure(results: dict) -> Path:
         "gaussian_nb", "random_forest", "grad_boost",
     ]
     short = {
-        "baseline_l2": "Pick + year",
+        "baseline_l2": "Year only",
         "logistic_l2": "L2 logistic",
         "firth": "Firth logistic",
         "tree_d2": "Tree, depth 2",
@@ -1238,7 +1226,7 @@ def make_figure(results: dict) -> Path:
     labels.append("Chance (0.50)")
     ax.legend(handles, labels, loc="upper right", ncol=5, frameon=False)
     ax.set_title(
-        "Does any multi-test model beat a draft-pick + year baseline?  "
+        "Does any multi-test model beat a draft-year-only baseline?  "
         "Error bars are the SD across CV folds — they are wide because each test fold is small.",
         loc="left", fontsize=11,
     )
@@ -1249,7 +1237,7 @@ def make_figure(results: dict) -> Path:
     )
     fig.text(
         0.5, 0.932,
-        "Firth odds ratios per 1 SD, controlling for log draft pick (UDFA = 260) and year.  "
+        "Firth odds ratios per 1 SD, controlling for draft year only.  "
         "A slower 40 or 10-yard split should have OR < 1 if speed helps.  "
         "No test is Holm-significant at any position.",
         ha="center", va="top", fontsize=9.5, color="#333",
@@ -1350,8 +1338,7 @@ def main() -> int:
         players_out = pd.concat(player_frames, ignore_index=True, sort=False)
         keep = [
             "nfl_id", "display_name", "nfl_position", "pos_group", "draft_year",
-            "draft_overall_pick", "pick", "is_udfa",
-            "forty", "ten_yd_split", "vertical", "broad_jump",
+                        "forty", "ten_yd_split", "vertical", "broad_jump",
             "three_cone", "short_shuttle", "combine_height", "combine_weight",
             "n_routes", "n_targets", "rec_yards", "yards_per_route",
             "n_def_snaps", "n_pass_snaps", "n_tackles", "tackle_rate",
@@ -1397,7 +1384,7 @@ def main() -> int:
                 f"(CI {fmt_or(r['firth_or_lo'])}–{fmt_or(r['firth_or_hi'])}), "
                 f"Holm p={fmt_p(r['holm_p'])}")
         a = R["auc"].set_index("model")
-        log("  CV AUC vs pick+year baseline "
+        log("  CV AUC vs year-only baseline "
             f"{a.loc['baseline_l2','cv_auc_mean']:.3f}:")
         for m in ["logistic_l2", "firth", "tree_d2", "tree_d3", "gaussian_nb",
                   "random_forest", "grad_boost"]:

@@ -5,7 +5,7 @@ Reads the official player table from build_dataset.py, writes a coach-facing
 leaderboard, a top/bottom figure, and two supporting tests:
 
   1. Incremental value of Combine top speed over ngs_athleticism_score.
-  2. The suggestive CB "speed tax": Combine speed beyond draft slot vs start rate.
+  2. The CB "speed tax" check: Combine speed vs start rate, draft-year controlled (no draft slot).
 
 Usage:
     /workspace/bdb2027/.venv/bin/python /workspace/bdb2027/ssoe.py
@@ -48,17 +48,6 @@ def fmt_p(p: float) -> str:
     return f"{p:.3f}"
 
 
-def fmt_pick(row: pd.Series) -> str:
-    if pd.isna(row["draft_overall_pick"]):
-        return "UDFA"
-    rnd = int(row["draft_round"]) if pd.notna(row["draft_round"]) else None
-    overall = int(row["draft_overall_pick"])
-    year = int(row["draft_year"]) if pd.notna(row["draft_year"]) else ""
-    if rnd is None:
-        return f"{year} #{overall}"
-    return f"{year} R{rnd} #{overall}"
-
-
 def reliability(n_opp: float) -> str:
     if not np.isfinite(n_opp):
         return "Limited"
@@ -69,21 +58,23 @@ def reliability(n_opp: float) -> str:
     return "Limited"
 
 
-def spearman_partial(x: pd.Series, y: pd.Series, pick: pd.Series) -> dict:
-    """Spearman ρ, plus residualize-both-on-log-pick partial Spearman."""
-    d = pd.DataFrame({"x": x, "y": y, "pick": pick}).dropna()
+def spearman_partial(x: pd.Series, y: pd.Series, year: pd.Series) -> dict:
+    """Spearman ρ, plus the draft-year-controlled partial (both sides demeaned within draft-year cells).
+
+    No draft slot / pick / round is used (Kevin's rule, 11/2026).
+    """
+    d = pd.DataFrame({"x": x, "y": y, "year": year}).dropna()
     out = {"n": len(d), "rho": np.nan, "p": np.nan, "partial_rho": np.nan, "partial_p": np.nan}
     if len(d) < 8:
         return out
     rho, p = stats.spearmanr(d["x"], d["y"])
     out["rho"], out["p"] = float(rho), float(p)
-    lp = np.log(d["pick"].astype(float))
-    if lp.nunique() >= 2 and d["x"].nunique() >= 2 and d["y"].nunique() >= 2:
-        rx = d["x"] - np.poly1d(np.polyfit(lp, d["x"], 1))(lp)
-        ry = d["y"] - np.poly1d(np.polyfit(lp, d["y"], 1))(lp)
+    if d["year"].nunique() >= 2 and d["x"].nunique() >= 2 and d["y"].nunique() >= 2:
+        rx = d["x"] - d.groupby("year")["x"].transform("mean")
+        ry = d["y"] - d.groupby("year")["y"].transform("mean")
         pr, pp = stats.spearmanr(rx, ry)
         out["partial_rho"], out["partial_p"] = float(pr), float(pp)
-        out["x_beyond_pick"] = rx
+        out["x_year_resid"] = rx
         out["y_resid"] = ry
         out["_df"] = d
     return out
@@ -107,14 +98,13 @@ def incremental_spearman(x: pd.Series, y: pd.Series, controls: pd.DataFrame) -> 
     return out
 
 
-def perm_partial_p(x: pd.Series, y: pd.Series, pick: pd.Series, n_perm: int = N_PERM, seed: int = RNG_SEED) -> float:
-    """Permutation p-value for the pick-controlled partial Spearman (shuffle x residuals)."""
-    d = pd.DataFrame({"x": x, "y": y, "pick": pick}).dropna()
+def perm_partial_p(x: pd.Series, y: pd.Series, year: pd.Series, n_perm: int = N_PERM, seed: int = RNG_SEED) -> float:
+    """Permutation p-value for the year-controlled partial Spearman (shuffle x residuals)."""
+    d = pd.DataFrame({"x": x, "y": y, "year": year}).dropna()
     if len(d) < 8:
         return np.nan
-    lp = np.log(d["pick"].astype(float))
-    rx = d["x"].to_numpy() - np.poly1d(np.polyfit(lp, d["x"], 1))(lp)
-    ry = d["y"].to_numpy() - np.poly1d(np.polyfit(lp, d["y"], 1))(lp)
+    rx = (d["x"] - d.groupby("year")["x"].transform("mean")).to_numpy()
+    ry = (d["y"] - d.groupby("year")["y"].transform("mean")).to_numpy()
     obs = abs(stats.spearmanr(rx, ry).statistic)
     rng = np.random.default_rng(seed)
     hits = 0
@@ -316,16 +306,14 @@ def ngs_incremental(M: pd.DataFrame) -> pd.DataFrame:
         d = official[official["pos_group"] == pos]
         ngs = d["ngs_athleticism_score"]
         # Raw associations.
-        raw_c = spearman_partial(d["c_top"], d["sunday_speed"], d["pick"])
-        raw_ngs = spearman_partial(ngs, d["sunday_speed"], d["pick"])
-        raw_cn = spearman_partial(d["c_top"], ngs, d["pick"])
+        raw_c = spearman_partial(d["c_top"], d["sunday_speed"], d["draft_year"])
+        raw_ngs = spearman_partial(ngs, d["sunday_speed"], d["draft_year"])
+        raw_cn = spearman_partial(d["c_top"], ngs, d["draft_year"])
         inc_ngs = incremental_spearman(d["c_top"], d["sunday_speed"], d[["ngs_athleticism_score"]])
         inc_both = incremental_spearman(
             d["c_top"], d["sunday_speed"],
-            pd.DataFrame({
-                "ngs_athleticism_score": d["ngs_athleticism_score"],
-                "log_pick": np.log(d["pick"].astype(float)),
-            }),
+            pd.concat([d[["ngs_athleticism_score"]],
+                       pd.get_dummies(d["draft_year"], prefix="yr", drop_first=True).astype(float)], axis=1),
         )
         rows.append({
             "family": "ngs_incremental", "pos_group": pos,
@@ -353,7 +341,7 @@ def ngs_incremental(M: pd.DataFrame) -> pd.DataFrame:
         })
         rows.append({
             "family": "ngs_incremental", "pos_group": pos,
-            "test": "c_top vs Sunday Speed | ngs_athleticism_score + log pick",
+            "test": "c_top vs Sunday Speed | ngs_athleticism_score + draft year",
             "n": inc_both["n"], "rho": inc_both["rho"], "p": inc_both["p"],
             "partial_rho": np.nan, "partial_p": np.nan,
         })
@@ -362,37 +350,36 @@ def ngs_incremental(M: pd.DataFrame) -> pd.DataFrame:
             f"NGS→SS ρ={raw_ngs['rho']:+.2f} (p={fmt_p(raw_ngs['p'])}); "
             f"Combine vs NGS ρ={raw_cn['rho']:+.2f}; "
             f"Combine→SS after NGS ρ={inc_ngs['rho']:+.2f} (p={fmt_p(inc_ngs['p'])}); "
-            f"after NGS+pick ρ={inc_both['rho']:+.2f} (p={fmt_p(inc_both['p'])})"
+            f"after NGS+year ρ={inc_both['rho']:+.2f} (p={fmt_p(inc_both['p'])})"
         )
     return pd.DataFrame(rows)
 
 
 def speed_tax(M: pd.DataFrame) -> pd.DataFrame:
-    """Beyond-draft-slot Combine speed vs start rate, by position.
+    """Combine speed vs start rate, by position, controlling draft year only (no draft slot).
 
-    'Beyond slot' = Combine top speed residualized on log draft pick (UDFA = 260).
-    The official partial ρ residualizes start rate the same way (matches explore.py).
+    Rewritten 11/2026: the original 'beyond draft slot' version is retired.
     Two samples: (a) every player at the position with a 40 and a start rate,
     (b) the official Sunday Speed sample. (a) is the pre-specified speed-tax check;
     (b) is a sensitivity restricted to players we would put on the scouting card.
     """
     rows = []
-    log("\n==== CB speed tax: Combine speed beyond draft slot vs start rate ====")
+    log("\n==== CB speed tax: Combine speed vs start rate (draft year controlled) ====")
     for sample_name, mask in (
         ("all_with_40_and_starts", M["c_top"].notna() & M["start_rate"].notna()),
         ("official_sunday_speed_sample", M["ssoe_mph"].notna() & M["start_rate"].notna()),
     ):
         for pos in POS_ORDER:
             d = M[(M["pos_group"] == pos) & mask]
-            res = spearman_partial(d["c_top"], d["start_rate"], d["pick"])
+            res = spearman_partial(d["c_top"], d["start_rate"], d["draft_year"])
             perm_p = np.nan
             if pos == "CB" and sample_name == "all_with_40_and_starts" and res["n"] >= 8:
-                perm_p = perm_partial_p(d["c_top"], d["start_rate"], d["pick"])
+                perm_p = perm_partial_p(d["c_top"], d["start_rate"], d["draft_year"])
             rows.append({
                 "family": "speed_tax",
                 "sample": sample_name,
                 "pos_group": pos,
-                "test": "c_top vs start_rate (beyond log pick)",
+                "test": "c_top vs start_rate (year-controlled)",
                 "n": res["n"],
                 "rho": res["rho"],
                 "p": res["p"],

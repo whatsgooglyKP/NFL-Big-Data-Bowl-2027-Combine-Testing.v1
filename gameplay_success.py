@@ -33,7 +33,6 @@ DATA = ROOT / "data"
 OUT = ROOT / "out"
 FIGS = OUT / "figs"
 
-UDFA_PICK = 260
 N_BOOT = 2000
 BOOT_SEED = 2027
 DEEP_ROUTES = frozenset({"GO", "POST", "CORNER", "WHEEL"})
@@ -73,47 +72,36 @@ def _residualize(y: np.ndarray, X: np.ndarray) -> np.ndarray:
     return y - A @ coef
 
 
-def year_pick_controls(d: pd.DataFrame) -> pd.DataFrame:
-    year_dummies = pd.get_dummies(d["draft_year"], prefix="yr", drop_first=True)
-    log_pick = np.log(d["pick"].astype(float)).to_frame("log_pick")
-    if year_dummies.shape[1] >= 1:
-        return pd.concat([log_pick, year_dummies], axis=1)
-    return log_pick
+def year_controls(d: pd.DataFrame) -> pd.DataFrame:
+    """Draft-year dummies only. No draft slot / pick / round (Kevin's rule, 11/2026)."""
+    return pd.get_dummies(d["draft_year"], prefix="yr", drop_first=True).astype(float)
 
 
 def spearman_controlled(x: pd.Series, y: pd.Series, df: pd.DataFrame) -> dict:
-    d = pd.DataFrame({"x": x, "y": y, "pick": df["pick"], "draft_year": df["draft_year"]}).dropna()
+    d = pd.DataFrame({"x": x, "y": y, "draft_year": df["draft_year"]}).dropna()
     out = {
         "n": int(len(d)), "rho": np.nan, "p": np.nan,
-        "partial_rho": np.nan, "partial_p": np.nan,
-        "partial_year_pick_rho": np.nan, "partial_year_pick_p": np.nan,
+        "partial_year_rho": np.nan, "partial_year_p": np.nan,
     }
     if len(d) < 8 or d["x"].nunique() < 2 or d["y"].nunique() < 2:
         return out
     rho, p = stats.spearmanr(d["x"], d["y"])
     out["rho"], out["p"] = float(rho), float(p)
-    lp = np.log(d["pick"].astype(float))
-    if lp.nunique() >= 2:
-        rx = d["x"].to_numpy() - np.poly1d(np.polyfit(lp, d["x"], 1))(lp)
-        ry = d["y"].to_numpy() - np.poly1d(np.polyfit(lp, d["y"], 1))(lp)
-        if np.unique(rx).size >= 2 and np.unique(ry).size >= 2:
-            pr, pp = stats.spearmanr(rx, ry)
-            out["partial_rho"], out["partial_p"] = float(pr), float(pp)
-    controls = year_pick_controls(d)
+    controls = year_controls(d)
     X = controls.to_numpy(dtype=float)
     if np.unique(X, axis=0).shape[0] >= 2:
         rx = _residualize(d["x"].to_numpy(dtype=float), X)
         ry = _residualize(d["y"].to_numpy(dtype=float), X)
         if np.unique(rx).size >= 2 and np.unique(ry).size >= 2:
             pr, pp = stats.spearmanr(rx, ry)
-            out["partial_year_pick_rho"], out["partial_year_pick_p"] = float(pr), float(pp)
+            out["partial_year_rho"], out["partial_year_p"] = float(pr), float(pp)
     return out
 
 
-def bootstrap_year_pick_ci(x: pd.Series, y: pd.Series, df: pd.DataFrame,
+def bootstrap_year_ci(x: pd.Series, y: pd.Series, df: pd.DataFrame,
                            n_boot: int = N_BOOT, seed: int = BOOT_SEED) -> tuple[float, float, int]:
     base = pd.DataFrame({
-        "x": x, "y": y, "pick": df["pick"], "draft_year": df["draft_year"],
+        "x": x, "y": y, "draft_year": df["draft_year"],
     }).dropna().reset_index(drop=True)
     if len(base) < 8:
         return np.nan, np.nan, 0
@@ -123,7 +111,7 @@ def bootstrap_year_pick_ci(x: pd.Series, y: pd.Series, df: pd.DataFrame,
         b = base.iloc[rng.integers(0, len(base), size=len(base))].reset_index(drop=True)
         if b["x"].nunique() < 2 or b["y"].nunique() < 2:
             continue
-        controls = year_pick_controls(b)
+        controls = year_controls(b)
         X = controls.to_numpy(dtype=float)
         if np.unique(X, axis=0).shape[0] < 2:
             continue
@@ -163,8 +151,7 @@ def _style() -> None:
 def load_official_players() -> pd.DataFrame:
     path = OUT / "sunday_speed_players.parquet"
     M = pd.read_parquet(path) if path.exists() else pd.read_csv(OUT / "sunday_speed_players.csv")
-    if "pick" not in M.columns:
-        M["pick"] = M["draft_overall_pick"].fillna(UDFA_PICK)
+    M = M.drop(columns=[c for c in M.columns if "pick" in c.lower() or c in ("draft_round",)], errors="ignore")
     log(f"Loaded {len(M)} skill players; official SSOE sample = {int(M['ssoe_mph'].notna().sum())}")
     return M
 
@@ -290,16 +277,15 @@ def build_db_outcomes() -> pd.DataFrame:
 
 def _test_row(family, pos, sample, feature, flabel, outcome, olabel, frame, feat_s, out_s) -> dict:
     res = spearman_controlled(feat_s, out_s, frame)
-    lo, hi, n_boot = bootstrap_year_pick_ci(feat_s, out_s, frame)
+    lo, hi, n_boot = bootstrap_year_ci(feat_s, out_s, frame)
     res["partial_ci_low"] = lo
     res["partial_ci_high"] = hi
     res["n_boot"] = n_boot
     log(
         f"  {pos:2s}  {flabel:28s} vs {olabel:32s}  [{sample}]  n={res['n']:3d}  "
         f"ρ={res['rho']:+.2f} (p={fmt_p(res['p'])})  "
-        f"year+pick ρ={res['partial_year_pick_rho']:+.2f} "
-        f"(p={fmt_p(res['partial_year_pick_p'])}, CI {lo:+.2f}–{hi:+.2f})  "
-        f"pick-only ρ={res['partial_rho']:+.2f}"
+        f"year ρ={res['partial_year_rho']:+.2f} "
+        f"(p={fmt_p(res['partial_year_p'])}, CI {lo:+.2f}–{hi:+.2f})"
     )
     return {
         "family": family, "pos_group": pos, "sample": sample,
@@ -327,7 +313,7 @@ def run_wr_tests(M: pd.DataFrame) -> pd.DataFrame:
     official = M[(M["pos_group"] == "WR") & M["ssoe_mph"].notna()].copy()
     log(f"\n==== WR production family (official Sunday Speed sample, n={len(official)}) ====")
     log("Pre-declared: Sunday Speed and SSOE vs yards/route, deep yards/deep route, deep target share.")
-    log("Holm is on those 6 year+pick partial p-values.")
+    log("Holm is on those 6 year partial p-values.")
 
     # Official family
     family_spec = [
@@ -344,14 +330,14 @@ def run_wr_tests(M: pd.DataFrame) -> pd.DataFrame:
             "wr_production_primary", "WR", "official_sunday_speed",
             feat, flabel, out, olabel, official, official[feat], official[out],
         ))
-    F = holm_on(pd.DataFrame(fam), "partial_year_pick_p")
-    log("  Holm-adjusted p (6-test WR production family, year+pick partial p):")
+    F = holm_on(pd.DataFrame(fam), "partial_year_p")
+    log("  Holm-adjusted p (6-test WR production family, year partial p):")
     for _, r in F.iterrows():
         star = " *" if bool(r["sig_holm_05"]) else ""
         log(
             f"    {r['feature_label']:28s} vs {r['outcome_label']:32s}  "
-            f"ρ={r['partial_year_pick_rho']:+.2f}  "
-            f"p={fmt_p(r['partial_year_pick_p'])} → Holm p={fmt_p(r['holm_p'])}{star}"
+            f"ρ={r['partial_year_rho']:+.2f}  "
+            f"p={fmt_p(r['partial_year_p'])} → Holm p={fmt_p(r['holm_p'])}{star}"
         )
 
     # Combine → production (competition link) and secondary outcomes, not in the family.
@@ -394,10 +380,10 @@ def run_db_tests(M: pd.DataFrame) -> pd.DataFrame:
     # Broader sample: anyone at the position with a 40 and enough snaps.
     # Official SS sample is a sensitivity.
     rows = []
-    log("\n==== CB/S gameplay family: Combine speed beyond slot vs tackle / TFL rate ====")
+    log("\n==== CB/S gameplay family: Combine speed vs tackle / TFL rate ====")
     log("Pre-declared: 4 tests (CB and S × tackle involvement rate and TFL rate),")
     log("broader sample (40-yard tracking + start rate available, ≥50 defensive snaps).")
-    log("Holm on year+pick partial p. WR is reported as a control, not in the family.")
+    log("Holm on year partial p. WR is reported as a control, not in the family.")
 
     fam = []
     mask_broad = M["c_top"].notna() & (M["n_def_snaps"] >= 50)
@@ -412,14 +398,14 @@ def run_db_tests(M: pd.DataFrame) -> pd.DataFrame:
                 "c_top_mph", "Combine top speed (mph)",
                 out, olabel, d, d["c_top_mph"], d[out],
             ))
-    F = holm_on(pd.DataFrame(fam), "partial_year_pick_p")
-    log("  Holm-adjusted p (4-test CB/S gameplay family, year+pick partial p):")
+    F = holm_on(pd.DataFrame(fam), "partial_year_p")
+    log("  Holm-adjusted p (4-test CB/S gameplay family, year partial p):")
     for _, r in F.iterrows():
         star = " *" if bool(r["sig_holm_05"]) else ""
         log(
             f"    {r['pos_group']:2s}  {r['outcome_label']:32s}  "
-            f"ρ={r['partial_year_pick_rho']:+.2f}  "
-            f"p={fmt_p(r['partial_year_pick_p'])} → Holm p={fmt_p(r['holm_p'])}{star}"
+            f"ρ={r['partial_year_rho']:+.2f}  "
+            f"p={fmt_p(r['partial_year_p'])} → Holm p={fmt_p(r['holm_p'])}{star}"
         )
     rows.append(F)
 
@@ -492,11 +478,11 @@ def make_figure(wr_tests: pd.DataFrame, db_tests: pd.DataFrame) -> Path:
     ax = axes[0]
     ys = np.arange(len(wr))[::-1]
     colors = ["#0072B2" if bool(s) else "#7A7A7A" for s in wr["sig_holm_05"].fillna(False)]
-    rhos = wr["partial_year_pick_rho"].fillna(0).to_numpy()
+    rhos = wr["partial_year_rho"].fillna(0).to_numpy()
     ax.barh(ys, rhos, color=colors, height=0.66, zorder=3, edgecolor="white")
     ax.axvline(0, color="#888888", lw=0.8)
     for y, r in zip(ys, wr.itertuples()):
-        val = r.partial_year_pick_rho if np.isfinite(r.partial_year_pick_rho) else 0.0
+        val = r.partial_year_rho if np.isfinite(r.partial_year_rho) else 0.0
         star = " ★" if bool(getattr(r, "sig_holm_05", False)) else ""
         ax.text(
             val + (0.02 if val >= 0 else -0.02), y,
@@ -504,7 +490,7 @@ def make_figure(wr_tests: pd.DataFrame, db_tests: pd.DataFrame) -> Path:
             ha="left" if val >= 0 else "right", va="center", fontsize=8,
         )
     ax.set_yticks(ys, wr_labels, fontsize=8.5)
-    ax.set_xlabel("Correlation after draft year and draft slot")
+    ax.set_xlabel("Correlation after draft year")
     ax.set_xlim(-0.55, 0.75)
     wr_any = bool(wr["sig_holm_05"].fillna(False).any())
     ax.set_title(
@@ -525,11 +511,11 @@ def make_figure(wr_tests: pd.DataFrame, db_tests: pd.DataFrame) -> Path:
         "#D55E00" if (p == "CB" and bool(s)) else "#009E73" if (p == "S" and bool(s)) else "#7A7A7A"
         for p, s in zip(db["pos_group"], db["sig_holm_05"].fillna(False))
     ]
-    rhos = db["partial_year_pick_rho"].fillna(0).to_numpy()
+    rhos = db["partial_year_rho"].fillna(0).to_numpy()
     ax.barh(ys, rhos, color=colors, height=0.66, zorder=3, edgecolor="white")
     ax.axvline(0, color="#888888", lw=0.8)
     for y, r in zip(ys, db.itertuples()):
-        val = r.partial_year_pick_rho if np.isfinite(r.partial_year_pick_rho) else 0.0
+        val = r.partial_year_rho if np.isfinite(r.partial_year_rho) else 0.0
         star = " ★" if bool(getattr(r, "sig_holm_05", False)) else ""
         ax.text(
             val + (0.02 if val >= 0 else -0.02), y,
@@ -537,7 +523,7 @@ def make_figure(wr_tests: pd.DataFrame, db_tests: pd.DataFrame) -> Path:
             ha="left" if val >= 0 else "right", va="center", fontsize=8,
         )
     ax.set_yticks(ys, db_labels, fontsize=8.5)
-    ax.set_xlabel("Correlation after draft year and draft slot")
+    ax.set_xlabel("Correlation after draft year")
     ax.set_xlim(-0.55, 0.75)
     db_any = bool(db["sig_holm_05"].fillna(False).any())
     ax.set_title(
@@ -594,7 +580,7 @@ def main() -> int:
 
     keep = [
         "nfl_id", "display_name", "nfl_position", "pos_group", "draft_year",
-        "draft_overall_pick", "pick", "c_top_mph", "sunday_speed_mph", "ssoe_mph",
+        "c_top_mph", "sunday_speed_mph", "ssoe_mph",
         "n_routes", "n_deep_routes", "n_targets", "n_deep_targets", "n_receptions",
         "rec_yards", "deep_rec_yards", "yards_per_route", "deep_yards_per_deep_route",
         "target_rate", "deep_target_rate", "deep_target_share", "catch_rate",

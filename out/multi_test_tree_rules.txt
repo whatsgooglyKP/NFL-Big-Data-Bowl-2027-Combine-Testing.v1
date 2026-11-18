@@ -1,50 +1,53 @@
-WR decision tree, depth 2 (min leaf=6): training accuracy 0.70, CV AUC 0.54 ± 0.13. Training rules overfit; trust the CV AUC, not the in-sample leaves.
-  If draft pick ≤ 69 (pick number) AND Weight ≤ 196.50 lb → above-median (6 of 6 in this leaf, 100% of leaf)
-  If draft pick ≤ 69 (pick number) AND Weight > 196.50 lb → above-median (6 of 9 in this leaf, 67% of leaf)
-  If draft pick > 69 (pick number) AND Broad jump ≤ 131.50 in → below-median (26 of 39 in this leaf, 67% of leaf)
-  If draft pick > 69 (pick number) AND Broad jump > 131.50 in → above-median (6 of 9 in this leaf, 67% of leaf)
+WR decision tree, depth 2 (min leaf=6): training accuracy 0.68, CV AUC 0.48 ± 0.18. Training rules overfit; trust the CV AUC, not the in-sample leaves.
+  If Official 40 time ≤ 4.52 s AND 10-yard split ≤ 1.54 s → below-median (19 of 36 in this leaf, 53% of leaf)
+  If Official 40 time ≤ 4.52 s AND 10-yard split > 1.54 s → above-median (9 of 10 in this leaf, 90% of leaf)
+  If Official 40 time > 4.52 s AND Weight ≤ 203.50 lb → below-median (10 of 10 in this leaf, 100% of leaf)
+  If Official 40 time > 4.52 s AND Weight > 203.50 lb → above-median (5 of 7 in this leaf, 71% of leaf)
 
-WR decision tree, depth 3 (min leaf=6): training accuracy 0.71, CV AUC 0.51 ± 0.14. Training rules overfit; trust the CV AUC, not the in-sample leaves.
-  If draft pick ≤ 69 (pick number) AND Weight ≤ 196.50 lb → above-median (6 of 6 in this leaf, 100% of leaf)
-  If draft pick ≤ 69 (pick number) AND Weight > 196.50 lb → above-median (6 of 9 in this leaf, 67% of leaf)
-  If draft pick > 69 (pick number) AND Broad jump ≤ 131.50 in AND draft pick ≤ 102 (pick number) → above-median (5 of 9 in this leaf, 56% of leaf)
-  If draft pick > 69 (pick number) AND Broad jump ≤ 131.50 in AND draft pick > 102 (pick number) → below-median (22 of 30 in this leaf, 73% of leaf)
-  If draft pick > 69 (pick number) AND Broad jump > 131.50 in → above-median (6 of 9 in this leaf, 67% of leaf)
+WR decision tree, depth 3 (min leaf=6): training accuracy 0.71, CV AUC 0.46 ± 0.17. Training rules overfit; trust the CV AUC, not the in-sample leaves.
+  If Official 40 time ≤ 4.52 s AND 10-yard split ≤ 1.54 s AND Vertical jump ≤ 35.75 in → below-median (5 of 6 in this leaf, 83% of leaf)
+  If Official 40 time ≤ 4.52 s AND 10-yard split ≤ 1.54 s AND Vertical jump > 35.75 in → above-median (16 of 30 in this leaf, 53% of leaf)
+  If Official 40 time ≤ 4.52 s AND 10-yard split > 1.54 s → above-median (9 of 10 in this leaf, 90% of leaf)
+  If Official 40 time > 4.52 s AND Weight ≤ 203.50 lb → below-median (10 of 10 in this leaf, 100% of leaf)
+  If Official 40 time > 4.52 s AND Weight > 203.50 lb → above-median (5 of 7 in this leaf, 71% of leaf)
 
-TE decision tree, depth 2 (min leaf=3): training accuracy 0.82, CV AUC 0.45 ± 0.25. Training rules overfit; trust the CV AUC, not the in-sample leaves.
-  If draft pick ≤ 213 (pick number) AND Vertical jump ≤ 36.75 in → above-median (9 of 12 in this leaf, 75% of leaf)
-  If draft pick ≤ 213 (pick number) AND Vertical jump > 36.75 in → below-median (4 of 5 in this leaf, 80% of leaf)
-  If draft pick > 213 (pick number) → below-median (5 of 5 in this leaf, 100% of leaf)
+TE decision tree, depth 2 (min leaf=3): training accuracy 0.82, CV AUC 0.50 ± 0.26. Training rules overfit; trust the CV AUC, not the in-sample leaves.
+  If 10-yard split ≤ 1.58 s AND Weight ≤ 258.50 lb → above-median (5 of 5 in this leaf, 100% of leaf)
+  If 10-yard split ≤ 1.58 s AND Weight > 258.50 lb → below-median (2 of 3 in this leaf, 67% of leaf)
+  If 10-yard split > 1.58 s AND draft year ≤ 2023.5 → above-median (4 of 7 in this leaf, 57% of leaf)
+  If 10-yard split > 1.58 s AND draft year > 2023.5 → below-median (7 of 7 in this leaf, 100% of leaf)
 
-TE decision tree, depth 3 (min leaf=3): training accuracy 0.82, CV AUC 0.47 ± 0.27. Training rules overfit; trust the CV AUC, not the in-sample leaves.
-  If draft pick ≤ 213 (pick number) AND Vertical jump ≤ 36.75 in AND Broad jump ≤ 117.50 in → below-median (2 of 4 in this leaf, 50% of leaf)
-  If draft pick ≤ 213 (pick number) AND Vertical jump ≤ 36.75 in AND Broad jump > 117.50 in → above-median (7 of 8 in this leaf, 88% of leaf)
-  If draft pick ≤ 213 (pick number) AND Vertical jump > 36.75 in → below-median (4 of 5 in this leaf, 80% of leaf)
-  If draft pick > 213 (pick number) → below-median (5 of 5 in this leaf, 100% of leaf)
+TE decision tree, depth 3 (min leaf=3): training accuracy 0.91, CV AUC 0.53 ± 0.27. Training rules overfit; trust the CV AUC, not the in-sample leaves.
+  If 10-yard split ≤ 1.58 s AND Weight ≤ 258.50 lb → above-median (5 of 5 in this leaf, 100% of leaf)
+  If 10-yard split ≤ 1.58 s AND Weight > 258.50 lb → below-median (2 of 3 in this leaf, 67% of leaf)
+  If 10-yard split > 1.58 s AND draft year ≤ 2023.5 AND Vertical jump ≤ 34.25 in → above-median (3 of 3 in this leaf, 100% of leaf)
+  If 10-yard split > 1.58 s AND draft year ≤ 2023.5 AND Vertical jump > 34.25 in → below-median (3 of 4 in this leaf, 75% of leaf)
+  If 10-yard split > 1.58 s AND draft year > 2023.5 → below-median (7 of 7 in this leaf, 100% of leaf)
 
-CB decision tree, depth 2 (min leaf=3): training accuracy 0.83, CV AUC 0.56 ± 0.17. Training rules overfit; trust the CV AUC, not the in-sample leaves.
-  If Official 40 time ≤ 4.40 s AND Weight ≤ 188.50 lb → below-median (2 of 3 in this leaf, 67% of leaf)
-  If Official 40 time ≤ 4.40 s AND Weight > 188.50 lb → below-median (5 of 5 in this leaf, 100% of leaf)
-  If Official 40 time > 4.40 s AND draft pick ≤ 199 (pick number) → above-median (15 of 19 in this leaf, 79% of leaf)
-  If Official 40 time > 4.40 s AND draft pick > 199 (pick number) → below-median (3 of 3 in this leaf, 100% of leaf)
+CB decision tree, depth 2 (min leaf=3): training accuracy 0.80, CV AUC 0.59 ± 0.19. Training rules overfit; trust the CV AUC, not the in-sample leaves.
+  If Official 40 time ≤ 4.40 s AND Official 40 time ≤ 4.37 s → below-median (5 of 5 in this leaf, 100% of leaf)
+  If Official 40 time ≤ 4.40 s AND Official 40 time > 4.37 s → below-median (2 of 3 in this leaf, 67% of leaf)
+  If Official 40 time > 4.40 s AND Official 40 time ≤ 4.49 s → above-median (11 of 12 in this leaf, 92% of leaf)
+  If Official 40 time > 4.40 s AND Official 40 time > 4.49 s → below-median (6 of 10 in this leaf, 60% of leaf)
 
-CB decision tree, depth 3 (min leaf=3): training accuracy 0.83, CV AUC 0.56 ± 0.18. Training rules overfit; trust the CV AUC, not the in-sample leaves.
-  If Official 40 time ≤ 4.40 s AND Weight ≤ 188.50 lb → below-median (2 of 3 in this leaf, 67% of leaf)
-  If Official 40 time ≤ 4.40 s AND Weight > 188.50 lb → below-median (5 of 5 in this leaf, 100% of leaf)
-  If Official 40 time > 4.40 s AND draft pick ≤ 199 (pick number) AND 10-yard split ≤ 1.53 s → above-median (9 of 9 in this leaf, 100% of leaf)
-  If Official 40 time > 4.40 s AND draft pick ≤ 199 (pick number) AND 10-yard split > 1.53 s → above-median (6 of 10 in this leaf, 60% of leaf)
-  If Official 40 time > 4.40 s AND draft pick > 199 (pick number) → below-median (3 of 3 in this leaf, 100% of leaf)
+CB decision tree, depth 3 (min leaf=3): training accuracy 0.83, CV AUC 0.60 ± 0.21. Training rules overfit; trust the CV AUC, not the in-sample leaves.
+  If Official 40 time ≤ 4.40 s AND Official 40 time ≤ 4.37 s → below-median (5 of 5 in this leaf, 100% of leaf)
+  If Official 40 time ≤ 4.40 s AND Official 40 time > 4.37 s → below-median (2 of 3 in this leaf, 67% of leaf)
+  If Official 40 time > 4.40 s AND Official 40 time ≤ 4.49 s AND Vertical jump ≤ 36.50 in → above-median (2 of 3 in this leaf, 67% of leaf)
+  If Official 40 time > 4.40 s AND Official 40 time ≤ 4.49 s AND Vertical jump > 36.50 in → above-median (9 of 9 in this leaf, 100% of leaf)
+  If Official 40 time > 4.40 s AND Official 40 time > 4.49 s AND Weight ≤ 189.50 lb → above-median (2 of 3 in this leaf, 67% of leaf)
+  If Official 40 time > 4.40 s AND Official 40 time > 4.49 s AND Weight > 189.50 lb → below-median (5 of 7 in this leaf, 71% of leaf)
 
-S decision tree, depth 2 (min leaf=3): training accuracy 0.83, CV AUC 0.47 ± 0.23. Training rules overfit; trust the CV AUC, not the in-sample leaves.
-  If draft pick ≤ 181 (pick number) AND Weight ≤ 204.50 lb → above-median (10 of 13 in this leaf, 77% of leaf)
-  If draft pick ≤ 181 (pick number) AND Weight > 204.50 lb → below-median (3 of 3 in this leaf, 100% of leaf)
-  If draft pick > 181 (pick number) AND Broad jump ≤ 119.50 in → below-median (2 of 3 in this leaf, 67% of leaf)
-  If draft pick > 181 (pick number) AND Broad jump > 119.50 in → below-median (5 of 5 in this leaf, 100% of leaf)
+S decision tree, depth 2 (min leaf=3): training accuracy 0.75, CV AUC 0.43 ± 0.21. Training rules overfit; trust the CV AUC, not the in-sample leaves.
+  If Weight ≤ 197.50 lb AND Official 40 time ≤ 4.51 s → above-median (3 of 3 in this leaf, 100% of leaf)
+  If Weight ≤ 197.50 lb AND Official 40 time > 4.51 s → above-median (2 of 3 in this leaf, 67% of leaf)
+  If Weight > 197.50 lb AND Official 40 time ≤ 4.59 s → below-median (10 of 13 in this leaf, 77% of leaf)
+  If Weight > 197.50 lb AND Official 40 time > 4.59 s → above-median (3 of 5 in this leaf, 60% of leaf)
 
-S decision tree, depth 3 (min leaf=3): training accuracy 0.83, CV AUC 0.48 ± 0.23. Training rules overfit; trust the CV AUC, not the in-sample leaves.
-  If draft pick ≤ 181 (pick number) AND Weight ≤ 204.50 lb AND Vertical jump ≤ 37.00 in → above-median (4 of 7 in this leaf, 57% of leaf)
-  If draft pick ≤ 181 (pick number) AND Weight ≤ 204.50 lb AND Vertical jump > 37.00 in → above-median (6 of 6 in this leaf, 100% of leaf)
-  If draft pick ≤ 181 (pick number) AND Weight > 204.50 lb → below-median (3 of 3 in this leaf, 100% of leaf)
-  If draft pick > 181 (pick number) AND Official 40 time ≤ 4.59 s → below-median (5 of 5 in this leaf, 100% of leaf)
-  If draft pick > 181 (pick number) AND Official 40 time > 4.59 s → below-median (2 of 3 in this leaf, 67% of leaf)
+S decision tree, depth 3 (min leaf=3): training accuracy 0.75, CV AUC 0.45 ± 0.25. Training rules overfit; trust the CV AUC, not the in-sample leaves.
+  If Weight ≤ 197.50 lb AND Official 40 time ≤ 4.51 s → above-median (3 of 3 in this leaf, 100% of leaf)
+  If Weight ≤ 197.50 lb AND Official 40 time > 4.51 s → above-median (2 of 3 in this leaf, 67% of leaf)
+  If Weight > 197.50 lb AND Official 40 time ≤ 4.59 s AND Weight ≤ 202.50 lb → below-median (5 of 8 in this leaf, 62% of leaf)
+  If Weight > 197.50 lb AND Official 40 time ≤ 4.59 s AND Weight > 202.50 lb → below-median (5 of 5 in this leaf, 100% of leaf)
+  If Weight > 197.50 lb AND Official 40 time > 4.59 s → above-median (3 of 5 in this leaf, 60% of leaf)
 

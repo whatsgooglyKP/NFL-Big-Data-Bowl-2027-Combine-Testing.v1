@@ -6,7 +6,7 @@ log=open(O+'explore.txt','w')
 def P(*a):
     s=' '.join(str(x) for x in a); print(s); log.write(s+'\n')
 pl=pd.read_csv(D+'players.csv').set_index('nfl_id')
-pl['pick']=pl.draft_overall_pick.fillna(260)
+pl['yr']=pl.draft_year
 cs=pd.read_csv(D+'player_career_successes.csv').set_index('nfl_id')
 pp=pd.read_parquet(O+'player_play.parquet')
 POS={'WR':['WR'],'CB':['CB'],'S':['FS','SS']}
@@ -46,19 +46,19 @@ def agg_player(g):
        'tk_rate':(g.tackle.fillna(0).astype(float)+g.assist.fillna(0).astype(float)).mean()}
     return pd.Series(r)
 Gp=G.groupby('nfl_id').apply(agg_player)
-M=Gp.join(C).join(pl[['nfl_position','pick']]).join(cs)
+M=Gp.join(C).join(pl[['nfl_position','yr']]).join(cs)
 M['realization']=M.g_deep_p90/M.c_top
 M['start_rate']=M.career_games_started/M.career_games_active.replace(0,np.nan)
 M.to_parquet(O+'explore_player.parquet')
 def test(name,x,y,pos,min_plays=100):
-    d=M[M.nfl_position.isin(POS[pos])&(M.plays>=min_plays)][[x,y,'pick']].dropna()
+    d=M[M.nfl_position.isin(POS[pos])&(M.plays>=min_plays)][[x,y,'yr']].dropna()
     if len(d)<8: P(f'{name:38s} {pos:3s} n={len(d)} too thin'); return
     r,p=stats.spearmanr(d[x],d[y])
-    # partial: residualize on log pick
-    lp=np.log(d.pick); rx=d[x]-np.poly1d(np.polyfit(lp,d[x],1))(lp); ry=d[y]-np.poly1d(np.polyfit(lp,d[y],1))(lp)
+    # partial: demean within draft year (no draft slot)
+    rx=d[x]-d.groupby('yr')[x].transform('mean'); ry=d[y]-d.groupby('yr')[y].transform('mean')
     pr,pp_=stats.spearmanr(rx,ry)
-    P(f'{name:38s} {pos:3s} n={len(d):3d} rho={r:+.2f} p={p:.3f} | partial(pick) rho={pr:+.2f} p={pp_:.3f}')
-P('== Candidate tests (Spearman; partial controls for log draft pick) ==')
+    P(f'{name:38s} {pos:3s} n={len(d):3d} rho={r:+.2f} p={p:.3f} | partial(year) rho={pr:+.2f} p={pp_:.3f}')
+P('== Candidate tests (Spearman; partial controls for draft year) ==')
 for pos in ['WR','CB','S']:
     test('A1 combine top -> game deep p90 speed','c_top','g_deep_p90' if pos=='WR' else 'g_p95',pos)
     test('A2 realization -> start rate','realization','start_rate',pos)

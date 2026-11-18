@@ -12,15 +12,15 @@ Raw Kaggle data is **not** in this repository.
 
 **Sunday Speed: which Combine speed is real?**
 
-- **Receivers (n=62):** Combine tracked 40 top speed predicts Sunday Speed on deep routes (go / post / corner / wheel). Spearman ρ = +0.63, partial (log draft pick) ρ = +0.62. Exchange rate: **0.67 mph on Sunday per Combine mph** (95% bootstrap CI 0.47–0.88). The trait is stable week to week (odd/even-game r = 0.84). The 10 Hz tracked 40 beats the official laser time and the go-route drill; the drill adds nothing once you know the 40.
+- **Receivers (n=62):** Combine tracked 40 top speed predicts Sunday Speed on deep routes (go / post / corner / wheel). Spearman ρ = +0.63, draft-year-controlled ρ = +0.63. Exchange rate: **0.67 mph on Sunday per Combine mph** (95% bootstrap CI 0.47–0.88). The trait is stable week to week (odd/even-game r = 0.84). The 10 Hz tracked 40 beats the official laser time and the go-route drill; the drill adds nothing once you know the 40.
 - **Corners (n=33) and safeties (n=26):** the same 40 does **not** predict coverage Sunday Speed (translation rates 0.09 and 0.22; both CIs include zero). Standard DB skill drills do not clearly take its place after Holm correction.
 - **Sunday Speed Over Expected (SSOE)** is a scouting residual in mph: did he play faster or slower than his own 40, at his position, predicted? For receivers that is a real over/under-the-40 flag. For corners and safeties the 40 barely predicts Sunday Speed, so SSOE is close to faster or slower than the position average.
 
 **Success is on-field gameplay, not playing time.** Career snaps and start rate are context. They are not the official success definition.
 
-- **Defensive line (headline is all DL, n=72** with an official 10-yard split and ≥20 pass-rush snaps, 2023–2025 classes pooled; 39 Edge / 33 Interior): a faster official 10-yard split predicts a higher **pressure rate** (year+pick ρ = −0.45, 95% CI −0.62 to −0.19, Holm p = 0.00047) and a higher **sack rate** (ρ = −0.31, CI −0.53 to −0.07, Holm p = 0.039). The path runs through get-off (all-DL 10-yard vs speed at 1.0s: partial ρ = −0.79; that get-off link also holds within Edge, ρ = −0.61, and within Interior, ρ = −0.31, both Holm-significant). The direct 10-yard vs pressure link shrinks to ρ = −0.08, p = 0.49 once get-off is in the model. **Caveat:** within Edge alone (n=39, ρ = −0.24, Holm p = 0.560) or Interior alone (n=33, ρ = −0.12, Holm p = 1.000), the split→pressure link is weaker and not significant; part of the pooled effect comes from edges being both faster and better rushers. Playing time stays null. We have no blocker or QB tracks — association, not proof. Named 72-player table: [`DL_PLAYERS.md`](DL_PLAYERS.md) and `out/dl_players_named.csv`.
+- **Defensive line (headline is all DL, n=72** with an official 10-yard split and ≥20 pass-rush snaps, 2023–2025 classes pooled; 39 Edge / 33 Interior): a faster official 10-yard split predicts a higher **pressure rate** (draft-year-controlled ρ = −0.47, 95% CI −0.65 to −0.24, Holm p = 0.00016) and a higher **sack rate** (ρ = −0.37, CI −0.57 to −0.11, Holm p = 0.0066). The path runs through get-off (all-DL 10-yard vs speed at 1.0s: partial ρ = −0.80; that get-off link also holds within Edge, ρ = −0.57, and within Interior, ρ = −0.41, both Holm-significant). The direct 10-yard vs pressure link shrinks to ρ = −0.12, p = 0.31 once get-off is in the model. **Caveat:** within Edge alone (n=39, ρ = −0.36, Holm p = 0.099) or Interior alone (n=33, ρ = −0.15, Holm p = 0.81), the split→pressure link is weaker and not significant; part of the pooled effect comes from edges being both faster and better rushers. Playing time stays null. We have no blocker or QB tracks — association, not proof. Named 72-player table: [`DL_PLAYERS.md`](DL_PLAYERS.md) and `out/dl_players_named.csv`.
 - **Receivers:** Sunday Speed and SSOE do **not** predict yards per route, deep yards, or deep target share after Holm correction. Sunday Speed is a speed test, not a production grade.
-- **Corners / safeties:** this file has no targets-allowed, completions-allowed, PBU, or interception field for a defender, so those tests were not invented. Tackle and tackle-for-loss rates do not follow Combine speed after Holm. The CB “speed tax” (faster 40, fewer starts than draft slot predicted) remains a suggestive **playing-time** finding, not a gameplay headline.
+- **Corners / safeties:** this file has no targets-allowed, completions-allowed, PBU, or interception field for a defender, so those tests were not invented. Tackle and tackle-for-loss rates do not follow Combine speed after Holm. The CB “speed tax” (faster 40, fewer starts) is **gone** once draft slot is removed from the controls: it was −0.45 “beyond draft slot”, and year-controlled it is −0.12 (n=44, Holm p = 0.94).
 
 Draft-day lines:
 
@@ -28,7 +28,7 @@ Draft-day lines:
 - CB speed: do not pay for the 40, and do not assume the standard DB drills will tell you who will actually run on Sunday.
 - DL get-off: trust the official 10-yard split as a get-off test. In the all-DL sample, a faster split also shows up as more pressure and more sacks, through get-off — not as more playing time. Do not treat that pressure result as a within-Edge or within-Interior rule.
 
-**Combine gems** (named shortlist, not a new official finding): players in any draft round, plus UDFAs, who tested in the top third of their position on a pre-declared Combine measure and then outplayed their draft slot. Rounds are not split. UDFAs are flagged in a column (draft-slot value = pick 260) and are in the same list, not a separate tier. Pre-declared measures: official 40 time (WR), broad jump (CB), gauntlet top speed (S), official 10-yard split (combined DL; strong is the top third *within Edge* and *within Interior*). Full-sample correlations are reported; this is a selection caveat, not a confirmatory test. The group-level strong-vs-weak tests are mostly null or modest; the names are the deliverable. Details in [`COMBINE_GEMS.md`](COMBINE_GEMS.md) and Figure 8.
+**Combine gems and the CB speed-tax deep dive were retired (11/2026).** Both were defined by draft slot (“outplayed his draft slot”, “speed tax beyond draft slot”), and draft slot, pick and round are never used here. Their scripts are stubs, their outputs were removed (Figure 8 and the CB deep-dive figures are gone). The CB speed tax was recomputed year-controlled in `ssoe.py`: ρ = −0.12 (n = 44), Holm p = 0.94, i.e. the earlier −0.45 was a draft-slot artifact.
 
 **Which Combine tests translate to Sunday?** (supporting, not a new official finding; **draft slot is out of this analysis entirely** — not a covariate, not a baseline, not a sensitivity). Per group (**WR, TE, DB, and one combined DL**; RB excluded; corners and safeties are one headline DB group), a year-only Spearman matrix of every available Combine test × coach-relevant in-game metrics, with the **tracking-derived 20-yard split** as the lead test, bootstrap CIs and Holm / BH-FDR within the group, plus a coach-readable **Burst Score** (20-yard + jumps; equal-weight and learned-inside-CV, picked by out-of-fold ρ, scaled 0–100 within position), plus lasso, elastic net, ridge, Firth, shallow trees, naive Bayes, and a Bayesian hierarchical logistic (partial pooling across the four groups), all against a **year-only** baseline.
 
@@ -50,8 +50,6 @@ python3 -m venv .venv
 .venv/bin/python ssoe.py                   # SSOE scouting card, NGS incremental, CB speed tax
 .venv/bin/python dl_burst.py               # DL get-off, pressure / sack success, Figures 5–6
 .venv/bin/python gameplay_success.py       # WR production and CB/S tackle tests, Figure 7
-.venv/bin/python cb_deep_dive.py           # supporting CB speed-tax / gauntlet re-test
-.venv/bin/python combine_gems.py           # Combine gems (all rounds + UDFA), Figure 8
 .venv/bin/python athletic_comps.py         # KNN historical athletic comps (uses external/nflverse)
 .venv/bin/python combine_to_game.py        # Combine → Sunday matrix, year only, no pick; Burst Score; Figures 10–13
 ```
@@ -88,16 +86,13 @@ About 2.3 GB total. Licensed CC BY-NC 4.0. Column notes and gotchas are in [`DAT
 | `PHASE2_RESULTS.md` | Skill-drill tests vs the 40 |
 | `STRATEGY.md` | Concept, writeup plan, past-winner framing |
 | `DATA_NOTES.md` | Data dictionary and gotchas from the Kaggle Data tab |
-| `CB_DEEP_DIVE.md` | CB speed-tax and gauntlet re-test writeup |
-| `COMBINE_GEMS.md` | Combine-gem overperformer shortlist and group tests |
 | `MULTI_TEST_MODELS.md` | Which Combine tests translate to Sunday (year only, no pick) |
 | `build_dataset.py` | Official WR / CB / S player table |
 | `ssoe.py` | Scouting-card leaderboard and supporting tests |
 | `dl_burst.py` | DL Combine burst, get-off, pressure / sack |
 | `gameplay_success.py` | WR production and CB/S tackle / TFL tests |
-| `cb_deep_dive.py` | Supporting CB robustness |
-| `combine_gems.py` | Combine gems: pre-declared measures, all-rounds shortlist, Figure 8 |
-| `multi_test_models.py` | Earlier pick-controlled multi-test models (superseded for this question), Figure 9 |
+| `combine_gems.py`, `cb_deep_dive.py` | Retired stubs (draft-slot-defined analyses) |
+| `multi_test_models.py` | Multi-test models (draft-year-only baseline), Figure 9 |
 | `combine_to_game.py` | Combine → in-game matrix, 20-yard lead, Burst Score, year-only models and Bayesian pool, Figures 10–13 |
 | `athletic_comps.py` | KNN athletic comps vs nflverse Combine 2000–2022 |
 | `external/` | Public nflverse Combine and draft_picks cache (not Kaggle), with attribution |
@@ -106,8 +101,7 @@ About 2.3 GB total. Licensed CC BY-NC 4.0. Column notes and gotchas are in [`DAT
 | `out/ssoe_leaderboard.csv` | Scouting card |
 | `out/dl_burst_players.csv`, `out/dl_burst_tests.csv` | DL player table and tests |
 | `out/gameplay_success_players.csv`, `out/gameplay_success_tests.csv` | Gameplay outcomes and tests |
-| `out/combine_gems.csv`, `out/combine_gems_tests.csv` | Combine-gem player table and tests |
-| `out/multi_test_coefficients.csv`, `out/multi_test_auc.csv` | Earlier pick-controlled multi-test outputs |
+| `out/multi_test_coefficients.csv`, `out/multi_test_auc.csv` | Multi-test outputs (year only) |
 | `out/combine_to_game_spearman.csv`, `out/combine_to_game_best.csv`, `out/combine_to_game_lead20.csv` | Year-only Spearman matrix, best test, and 20-yard lead table |
 | `out/combine_to_game_combos.csv`, `out/combine_to_game_burst.csv`, `out/combine_to_game_burst_players.csv`, `out/combine_to_game_burst_top10.csv` | Two-test combos and Burst Score (OOF ρ, 0–100, top-10) |
 | `out/combine_to_game_auc.csv`, `out/combine_to_game_lasso_stability.csv` | Year-only model comparison and lasso stability |
@@ -121,8 +115,7 @@ About 2.3 GB total. Licensed CC BY-NC 4.0. Column notes and gotchas are in [`DAT
 | `out/figs/fig5_dl_burst.png` | 10-yard split vs get-off, Edge vs Interior |
 | `out/figs/fig6_combine_to_pressure.png` | Combine 10-yard split → pressure chain |
 | `out/figs/fig7_gameplay_success.png` | WR production and CB/S tackle tests |
-| `out/figs/fig8_combine_gems.png` | Top-third testers, all rounds, who outplayed their draft slot |
-| `out/figs/fig9_multi_test_models.png` | Earlier pick-controlled multi-test figure |
+| `out/figs/fig9_multi_test_models.png` | Multi-test figure (year only) |
 | `out/figs/fig10_combine_gameplay_heatmap.png` | Combine test × in-game metric Spearman heatmap (headline) |
 | `out/figs/fig11_bayes_hierarchical.png` | Bayesian hierarchical forest (headline) |
 | `out/figs/fig12_model_comparison.png` | Year-only all-models CV AUC comparison |

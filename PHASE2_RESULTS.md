@@ -14,13 +14,13 @@ This note is written for the project, not as the competition writeup. It records
 
 The original exploratory tests used all games (not just regular season), required at least 100 tracked plays, and took Sunday Speed as the 90th percentile of play top speed on deep routes (WR: GO / POST / CORNER / WHEEL, at least 20 such plays) or on coverage tagged MAN or DEEP (CB / S, at least 30 such plays). The pipeline reproduces those results exactly, to the two decimals published in `STRATEGY.md`:
 
-| Position | n | Spearman ρ | p | Partial ρ (log draft pick) | Translation slope (game yd/s per Combine yd/s) |
+| Position | n | Spearman ρ | p | Partial ρ (draft year) | Translation slope (game yd/s per Combine yd/s) |
 |---|---:|---:|---:|---:|---:|
 | WR | 68 | **+0.64** | 5.5×10⁻⁹ | **+0.62** | 0.67 |
-| CB | 33 | +0.06 | 0.75 | +0.05 | 0.10 |
-| S  | 27 | +0.19 | 0.35 | +0.15 | 0.33 |
+| CB | 33 | +0.06 | 0.75 | +0.25 | 0.10 |
+| S  | 27 | +0.19 | 0.35 | +0.33 | 0.33 |
 
-Those are a match to the stored targets (WR +0.64 / +0.62, CB +0.06 / +0.05, S +0.19 / +0.15). The WR result survives any reasonable multiple-testing correction. The CB and S results are null.
+The raw Spearman values match the stored targets (WR +0.64, CB +0.06, S +0.19). The partial column was redone on draft year only in 11/2026 (the original controlled for log draft pick, which is no longer used): WR +0.62 (unchanged), CB +0.25 (was +0.05, p = 0.16), S +0.33 (was +0.15, p = 0.09). CB and S remain non-significant. The WR result survives any reasonable multiple-testing correction. The CB and S results are null.
 
 ## 2. Official Sunday Speed (the metric we should carry forward)
 
@@ -28,11 +28,11 @@ The definition we want in the submission is stricter and closer to a "regular-se
 
 | Position | n | Spearman ρ | p | Partial ρ | Translation slope (95% bootstrap CI) | Median realization |
 |---|---:|---:|---:|---:|---|---:|
-| WR | 62 | **+0.63** | 3.1×10⁻⁸ | **+0.62** | **0.67** (0.47–0.88) | 82% |
-| CB | 33 | +0.06 | 0.73 | +0.05 | 0.09 (−0.13–0.38) | 76% |
-| S  | 26 | +0.10 | 0.62 | +0.15 | 0.22 (−0.17–0.59) | 71% |
+| WR | 62 | **+0.63** | 3.1×10⁻⁸ | **+0.63** | **0.67** (0.47–0.88) | 82% |
+| CB | 33 | +0.06 | 0.73 | +0.24 | 0.09 (−0.13–0.38) | 76% |
+| S  | 26 | +0.10 | 0.62 | +0.16 | 0.22 (−0.17–0.59) | 71% |
 
-The story does not change. WR Combine top speed still predicts Sunday Speed after accounting for draft slot, and the WR confidence interval on the exchange rate sits well above zero. The CB and S intervals both include zero — we cannot claim a real transfer at either defensive-back spot. Split-half stability (odd vs. even regular-season games) is **r = 0.84** for receivers (n=62) and **r = 0.58** for defensive backs pooled (n=66; CB 0.44, S 0.24). The WR trait is stable week to week; the DB metric is noisier, which is expected given the smaller opportunity counts and the weaker signal.
+The story does not change. WR Combine top speed still predicts Sunday Speed after accounting for draft year, and the WR confidence interval on the exchange rate sits well above zero. The CB and S intervals both include zero — we cannot claim a real transfer at either defensive-back spot. Split-half stability (odd vs. even regular-season games) is **r = 0.84** for receivers (n=62) and **r = 0.58** for defensive backs pooled (n=66; CB 0.44, S 0.24). The WR trait is stable week to week; the DB metric is noisier, which is expected given the smaller opportunity counts and the weaker signal.
 
 Coach-facing line, still true: *For receivers, every 1 mph at the Combine is worth about 0.67 mph on go routes. For corners it is worth about 0.1 mph, and we cannot rule out zero.*
 
@@ -85,7 +85,7 @@ Same pattern as corners: a single raw lead (the 45° transition drill, ρ=+0.41,
 
 The core contrast is intact and, if anything, cleaner:
 
-- **Receiver Combine speed is real.** It shows up on Sunday deep routes, it is not just a proxy for draft slot, the trait is stable week to week, and the 10 Hz tracked 40 is a better predictor than the official laser time or the go-route drill.
+- **Receiver Combine speed is real.** It shows up on Sunday deep routes, it is stable across draft classes, the trait is stable week to week, and the 10 Hz tracked 40 is a better predictor than the official laser time or the go-route drill.
 - **Corner (and safety) Combine speed is not.** The exchange rate is indistinguishable from zero. The usual DB skill drills do not rescue it. We looked, and we should say so.
 
 That last sentence is the only real change from the draft-day line in `STRATEGY.md`. The original pitch said: *"WR speed: trust it; CB speed: verify it in the DB drills."* Phase 2 does not give us the second half of that sentence. A more accurate coach line is:
@@ -109,4 +109,4 @@ Still open for the writeup: the hierarchical model (optional; the position-speci
 - Outputs: `out/sunday_speed_players.parquet` and `.csv` (one row per WR / CB / S, 219 players), `out/phase2_tests.csv`, `out/translation_slopes.json`, and the three PNGs under `out/figs/`. Later official layers are `ssoe.py`, `dl_burst.py`, `gameplay_success.py`, and `cb_deep_dive.py` (see `README.md`).
 - Sunday Speed is computed from all frames on the opportunity play (same as the original exploration). A snap-to-end-event windowed version is stored as `sunday_speed_window` for a later robustness check; it is not the primary metric.
 - `a` is unsigned in the source files. Signed acceleration is `Δs/Δt` after sorting by time, with `|Δs/Δt| > 12` yd/s² dropped as glitches. Speeds are stored in yd/s and also as mph (`× 2.0455`).
-- Undrafted players are given pick 260 when we control for draft slot, matching the first-pass analysis.
+- Partial correlations control for draft year only (11/2026). Draft slot, pick and round are not used.

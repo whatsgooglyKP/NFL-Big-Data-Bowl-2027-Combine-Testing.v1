@@ -41,7 +41,6 @@ OUT = ROOT / "out"
 FIGS = OUT / "figs"
 
 MPH = 2.0455
-UDFA_PICK = 260
 ACCEL_CLIP = 12.0
 GAME_YEARS = (2023, 2024, 2025)
 CHUNKSIZE = 2_000_000
@@ -99,7 +98,7 @@ SECONDARY_OUTCOMES = [
 # pass-rush snaps as get-off (≥20 snaps). Playing time is context only.
 # career_defensive_snaps is cumulative, so 2023 rookies have a head start
 # (three seasons vs one for 2025); any snap test still controls for
-# draft year and draft slot.
+# draft year (never draft slot).
 SUCCESS_PRIMARY = [
     ("pressure_rate", "Pressure rate on pass-rush plays"),
     ("sack_rate", "Sack rate on pass-rush plays"),
@@ -146,8 +145,12 @@ def coerce_bool(s: pd.Series) -> pd.Series:
     })
 
 
-def spearman_partial(x: pd.Series, y: pd.Series, pick: pd.Series) -> dict:
-    d = pd.DataFrame({"x": x, "y": y, "pick": pick}).dropna()
+def spearman_partial(x: pd.Series, y: pd.Series, year: pd.Series) -> dict:
+    """Spearman ρ plus the draft-year-controlled partial (both sides demeaned within draft-year cells).
+
+    No draft slot / pick / round is used (Kevin's rule, 11/2026).
+    """
+    d = pd.DataFrame({"x": x, "y": y, "year": year}).dropna()
     out = {"n": int(len(d)), "rho": np.nan, "p": np.nan, "partial_rho": np.nan, "partial_p": np.nan}
     if len(d) < 8:
         return out
@@ -155,10 +158,9 @@ def spearman_partial(x: pd.Series, y: pd.Series, pick: pd.Series) -> dict:
         return out
     rho, p = stats.spearmanr(d["x"], d["y"])
     out["rho"], out["p"] = float(rho), float(p)
-    lp = np.log(d["pick"].astype(float))
-    if lp.nunique() >= 2:
-        rx = d["x"] - np.poly1d(np.polyfit(lp, d["x"], 1))(lp)
-        ry = d["y"] - np.poly1d(np.polyfit(lp, d["y"], 1))(lp)
+    if d["year"].nunique() >= 2:
+        rx = d["x"] - d.groupby("year")["x"].transform("mean")
+        ry = d["y"] - d.groupby("year")["y"].transform("mean")
         if rx.nunique() >= 2 and ry.nunique() >= 2:
             pr, pp = stats.spearmanr(rx, ry)
             out["partial_rho"], out["partial_p"] = float(pr), float(pp)
@@ -178,68 +180,42 @@ def _residualize(y: np.ndarray, X: np.ndarray) -> np.ndarray:
     return y - A @ coef
 
 
-def spearman_controlled(x: pd.Series, y: pd.Series, df: pd.DataFrame, control_kind: str) -> dict:
-    """Spearman ρ after residualizing both sides on the requested controls.
-
-    control_kind:
-      'pick'      — log draft pick (UDFA = 260)
-      'year'      — draft-year dummies (2023 rookies have had more seasons)
-      'year+pick' — both; this is the official control for DL career tests
-    """
-    d = pd.DataFrame({"x": x, "y": y, "pick": df["pick"], "draft_year": df["draft_year"]}).dropna()
+def spearman_controlled(x: pd.Series, y: pd.Series, df: pd.DataFrame, control_kind: str = "year") -> dict:
+    """Spearman ρ after residualizing both sides on draft-year dummies (the only control; no draft slot)."""
+    d = pd.DataFrame({"x": x, "y": y, "draft_year": df["draft_year"]}).dropna()
     out = {
         "n": int(len(d)), "rho": np.nan, "p": np.nan,
-        "partial_rho": np.nan, "partial_p": np.nan,
         "partial_year_rho": np.nan, "partial_year_p": np.nan,
-        "partial_year_pick_rho": np.nan, "partial_year_pick_p": np.nan,
-        "control": control_kind,
+        "control": "year",
+        "official_partial_rho": np.nan, "official_partial_p": np.nan,
     }
     if len(d) < 8 or d["x"].nunique() < 2 or d["y"].nunique() < 2:
         return out
     rho, p = stats.spearmanr(d["x"], d["y"])
     out["rho"], out["p"] = float(rho), float(p)
-
-    def _partial(cols: pd.DataFrame) -> tuple[float, float]:
-        X = cols.to_numpy(dtype=float)
-        if np.unique(X, axis=0).shape[0] < 2:
-            return np.nan, np.nan
-        rx = _residualize(d["x"].to_numpy(dtype=float), X)
-        ry = _residualize(d["y"].to_numpy(dtype=float), X)
-        if np.unique(rx).size < 2 or np.unique(ry).size < 2:
-            return np.nan, np.nan
-        pr, pp = stats.spearmanr(rx, ry)
-        return float(pr), float(pp)
-
-    year_dummies = pd.get_dummies(d["draft_year"], prefix="yr", drop_first=True)
-    log_pick = np.log(d["pick"].astype(float)).to_frame("log_pick")
-    out["partial_rho"], out["partial_p"] = _partial(log_pick)
+    year_dummies = pd.get_dummies(d["draft_year"], prefix="yr", drop_first=True).astype(float)
     if year_dummies.shape[1] >= 1:
-        out["partial_year_rho"], out["partial_year_p"] = _partial(year_dummies)
-        both = pd.concat([log_pick, year_dummies], axis=1)
-        out["partial_year_pick_rho"], out["partial_year_pick_p"] = _partial(both)
-    # Official reported partial for career tests is year+pick when available.
-    if control_kind == "year+pick" and np.isfinite(out["partial_year_pick_rho"]):
-        out["official_partial_rho"] = out["partial_year_pick_rho"]
-        out["official_partial_p"] = out["partial_year_pick_p"]
-    elif control_kind == "year":
-        out["official_partial_rho"] = out["partial_year_rho"]
-        out["official_partial_p"] = out["partial_year_p"]
-    else:
-        out["official_partial_rho"] = out["partial_rho"]
-        out["official_partial_p"] = out["partial_p"]
+        X = year_dummies.to_numpy(dtype=float)
+        if np.unique(X, axis=0).shape[0] >= 2:
+            rx = _residualize(d["x"].to_numpy(dtype=float), X)
+            ry = _residualize(d["y"].to_numpy(dtype=float), X)
+            if np.unique(rx).size >= 2 and np.unique(ry).size >= 2:
+                pr, pp = stats.spearmanr(rx, ry)
+                out["partial_year_rho"], out["partial_year_p"] = float(pr), float(pp)
+    out["official_partial_rho"], out["official_partial_p"] = out["partial_year_rho"], out["partial_year_p"]
     return out
 
 
-
-def _year_pick_controls(d: pd.DataFrame, extra: pd.DataFrame | None = None) -> pd.DataFrame:
-    """Design matrix used for official DL partials: log pick + draft-year dummies."""
-    year_dummies = pd.get_dummies(d["draft_year"], prefix="yr", drop_first=True)
-    log_pick = np.log(d["pick"].astype(float)).to_frame("log_pick")
-    parts = [log_pick]
+def _year_controls(d: pd.DataFrame, extra: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Design matrix used for official DL partials: draft-year dummies (+ optional extra). No draft slot."""
+    year_dummies = pd.get_dummies(d["draft_year"], prefix="yr", drop_first=True).astype(float)
+    parts = []
     if year_dummies.shape[1] >= 1:
         parts.append(year_dummies)
     if extra is not None:
         parts.append(extra)
+    if not parts:
+        return pd.DataFrame(index=d.index)
     return pd.concat(parts, axis=1)
 
 
@@ -269,14 +245,13 @@ def bootstrap_partial_ci(
     n_boot: int = N_BOOT,
     seed: int = BOOT_SEED,
 ) -> tuple[float, float, int]:
-    """95% percentile CI for the year+pick (plus optional extra) partial Spearman.
+    """95% percentile CI for the year (plus optional extra) partial Spearman.
 
     Resamples players with replacement. Returns (lo, hi, n_valid_draws).
     """
     base = pd.DataFrame({
         "x": x.to_numpy(),
         "y": y.to_numpy(),
-        "pick": df["pick"].to_numpy(),
         "draft_year": df["draft_year"].to_numpy(),
     }, index=x.index if hasattr(x, "index") else None)
     if extra is not None:
@@ -294,7 +269,7 @@ def bootstrap_partial_ci(
         if b["x"].nunique() < 2 or b["y"].nunique() < 2:
             continue
         extra_b = b[ex_cols].rename(columns=lambda c: c[3:]) if ex_cols else None
-        controls = _year_pick_controls(b, extra_b)
+        controls = _year_controls(b, extra_b)
         X = controls.to_numpy(dtype=float)
         if np.unique(X, axis=0).shape[0] < 2:
             continue
@@ -341,7 +316,7 @@ def load_roster() -> pd.DataFrame:
     # OLB are included as Edge because they ran DL drills and almost always
     # line up as EDGE on Sundays. Offensive linemen are not in this file.
     M["subtype"] = np.where(M["nfl_position"].isin(EDGE_POS), "Edge", "Interior")
-    M["pick"] = M["draft_overall_pick"].fillna(UDFA_PICK)
+    M = M.drop(columns=[c for c in M.columns if "pick" in c.lower() or c in ("draft_round",)], errors="ignore")
     M["start_rate"] = M["career_games_started"] / M["career_games_active"].replace(0, np.nan)
     M["snaps_per_game"] = M["career_defensive_snaps"] / M["career_games_active"].replace(0, np.nan)
     M = M.rename(columns={"ten_yd_split": "official_ten_yd", "forty": "official_forty"})
@@ -761,7 +736,7 @@ def run_tests(M: pd.DataFrame) -> pd.DataFrame:
             if feat not in g.columns:
                 log(f"  SKIP {gname} {label}: column missing")
                 continue
-            res = spearman_partial(g[feat], g[PRIMARY_OUTCOME], g["pick"])
+            res = spearman_partial(g[feat], g[PRIMARY_OUTCOME], g["draft_year"])
             rows.append({
                 "family": "primary", "group": gname, "feature": feat, "feature_label": label,
                 "outcome": PRIMARY_OUTCOME, "outcome_label": "Speed at 1.0s after snap (mph)",
@@ -803,7 +778,7 @@ def run_tests(M: pd.DataFrame) -> pd.DataFrame:
                 # Skip the exact primary cells so we don't duplicate them.
                 if feat in {p[0] for p in PRIMARY_FEATURES} and out_col == PRIMARY_OUTCOME:
                     continue
-                res = spearman_partial(g[feat], g[out_col], g["pick"])
+                res = spearman_partial(g[feat], g[out_col], g["draft_year"])
                 extra.append({
                     "family": "secondary", "group": gname, "feature": feat, "feature_label": flabel,
                     "outcome": out_col, "outcome_label": olabel, **res,
@@ -825,12 +800,12 @@ def run_tests(M: pd.DataFrame) -> pd.DataFrame:
     # Gameplay-success tests: does Sunday get-off relate to pressure and
     # sack rate (primary), not just playing time (now secondary/context)?
     # Official partial residualizes on draft-year dummies (2023 rookies have
-    # had more seasons) and log draft pick. Holm is on the 4 primary All-DL
-    # get-off → pressure/sack tests, using the year+pick partial p-value.
+    # had more seasons) (the only control; no draft slot). Holm is on the 4 primary All-DL
+    # get-off → pressure/sack tests, using the year partial p-value.
     # The Combine-to-outcome family (10-yard split → pressure/sack) is a
     # separate pre-declared family added after this block.
     log("\n==== Get-off → gameplay success (PRIMARY): pressure and sack rate, All DL ====")
-    log("Official partial controls for draft year and log draft pick.")
+    log("Official partial controls for draft year only (no draft slot).")
     career_rows = []
     g = groups["All DL"]
     getoff_measures = [
@@ -839,12 +814,11 @@ def run_tests(M: pd.DataFrame) -> pd.DataFrame:
     ]
 
     def _career_row(family, gname, gcol, glabel, ccol, clabel, frame):
-        res = spearman_controlled(frame[gcol], frame[ccol], frame, "year+pick")
+        res = spearman_controlled(frame[gcol], frame[ccol], frame, "year")
         log(
             f"  {gname:9s}  {glabel:36s} vs {clabel:34s}  n={res['n']:3d}  "
             f"ρ={res['rho']:+.2f} (p={fmt_p(res['p'])})  "
-            f"year+pick ρ={res['partial_year_pick_rho']:+.2f} (p={fmt_p(res['partial_year_pick_p'])})  "
-            f"year-only ρ={res['partial_year_rho']:+.2f}  pick-only ρ={res['partial_rho']:+.2f}"
+            f"year ρ={res['partial_year_rho']:+.2f} (p={fmt_p(res['partial_year_p'])})"
         )
         return {
             "family": family, "group": gname, "feature": gcol, "feature_label": glabel,
@@ -865,7 +839,7 @@ def run_tests(M: pd.DataFrame) -> pd.DataFrame:
         sig[finite] = reject
     Cprim["holm_p"] = holm_p
     Cprim["sig_holm_05"] = sig
-    log("  Holm-adjusted p (4 primary All-DL tests, year+pick partial p):")
+    log("  Holm-adjusted p (4 primary All-DL tests, year partial p):")
     for _, r in Cprim.iterrows():
         star = " *" if bool(r["sig_holm_05"]) else ""
         log(
@@ -913,7 +887,7 @@ def run_tests(M: pd.DataFrame) -> pd.DataFrame:
 def run_combine_to_outcome_tests(M: pd.DataFrame, groups: dict) -> pd.DataFrame:
     """Pre-declared Combine → gameplay success family, plus mediation.
 
-    Official family (6 tests, Holm on year+pick partial p): official 10-yard
+    Official family (6 tests, Holm on year partial p): official 10-yard
     split vs pressure rate and sack rate, in All DL / Edge / Interior.
     This is the competition-required Combine-to-NFL-performance link.
     Bootstrap 95% CIs are player-level, 2,000 resamples.
@@ -922,16 +896,16 @@ def run_combine_to_outcome_tests(M: pd.DataFrame, groups: dict) -> pd.DataFrame:
 
     def _row(family: str, gname: str, frame: pd.DataFrame, feat: str, flabel: str,
              out_col: str, olabel: str, extra: pd.DataFrame | None = None) -> dict:
-        res = spearman_controlled(frame[feat], frame[out_col], frame, "year+pick")
+        res = spearman_controlled(frame[feat], frame[out_col], frame, "year")
         lo, hi, n_boot = bootstrap_partial_ci(frame[feat], frame[out_col], frame, extra=None)
         # If extra controls are requested (mediation), overwrite official partial.
         if extra is not None:
             d = pd.DataFrame({
                 "x": frame[feat], "y": frame[out_col],
-                "pick": frame["pick"], "draft_year": frame["draft_year"],
+                "draft_year": frame["draft_year"],
             }).join(extra)
             d = d.dropna()
-            controls = _year_pick_controls(d, extra.loc[d.index] if len(d) else extra)
+            controls = _year_controls(d, extra.loc[d.index] if len(d) else extra)
             med = spearman_residualized(d["x"], d["y"], controls) if len(d) else {"n": 0, "rho": np.nan, "p": np.nan}
             res["official_partial_rho"] = med["rho"]
             res["official_partial_p"] = med["p"]
@@ -946,7 +920,7 @@ def run_combine_to_outcome_tests(M: pd.DataFrame, groups: dict) -> pd.DataFrame:
         log(
             f"  {gname:9s}  {flabel:36s} vs {olabel:42s}  n={res['n']:3d}  "
             f"ρ={res['rho']:+.2f} (p={fmt_p(res['p'])})  "
-            f"year+pick ρ={res['official_partial_rho']:+.2f} "
+            f"year ρ={res['official_partial_rho']:+.2f} "
             f"(p={fmt_p(res['official_partial_p'])}, 95% CI "
             f"{lo:+.2f}–{hi:+.2f})"
         )
@@ -957,7 +931,7 @@ def run_combine_to_outcome_tests(M: pd.DataFrame, groups: dict) -> pd.DataFrame:
 
     # ---- Official family: 10-yard split → pressure / sack ----
     log("\n==== Combine → gameplay (PRIMARY family): official 10-yard split vs pressure / sack ====")
-    log("Holm is on the 6 year+pick partial p-values. CI is a 2,000-player bootstrap.")
+    log("Holm is on the 6 year partial p-values. CI is a 2,000-player bootstrap.")
     fam_rows = []
     for gname in ("All DL", "Edge", "Interior"):
         frame = groups[gname]
@@ -978,12 +952,12 @@ def run_combine_to_outcome_tests(M: pd.DataFrame, groups: dict) -> pd.DataFrame:
         sig[finite] = reject
     F["holm_p"] = holm_p
     F["sig_holm_05"] = sig
-    log("  Holm-adjusted p (6-test family, year+pick partial p):")
+    log("  Holm-adjusted p (6-test family, year partial p):")
     for _, r in F.iterrows():
         star = " *" if bool(r["sig_holm_05"]) else ""
         log(
             f"    {r['group']:9s}  {r['outcome_label']:42s}  "
-            f"year+pick ρ={r['official_partial_rho']:+.2f}  "
+            f"year ρ={r['official_partial_rho']:+.2f}  "
             f"p={fmt_p(r['official_partial_p'])} → Holm p={fmt_p(r['holm_p'])}{star}"
         )
     rows.append(F)
@@ -1020,7 +994,7 @@ def run_combine_to_outcome_tests(M: pd.DataFrame, groups: dict) -> pd.DataFrame:
 
     # ---- Mediation: 10-yard split → pressure/sack after get-off ----
     log("\n==== Mediation: does game get-off carry the 10-yard split → pressure link? ====")
-    log("Partial residualizes on draft year, log pick, AND speed at 1.0s after the snap.")
+    log("Partial residualizes on draft year AND speed at 1.0s after the snap.")
     log("Caveat: no blocker or QB tracks, so this is association, not a causal claim.")
     med_rows = []
     for gname in ("All DL", "Edge", "Interior"):
@@ -1041,7 +1015,7 @@ def run_combine_to_outcome_tests(M: pd.DataFrame, groups: dict) -> pd.DataFrame:
     # Also attach bootstrap CIs onto the get-off → pressure All-DL primary cells
     # (already computed in run_tests without CIs). We recompute here for the log
     # and a clean CI column on a dedicated family copy.
-    log("\n==== Get-off → pressure / sack bootstrap CIs (All DL, year+pick) ====")
+    log("\n==== Get-off → pressure / sack bootstrap CIs (All DL, year) ====")
     go_rows = []
     frame = groups["All DL"]
     for gcol, glabel, _gs in (
@@ -1118,16 +1092,10 @@ def write_named_players(M: pd.DataFrame) -> Path:
         & (M["n_rush_plays"].fillna(0) >= MIN_RUSH_PLAYS)
     ].copy()
     d = d.sort_values(["official_ten_yd", "display_name"], kind="mergesort")
-    def _pick(row):
-        if pd.isna(row.get("draft_overall_pick")):
-            return "UDFA"
-        return int(row["draft_overall_pick"])
     out = pd.DataFrame({
         "player": d["display_name"],
         "subtype": d["subtype"],
         "draft_year": d["draft_year"].astype(int),
-        "draft_round": d["draft_round"],
-        "pick": d.apply(_pick, axis=1),
         "official_ten_yd": d["official_ten_yd"],
         "speed_1s_mph": d["speed_1s_mph"],
         "pressure_rate": d["pressure_rate"],
@@ -1148,25 +1116,18 @@ def write_dl_players_md(M: pd.DataFrame, funnel: dict) -> Path:
     y = funnel["by_year"]
     year_s = "/".join(str(y.get(yr, 0)) for yr in (2023, 2024, 2025))
 
-    def fmt_pick(v):
-        return "UDFA" if str(v) == "UDFA" else str(int(float(v))) if pd.notna(v) else "UDFA"
-
-    def fmt_rnd(v):
-        return "—" if pd.isna(v) else str(int(float(v)))
-
     def row_md(r):
         return (
             f"| {r['player']} | {r['subtype']} | {int(r['draft_year'])} | "
-            f"{fmt_rnd(r['draft_round'])} | {fmt_pick(r['pick'])} | "
             f"{r['official_ten_yd']:.2f} | {r['speed_1s_mph']:.2f} | "
             f"{100 * r['pressure_rate']:.1f}% | {100 * r['sack_rate']:.1f}% | "
             f"{int(r['pass_rush_snaps'])} |"
         )
 
     header = (
-        "| Player | Subtype | Year | Round | Pick | 10-yd | Speed 1.0s (mph) | "
+        "| Player | Subtype | Year | 10-yd | Speed 1.0s (mph) | "
         "Pressure | Sack | Pass-rush snaps |\n"
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|"
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|"
     )
     top = "\n".join(row_md(r) for _, r in d.head(10).iterrows())
     bot = "\n".join(row_md(r) for _, r in d.tail(10).iterrows())
@@ -1255,7 +1216,7 @@ def make_figure(M: pd.DataFrame, tests: pd.DataFrame) -> Path:
         xs = np.linspace(x.min(), x.max(), 50)
         ax0.plot(xs, np.poly1d(np.polyfit(x, y, 1))(xs), color="#222222", lw=2.1, zorder=2, label=f"All DL (n={len(d)})")
 
-    # Legend annotations: pick-partial / raw ρ for 10-yard vs speed_1s
+    # Legend annotations: year-partial / raw ρ for 10-yard vs speed_1s
     bits = []
     for gname in ("All DL", "Edge", "Interior"):
         r = _rho_cell(tests, "primary", gname, "official_ten_yd", "speed_1s_mph")
@@ -1336,7 +1297,7 @@ def make_figure(M: pd.DataFrame, tests: pd.DataFrame) -> Path:
     fig.text(
         0.01, -0.08,
         "Left: every rusher with an official 10-yard split and ≥20 pass-rush snaps (n=72). Solid line is the all-DL fit; dashed lines are Edge and Interior. "
-        "ρ values are pick-partial Spearman, oriented so faster split / faster get-off is positive. "
+        "ρ values are year-controlled Spearman, oriented so faster split / faster get-off is positive. "
         "Right: the four pre-declared Combine burst features vs speed 1.0s after the snap. All-DL bars are the headline; Edge and Interior are breakouts. "
         "★ survives Holm across the 12 get-off tests (4 features × All DL / Edge / Interior). "
         "Times are flipped so 'faster' points right. Game tracking covers only the 510 rookies; there are no blocker or QB tracks. "
@@ -1356,7 +1317,7 @@ def make_figure6(M: pd.DataFrame, tests: pd.DataFrame) -> Path:
     _style()
     fam = tests[tests["family"] == "combine_success_primary"].copy()
     go = tests[tests["family"] == "getoff_success_ci"].copy()
-    # Prefer year+pick partials for the annotation numbers.
+    # Prefer year partials for the annotation numbers.
     def _cell(frame, group, feature, outcome):
         sub = frame[(frame["group"] == group) & (frame["feature"] == feature) & (frame["outcome"] == outcome)]
         return sub.iloc[0] if len(sub) else None
@@ -1365,7 +1326,7 @@ def make_figure6(M: pd.DataFrame, tests: pd.DataFrame) -> Path:
     all_s = _cell(fam, "All DL", "official_ten_yd", "sack_rate")
     go_p = _cell(go, "All DL", "speed_1s_mph", "pressure_rate")
 
-    # Title follows the All-DL 10-yard → pressure result after year+pick and Holm.
+    # Title follows the All-DL 10-yard → pressure result after year and Holm.
     if all_p is not None and bool(all_p.get("sig_holm_05", False)):
         title = "A faster Combine 10-yard split shows up as more pressure on Sunday"
     elif all_p is not None and np.isfinite(all_p.get("official_partial_rho", np.nan)) and all_p["official_partial_rho"] < -0.2:
@@ -1432,7 +1393,7 @@ def make_figure6(M: pd.DataFrame, tests: pd.DataFrame) -> Path:
             ha="left" if x >= 0 else "right", va="center", fontsize=8,
         )
     ax0.set_yticks(ys, [c["label"] for c in chain], fontsize=9)
-    ax0.set_xlabel("Correlation after draft year and draft slot\n(right = the expected football direction)")
+    ax0.set_xlabel("Correlation after draft year\n(right = the expected football direction)")
     ax0.set_xlim(-0.2, 1.05)
     ax0.set_title("The chain, in numbers", loc="left", fontweight="bold")
 
@@ -1486,13 +1447,13 @@ def make_figure6(M: pd.DataFrame, tests: pd.DataFrame) -> Path:
     if all_p is not None:
         star = " (survives Holm)" if bool(all_p.get("sig_holm_05", False)) else " (does not survive Holm)"
         caption_bits.append(
-            f"All-DL 10-yard split vs pressure rate: year+pick ρ={all_p['official_partial_rho']:+.2f}, "
+            f"All-DL 10-yard split vs pressure rate: year ρ={all_p['official_partial_rho']:+.2f}, "
             f"n={int(all_p['n'])}, Holm p={all_p['holm_p']:.3f}{star}."
         )
     if all_s is not None:
         star = " *" if bool(all_s.get("sig_holm_05", False)) else ""
         caption_bits.append(
-            f"Same split vs sack rate: year+pick ρ={all_s['official_partial_rho']:+.2f}, "
+            f"Same split vs sack rate: year ρ={all_s['official_partial_rho']:+.2f}, "
             f"Holm p={all_s['holm_p']:.3f}{star}."
         )
     caption_bits.append(
@@ -1530,7 +1491,7 @@ def main() -> int:
     # Keep a coach-readable player csv (no parquet in git).
     keep = [
         "nfl_id", "display_name", "nfl_position", "subtype", "college_name",
-        "draft_year", "draft_round", "draft_overall_pick", "pick",
+        "draft_year",
         "official_ten_yd", "official_forty", "c_top_mph", "c_t15", "c_t18",
         "c_t90", "c_t10_derived", "c_40_accel", "c_40_accel_first",
         "dl_pass_rush_accel", "dl_pass_rush_accel_first", "dl_pass_rush_max_s",

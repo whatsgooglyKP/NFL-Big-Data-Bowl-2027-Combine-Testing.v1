@@ -32,7 +32,6 @@ DATA = ROOT / "data"
 OUT = ROOT / "out"
 EXT = ROOT / "external"
 
-UDFA_PICK = 260
 K = 5
 MIN_SHARED = 3
 HIST_YEARS = (2000, 2022)
@@ -99,23 +98,14 @@ def parse_ht(x) -> float:
         return np.nan
 
 
-def year_pick_residual(y: pd.Series, pick: pd.Series, year: pd.Series) -> np.ndarray:
-    d = pd.DataFrame({"y": y, "pick": pick, "year": year}).dropna()
-    if len(d) < 8:
-        return np.full(len(y), np.nan)
-    X = np.column_stack([
-        np.ones(len(d)),
-        np.log(d["pick"].astype(float)),
-        (d["year"] - d["year"].min()).astype(float),
-    ])
-    # drop collinear
-    keep = [0]
-    for j in range(1, X.shape[1]):
-        if np.linalg.matrix_rank(X[:, keep + [j]]) > len(keep):
-            keep.append(j)
-    X = X[:, keep]
-    coef, *_ = np.linalg.lstsq(X, d["y"].to_numpy(dtype=float), rcond=None)
+def year_residual(y: pd.Series, year: pd.Series) -> np.ndarray:
+    """Residual after a linear draft-year fit. No draft slot / pick / round (Kevin's rule, 11/2026)."""
+    d = pd.DataFrame({"y": y, "year": year}).dropna()
     resid = pd.Series(np.nan, index=y.index, dtype=float)
+    if len(d) < 8 or d["year"].nunique() < 2:
+        return resid.to_numpy()
+    X = np.column_stack([np.ones(len(d)), (d["year"] - d["year"].min()).astype(float)])
+    coef, *_ = np.linalg.lstsq(X, d["y"].to_numpy(dtype=float), rcond=None)
     resid.loc[d.index] = d["y"].to_numpy(dtype=float) - X @ coef
     return resid.to_numpy()
 
@@ -132,8 +122,6 @@ def load_historical() -> pd.DataFrame:
     comb["hist_name"] = comb["player_name"]
     comb["hist_school"] = comb["school"]
     comb["hist_pos"] = comb["pos"]
-    comb["hist_pick"] = pd.to_numeric(comb["draft_ovr"], errors="coerce")
-    comb["hist_round"] = pd.to_numeric(comb["draft_round"], errors="coerce")
 
     # Career outcomes via PFR id. w_av is filled; car_av is empty in this snapshot.
     keep_p = picks.rename(columns={
@@ -141,14 +129,12 @@ def load_historical() -> pd.DataFrame:
         "pfr_player_name": "pfr_name",
         "season": "draft_season",
     })[[
-        "pfr_id", "pfr_name", "draft_season", "round", "pick", "team",
+        "pfr_id", "pfr_name", "draft_season", "team",
         "hof", "allpro", "probowls", "seasons_started", "w_av", "games",
         "to", "position", "college",
     ]].copy()
     keep_p = keep_p[keep_p["pfr_id"].notna()].drop_duplicates("pfr_id")
     H = comb.merge(keep_p, on="pfr_id", how="left")
-    # If combine draft_ovr is missing, fall back to draft_picks pick.
-    H["career_pick"] = H["hist_pick"].fillna(H["pick"])
     H["career_w_av"] = pd.to_numeric(H["w_av"], errors="coerce")
     H["career_allpro"] = pd.to_numeric(H["allpro"], errors="coerce").fillna(0)
     H["career_probowls"] = pd.to_numeric(H["probowls"], errors="coerce").fillna(0)
@@ -215,8 +201,6 @@ def load_rookies() -> pd.DataFrame:
     players = pd.read_csv(DATA / "players.csv")
     comb = pd.read_csv(DATA / "combine_results.csv")
     M = players.merge(comb, on=["nfl_id", "draft_year"], how="left")
-    M["pick"] = M["draft_overall_pick"].fillna(UDFA_PICK)
-    M["is_udfa"] = M["draft_overall_pick"].isna()
 
     def group(row):
         p = row["nfl_position"]
@@ -377,8 +361,6 @@ def pairwise_knn(rookies: pd.DataFrame, hist: pd.DataFrame, thresh: pd.DataFrame
                     "pos_group": g,
                     "nfl_position": r["nfl_position"],
                     "draft_year": r["rookie_year"],
-                    "pick": r["pick"],
-                    "is_udfa": bool(r["is_udfa"]),
                     "anecdote_only": bool(r["anecdote_only"]),
                     "n_comps": 0,
                     "headline": "too few Combine tests for a historical comp",
@@ -386,7 +368,7 @@ def pairwise_knn(rookies: pd.DataFrame, hist: pd.DataFrame, thresh: pd.DataFrame
                     "note": f"Fewer than {MIN_SHARED} shared Combine tests (40, jumps, agility, height, weight) with any historical player at the position.",
                 })
                 continue
-            labels, flags, wavs, dists, picks = [], [], [], [], []
+            labels, flags, wavs, dists = [], [], [], []
             for rank, j in enumerate(comps, start=1):
                 h = H.iloc[j]
                 long_rows.append({
@@ -395,8 +377,6 @@ def pairwise_knn(rookies: pd.DataFrame, hist: pd.DataFrame, thresh: pd.DataFrame
                     "pos_group": g,
                     "nfl_position": r["nfl_position"],
                     "draft_year": int(r["rookie_year"]),
-                    "pick": r["pick"],
-                    "is_udfa": bool(r["is_udfa"]),
                     "anecdote_only": bool(r["anecdote_only"]),
                     "rookie_forty": r["forty"],
                     "rookie_vertical": r["vertical"],
@@ -413,7 +393,6 @@ def pairwise_knn(rookies: pd.DataFrame, hist: pd.DataFrame, thresh: pd.DataFrame
                     "comp_year": int(h["hist_year"]) if pd.notna(h["hist_year"]) else np.nan,
                     "comp_pos": h["hist_pos"],
                     "comp_school": h["hist_school"],
-                    "comp_pick": h["career_pick"] if pd.notna(h["career_pick"]) else h["hist_pick"],
                     "comp_forty": h["forty"],
                     "comp_vertical": h["vertical"],
                     "comp_broad": h["broad_jump"],
@@ -438,7 +417,6 @@ def pairwise_knn(rookies: pd.DataFrame, hist: pd.DataFrame, thresh: pd.DataFrame
                 flags.append(h["career_flag"])
                 wavs.append(h["career_w_av"])
                 dists.append(float(dist[j]))
-                picks.append(h["career_pick"] if pd.notna(h["career_pick"]) else h["hist_pick"])
             wavs_a = np.asarray(wavs, dtype=float)
             n_star = sum(x == "star" for x in labels)
             n_solid = sum(x == "solid" for x in labels)
@@ -457,15 +435,12 @@ def pairwise_knn(rookies: pd.DataFrame, hist: pd.DataFrame, thresh: pd.DataFrame
                 "pos_group": g,
                 "nfl_position": r["nfl_position"],
                 "draft_year": int(r["rookie_year"]),
-                "pick": r["pick"],
-                "is_udfa": bool(r["is_udfa"]),
                 "anecdote_only": bool(r["anecdote_only"]),
                 "n_comps": len(comps),
                 "mean_distance": float(np.mean(dists)),
                 "knn_mean_w_av": float(np.nanmean(wavs_a)) if np.isfinite(wavs_a).any() else np.nan,
                 "knn_median_w_av": float(np.nanmedian(wavs_a)) if np.isfinite(wavs_a).any() else np.nan,
                 "knn_n_with_av": int(np.isfinite(wavs_a).sum()),
-                "knn_mean_comp_pick": float(np.nanmean(np.asarray(picks, dtype=float))),
                 "n_star": n_star,
                 "n_solid": n_solid,
                 "n_journeyman": n_jour,
@@ -522,14 +497,14 @@ def knn_vs_gameplay(summary: pd.DataFrame) -> pd.DataFrame:
     groups = [(g, S[S["pos_group"] == g]) for g in MODELED_GROUPS]
     # Do not pool WR/TE yards, CB/S tackle rate, and DL pressure — different outcomes.
     for name, d in groups:
-        d = d.dropna(subset=["gameplay", "knn_mean_w_av", "pick"]).copy()
+        d = d.dropna(subset=["gameplay", "knn_mean_w_av", "draft_year"]).copy()
         if len(d) < 8:
             rows.append({"pos_group": name, "n": int(len(d)), "note": "too few for a correlation"})
             continue
         rho, p = stats.spearmanr(d["knn_mean_w_av"], d["gameplay"])
-        # pick-controlled residuals
-        ry = year_pick_residual(d["gameplay"], d["pick"], d["draft_year"])
-        rx = year_pick_residual(d["knn_mean_w_av"], d["pick"], d["draft_year"])
+        # year-controlled residuals
+        ry = year_residual(d["gameplay"], d["draft_year"])
+        rx = year_residual(d["knn_mean_w_av"], d["draft_year"])
         ok = np.isfinite(rx) & np.isfinite(ry)
         if ok.sum() >= 8 and np.unique(rx[ok]).size >= 2 and np.unique(ry[ok]).size >= 2:
             pr, pp = stats.spearmanr(rx[ok], ry[ok])
@@ -547,20 +522,20 @@ def knn_vs_gameplay(summary: pd.DataFrame) -> pd.DataFrame:
             "gameplay_metric": ",".join(sorted(d["gameplay_metric"].dropna().unique())),
             "rho_wav": float(rho),
             "p_wav": float(p),
-            "partial_year_pick_rho": float(pr) if np.isfinite(pr) else np.nan,
-            "partial_year_pick_p": float(pp) if np.isfinite(pp) else np.nan,
+            "partial_year_rho": float(pr) if np.isfinite(pr) else np.nan,
+            "partial_year_p": float(pp) if np.isfinite(pp) else np.nan,
             "rho_star_frac": float(rs) if np.isfinite(rs) else np.nan,
             "p_star_frac": float(ps) if np.isfinite(ps) else np.nan,
             "mean_knn_wav": float(d["knn_mean_w_av"].mean()),
         })
         log(f"  {name} n={len(d)}: raw ρ(knn w_av, gameplay)={rho:.3f} p={p:.3f}; "
-            f"year+pick partial ρ={pr if np.isfinite(pr) else float('nan'):.3f} "
+            f"year partial ρ={pr if np.isfinite(pr) else float('nan'):.3f} "
             f"p={pp if np.isfinite(pp) else float('nan'):.3f}")
     out = pd.DataFrame(rows)
-    if "partial_year_pick_p" in out.columns and out["partial_year_pick_p"].notna().sum() >= 2:
+    if "partial_year_p" in out.columns and out["partial_year_p"].notna().sum() >= 2:
         from statsmodels.stats.multitest import multipletests
-        ok = out["partial_year_pick_p"].notna()
-        _rej, p_adj, _, _ = multipletests(out.loc[ok, "partial_year_pick_p"], alpha=0.05, method="holm")
+        ok = out["partial_year_p"].notna()
+        _rej, p_adj, _, _ = multipletests(out.loc[ok, "partial_year_p"], alpha=0.05, method="holm")
         out.loc[ok, "holm_p"] = p_adj
         out.loc[ok, "sig_holm_05"] = _rej
         out.loc[~ok, "holm_p"] = np.nan
@@ -596,12 +571,11 @@ def print_highlights(summary: pd.DataFrame, long: pd.DataFrame) -> None:
             continue
         r = s.iloc[0]
         tag = " [ANECDOTE — RB excluded from models]" if r["anecdote_only"] else ""
-        log(f"  {r['display_name']} ({r['pos_group']}, {int(r['draft_year'])}, pick {int(r['pick'])}){tag}")
+        log(f"  {r['display_name']} ({r['pos_group']}, {int(r['draft_year'])}){tag}")
         log(f"    {r['headline']}")
         log(f"    comps: {r['comp_names']}")
         if pd.notna(r.get("knn_mean_w_av")):
             log(f"    mean comp w_av={r['knn_mean_w_av']:.1f}, "
-                f"mean comp pick={r['knn_mean_comp_pick']:.0f}, "
                 f"mean distance={r['mean_distance']:.2f}")
 
 

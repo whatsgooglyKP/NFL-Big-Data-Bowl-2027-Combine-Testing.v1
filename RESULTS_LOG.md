@@ -826,3 +826,52 @@ n is 18–24 for most tests and 7–11 for 3-cone, shuttle and bench. All tests 
 - **Dies or weakens to not significant:** DL 3-cone and short shuttle → pressure (CI includes 0 after size control); DL run stops; DL length measures; DB everything; TE (underpowered).
 
 **Caveats.** (1) Every correlation here is among players who made rosters and have tracked snaps; players who skipped a drill are not random (only 34 of 89 rushers ran the 3-cone). (2) With 34 players and 5–6 fitted terms, CIs are wide; a CI including zero is "can't tell", not "zero effect". (3) FDR family sizes differ by group. (4) Leave-one-class-out uses three classes of 10–30 players each; ΔR² values of +0.05 are small and noisy. (5) Shrinkage priors are fit per role on the same data (not refit inside each bootstrap), so CIs slightly understate uncertainty on the rate outcomes. (6) Older logs above that mention draft-pick controls (RESULTS_LOG 11/10–11/11 sections, `dl_burst.py`, `gameplay_success.py`, `multi_test_models.py`, `combine_gems.py` outputs) predate the no-draft-slot rule; their `out/*_players.csv` files still carry pick columns. They were not changed here.
+
+---
+
+## 11/2026 — Draft slot removed everywhere (Part A)
+
+**Rule (Kevin):** draft slot, pick and round are never used, not as a control, a baseline, a filter, a label or a column. Draft **year** stays as a control.
+
+**Changed:** `build_dataset.py`, `ssoe.py`, `gameplay_success.py`, `dl_burst.py`, `multi_test_models.py`, `athletic_comps.py`, `explore.py` now control for draft year only and no longer write pick, round or UDFA columns. Pick/round columns are gone from `out/sunday_speed_players.*`, `dl_burst_players.csv`, `gameplay_success_players.csv`, `dl_players_named.csv`, `multi_test_players.csv`, `athletic_comps*.csv` (historical-comp pick columns too) and `DL_PLAYERS.md`. `out/pfr_columns.csv` no longer lists the `draft_round`/`draft_pick` columns of the public players file. `external/draft_picks.csv` is still read, only for the career Approximate Value / Pro Bowl / All-Pro columns and the PFR ID join, never for slot. METRICS.md §6 rewritten to year-only.
+
+**Retired (cannot be reproduced without draft slot, files removed):** `combine_gems.py` (“outplayed his draft slot”; `COMBINE_GEMS.md`, `out/combine_gems*.csv`, `fig8_combine_gems.png`) and `cb_deep_dive.py` (Finding A “speed tax beyond draft slot”; Finding B gauntlet-vs-Sunday-Speed went with it; `CB_DEEP_DIVE.md`, `out/cb_deep_dive_*`, `cb_speed_tax.png`, `cb_gauntlet.png`). The scripts are stubs that exit with a message. The gauntlet-vs-Sunday-Speed check is not rerun; if wanted it can be rebuilt year-only with `robust.py`.
+
+**Reruns:** all from raw data still on the box (`build_dataset` → `ssoe`, `gameplay_success`, `dl_burst` → `multi_test_models`, `athletic_comps`). Nothing is marked stale. `dl_robust`, `pos_robust`, fig 19 and fig 20 never read a slot column, so they are unchanged. Other docs (README, PHASE2_RESULTS, DATA_NOTES, STRATEGY notice) updated; the older entries above in this log describe pick-controlled numbers and are superseded by this section.
+
+**Headline numbers that changed:**
+
+| Result | Before (year + log pick) | Now (year only) |
+|---|---|---|
+| CB “speed tax”, Combine top speed vs start rate (n = 44) | ρ −0.45, Holm p = 0.006 (“beyond draft slot”) | ρ −0.12, Holm p = 0.94. **It was a draft-slot artifact.** n = 33 official sample: −0.39 → −0.14 |
+| S / WR speed tax | −0.05 / −0.10 | +0.17 / +0.07 (null) |
+| CB Combine speed vs start rate (gameplay_success companion) | −0.41, CI −0.70 to −0.05 | −0.18, CI −0.49 to +0.23 |
+| DL 10-yard → pressure, All DL (n = 72) | ρ −0.45 (pick+year), CI −0.62 to −0.19, Holm 0.0005 | **−0.47**, CI −0.65 to −0.24, Holm 0.00016 |
+| DL 10-yard → sack, All DL | −0.31, CI −0.53 to −0.07, Holm 0.039 | **−0.37**, CI −0.57 to −0.11, Holm 0.0066 (stronger) |
+| DL Edge → pressure | −0.24, Holm 0.56 | −0.36, Holm 0.099 (CI −0.63 to +0.00) |
+| DL Interior → sack | −0.25, Holm 0.56 | −0.35, Holm 0.135 |
+| DL 10-yard → speed at 1.0s (get-off), All / Edge / Interior | −0.79 / −0.61 / −0.31 | −0.80 / −0.57 / −0.41 |
+| DL direct 10-yard → pressure after get-off | −0.08, p = 0.49 | −0.12, p = 0.31 (mediation conclusion unchanged) |
+| WR Combine top speed → Sunday Speed partial | +0.62 | +0.63 (headline unchanged; official 40 −0.57 → −0.60) |
+| CB / S Combine top speed → Sunday Speed partial | +0.05 / +0.15 | +0.24 (p = 0.18) / +0.16 (p = 0.44), still null |
+| Athletic comps vs gameplay, CB | −0.37, Holm 0.116 | −0.37, Holm 0.109 (none significant) |
+| Multi-test models (`multi_test_models.py`) | beat a “pick + year” baseline for TE and CB only | baseline is now year only and scores **below chance** (CV AUC 0.26–0.40), so “beats baseline” deltas are inflated (+0.08 to +0.38). Read the absolute AUCs instead: WR 0.48, TE 0.63, CB 0.66, S 0.56 (L2 logistic) |
+
+Unchanged to two decimals: WR yards per route / deep route / target share outcomes (|Δρ| ≤ 0.03) and no Holm significance flag flipped in `phase2_tests`, `gameplay_success_tests` or `ssoe_tests`.
+
+---
+
+## 11/2026 — WR break-route lead re-test (Part B; pre-declared in METRICS.md §8 before any number was computed)
+
+**Design.** `wr_route_lead.py`: regular-season WR plays, `route_ran` × `team_coverage_man_zone` from the provided data (no external source needed), separation minus the route × coverage mean, empirical-Bayes shrunk per player (unshrunk and route-weighted as sensitivity), ≥20 routes per split (≥10 screens). robust.py defaults for every cell (size control, bootstrap CI, 10,000 Freedman–Lane permutations, leave-one-class-out ΔR², BH-FDR) plus formal paired contrasts (paired bootstrap CI and within-player swap permutation, BH over the 5 contrasts). Outputs: `out/wr_route_lead_{cells,contrasts,players,plays_summary}.csv`, **fig 21** `out/figs/fig21_wr_route_lead.png`.
+
+**Caveats first.** Same 2023–25 sample that produced the lead, so this is a re-test, not an independent replication. 3-cone and short shuttle exist for only 21–30 WRs, so H1 and H3 are badly underpowered (paired-contrast CI half-width about 0.4–0.6). Data have no separate COMEBACK or DIG label (HITCH holds curls/hitches/comebacks, IN holds digs). Man vs zone is the team-level label on the play.
+
+| Hypothesis | Key numbers (size-controlled rank partial ρ; oriented so + = better test, more separation) | Verdict |
+|---|---|---|
+| **H1** 3-cone, shuttle matter more on break than vertical routes | 3-cone: break +0.02 (n = 23), vertical +0.23 (n = 22), diff −0.24 (CI −0.77 to +0.39, swap p 0.33). Shuttle: break −0.17, vertical −0.06 (n = 27), diff −0.11 (CI −0.59 to +0.54, p 0.63) | **Dies.** Wrong sign or null; underpowered to rule out a moderate effect |
+| **H2** Vertical jump and Burst Score → break-route separation | Vertical **+0.34** (n = 58, CI +0.03 to +0.57, perm p 0.014, BH q 0.185, ΔR² +0.13, p 0.002). Burst **+0.31** (n = 54, CI +0.03 to +0.54, p 0.026, q 0.185, ΔR² +0.11, p 0.009). On vertical routes: +0.08 (n = 61) and +0.17 (n = 56), both null | **LEAN, not SURVIVES.** Direction and out-of-sample check hold, FDR does not clear in a 14-cell family. Specificity to break routes is **not** shown: break − vertical is +0.23 (CI −0.09 to +0.55, p 0.14) for vertical jump and +0.08 (CI −0.22 to +0.42) for Burst |
+| **H3** Quickness matters more vs man than zone | Official 10-yard: man +0.25 (n = 59, p 0.066), zone +0.11 (n = 66), diff +0.15 (CI −0.13 to +0.41, swap p 0.27, q 0.54). 3-cone: man −0.24 (n = 21), zone +0.38 (n = 24), diff −0.46 (CI −0.99 to +0.07, swap p 0.006, q 0.03). Shuttle: man −0.33, zone −0.05, diff −0.04 (p 0.78) | **Dies.** The only direction-consistent contrast (10-yard) is not distinguishable from zero. The 3-cone contrast points the **opposite** way, with n = 21 and a bootstrap CI that includes 0, so we do not call it REVERSED and do not trust it |
+| **S1** (secondary) weight cost on screens and crossers | Weight → crossers −0.29 (n = 49, p 0.051, q 0.069); screens +0.06 (n = 27, null). Same cost on break routes −0.25 (n = 66) and vertical routes −0.28 (n = 69, p 0.022). Crosser − vertical diff −0.02 (CI −0.35 to +0.31) | Heavier receivers have lower separation on **every** route type (about −0.25 to −0.29, LEAN-sized, q ≈ 0.07); no screen/crosser-specific cost |
+
+Sensitivity: man vs zone on break routes only shows no contrast either (diffs +0.10, +0.01, +0.02, all CIs span 0). The older lean (vertical +0.38 and Burst +0.39 on a broader break family, q 0.039 within WR) was an easier family; with the narrower pre-declared break family and a 14-cell correction it is LEAN, not SURVIVES.

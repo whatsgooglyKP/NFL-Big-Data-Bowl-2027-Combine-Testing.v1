@@ -21,7 +21,7 @@ Source of truth: Kaggle Data tab (https://www.kaggle.com/competitions/nfl-big-da
 - Time ordering: sort by `time` (ISO string) within event/play; there is no frame_id.
 
 ## Columns (abridged from the Data tab)
-- **players**: nfl_id, display_name, draft_year, nfl_position, birth_date, college_name, college_conference, draft_round/pick_within_round/overall_pick (null = UDFA).
+- **players**: nfl_id, display_name, draft_year, nfl_position, birth_date, college_name, college_conference, and the draft-slot fields (round, pick within round, overall pick) which this project never reads or reports.
 - **combine_results**: combine_position (only DB/OL/DL/WR/TE!), height (in), weight, hand_size, arm_length, wing_span, ten_yd_split, forty, vertical, broad_jump, three_cone, short_shuttle, bench_reps, ngs_athleticism_score, ngs_college_production_score, ngs_final_score.
 - **combine_tracking**: draft_year, event_id, nfl_id, entity_type (PLAYER/BALL), time, drill_type, drill_name, attempt, x, y, s (yd/s), a (yd/s², **unsigned magnitude**), dis, dir. **No `o` (orientation).**
 - **player_career_successes** (playing-time context, not the official success definition): career_offensive_snaps, career_defensive_snaps, career_special_teams_snaps (REG+POST), career_games_active, career_games_started, ap_all_pro_1st_team, ap_all_pro_2nd_team, pro_bowl_original_ballot. All-Pro/Pro Bowl ≈ 1–3% of players → useless as outcomes. Official success metrics are on-field gameplay from `player_play` (DL pressure / sack rate, WR yards per route, CB/S tackle and TFL rates; see `METRICS.md` §6). Starts and snaps are secondary context only.

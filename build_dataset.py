@@ -2,9 +2,9 @@
 """Sunday Speed pipeline for NFL Big Data Bowl 2027.
 
 Builds one row per WR / CB / S prospect with Combine tracking features,
-game Sunday Speed, draft slot, and career outcomes. Reproduces the
+game Sunday Speed, and career outcomes (no draft slot). Reproduces the
 headline Spearman correlations, runs the Phase 2 drill comparison, and
-writes coach-readable draft figures.
+writes coach-readable figures.
 
 Usage (from anywhere):
     /workspace/bdb2027/.venv/bin/python /workspace/bdb2027/build_dataset.py
@@ -47,7 +47,6 @@ OUT = ROOT / "out"
 FIGS = OUT / "figs"
 
 MPH = 2.0455  # yd/s -> mph
-UDFA_PICK = 260
 MIN_DEEP_PLAYS = 20
 MIN_COV_PLAYS = 30
 MIN_TOTAL_PLAYS_LEGACY = 100  # explore.py test() filter, needed to reproduce rhos
@@ -139,25 +138,24 @@ def coerce_bool(s: pd.Series) -> pd.Series:
     return s.map({True: True, False: False, "TRUE": True, "FALSE": False, "True": True, "False": False, 1: True, 0: False, 1.0: True, 0.0: False}).fillna(False)
 
 
-def spearman_with_partial(x: pd.Series, y: pd.Series, pick: pd.Series) -> dict:
-    """Spearman ρ and a pick-controlled 'partial' ρ (residualize on log pick, then Spearman).
+def spearman_with_partial(x: pd.Series, y: pd.Series, year: pd.Series) -> dict:
+    """Spearman ρ and a draft-year-controlled 'partial' ρ (demean both within draft-year cells, then Spearman).
 
-    Matches the method in explore.py so headline numbers can be reproduced.
+    Draft slot / pick / round is never used (Kevin's rule, 11/2026).
     """
-    d = pd.DataFrame({"x": x, "y": y, "pick": pick}).dropna()
+    d = pd.DataFrame({"x": x, "y": y, "year": year}).dropna()
     n = len(d)
     out = {"n": n, "rho": np.nan, "p": np.nan, "partial_rho": np.nan, "partial_p": np.nan}
     if n < 8:
         return out
     rho, p = stats.spearmanr(d["x"], d["y"])
     out["rho"], out["p"] = float(rho), float(p)
-    lp = np.log(d["pick"].astype(float))
-    # Guard against a constant log-pick (shouldn't happen, but don't crash).
-    if lp.nunique() >= 2 and d["x"].nunique() >= 2 and d["y"].nunique() >= 2:
-        rx = d["x"] - np.poly1d(np.polyfit(lp, d["x"], 1))(lp)
-        ry = d["y"] - np.poly1d(np.polyfit(lp, d["y"], 1))(lp)
-        pr, pp = stats.spearmanr(rx, ry)
-        out["partial_rho"], out["partial_p"] = float(pr), float(pp)
+    if d["year"].nunique() >= 2 and d["x"].nunique() >= 2 and d["y"].nunique() >= 2:
+        rx = d["x"] - d.groupby("year")["x"].transform("mean")
+        ry = d["y"] - d.groupby("year")["y"].transform("mean")
+        if rx.nunique() >= 2 and ry.nunique() >= 2:
+            pr, pp = stats.spearmanr(rx, ry)
+            out["partial_rho"], out["partial_p"] = float(pr), float(pp)
     return out
 
 
@@ -442,7 +440,6 @@ def build_player_table(combine: pd.DataFrame, plays: pd.DataFrame) -> pd.DataFra
     pl = pd.read_csv(DATA / "players.csv")
     pl = pl[pl["nfl_position"].isin(POS_MAP)].copy()
     pl["pos_group"] = pl["nfl_position"].map(POS_MAP)
-    pl["pick"] = pl["draft_overall_pick"].fillna(UDFA_PICK)
     cs = pd.read_csv(DATA / "player_career_successes.csv")
     cr = pd.read_csv(DATA / "combine_results.csv")
     games = pd.read_csv(DATA / "games.csv", usecols=["game_id", "season", "season_type", "week"])
@@ -524,8 +521,7 @@ def build_player_table(combine: pd.DataFrame, plays: pd.DataFrame) -> pd.DataFra
     M = (
         pl.set_index("nfl_id")[
             ["display_name", "draft_year", "nfl_position", "pos_group", "birth_date",
-             "college_name", "college_conference", "draft_round",
-             "draft_pick_within_round", "draft_overall_pick", "pick"]
+             "college_name", "college_conference"]
         ]
         .join(cr.set_index("nfl_id")[[
             "combine_position", "combine_height", "combine_weight",
@@ -622,7 +618,7 @@ def verify_headlines(M: pd.DataFrame) -> pd.DataFrame:
     for pos in POS_ORDER:
         col = "g_deep_p90" if pos == "WR" else "g_cov_p90"
         d = M[(M["pos_group"] == pos) & (M["n_plays"] >= MIN_TOTAL_PLAYS_LEGACY)]
-        res = spearman_with_partial(d["c_top"], d[col], d["pick"])
+        res = spearman_with_partial(d["c_top"], d[col], d["draft_year"])
         exp_n, exp_rho, exp_part = expected[pos]
         ok_n = res["n"] == exp_n
         ok_rho = np.isfinite(res["rho"]) and abs(res["rho"] - exp_rho) < 0.015
@@ -641,7 +637,7 @@ def verify_headlines(M: pd.DataFrame) -> pd.DataFrame:
     log("\n==== Official definition (REG, play stands, no 100-play floor) ====")
     for pos in POS_ORDER:
         d = M[M["pos_group"] == pos]
-        res = spearman_with_partial(d["c_top"], d["sunday_speed"], d["pick"])
+        res = spearman_with_partial(d["c_top"], d["sunday_speed"], d["draft_year"])
         log(
             f"  {pos:3s} n={res['n']:3d}  rho={res['rho']:+.2f} p={fmt_p(res['p'])}  "
             f"partial={res['partial_rho']:+.2f} p={fmt_p(res['partial_p'])}"
@@ -714,11 +710,11 @@ def phase2_tests(M: pd.DataFrame) -> pd.DataFrame:
             for feat in feat_list:
                 if feat not in dpos.columns:
                     continue
-                res = spearman_with_partial(dpos[feat], dpos["sunday_speed"], dpos["pick"])
+                res = spearman_with_partial(dpos[feat], dpos["sunday_speed"], dpos["draft_year"])
                 # Leave-one-out R² on the same complete cases as the Spearman.
                 sub = dpos[[feat, "sunday_speed"]].dropna()
                 r2 = loo_r2(sub[feat].to_numpy(), sub["sunday_speed"].to_numpy()) if len(sub) >= 8 else np.nan
-                # Incremental: drill vs Sunday Speed after residualizing on c_top (and pick already in partial).
+                # Incremental: drill vs Sunday Speed after residualizing on c_top (draft-year control in the partial).
                 inc = {"inc_rho": np.nan, "inc_p": np.nan}
                 if feat != "c_top" and "c_top" in dpos.columns:
                     sub2 = dpos[[feat, "sunday_speed", "c_top"]].dropna()
@@ -984,7 +980,7 @@ def main() -> int:
     # Column order: identity, draft, combine official, 40 tracking, drills, game, outcomes.
     front = [
         "nfl_id", "display_name", "nfl_position", "pos_group", "draft_year",
-        "draft_round", "draft_overall_pick", "pick", "college_name", "college_conference",
+        "college_name", "college_conference",
         "combine_height", "combine_weight", "official_ten_yd", "official_forty",
         "vertical", "broad_jump", "three_cone", "short_shuttle", "bench_reps",
         "ngs_athleticism_score", "ngs_college_production_score", "ngs_final_score",
