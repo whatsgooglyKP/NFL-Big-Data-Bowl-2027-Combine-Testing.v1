@@ -735,3 +735,94 @@ Kevin asked to redo the DL heat map so it reads cleanly for coaches: red always 
 TFL is grouped with run defense because it is a production outcome that can come from either a pass rush or a run stuff, not because it is a pure run-defense stat. The previous figure is archived as `out/figs/fig19_dl_recheck_v1.png`.
 
 Outputs: `out/figs/fig19_dl_recheck.png`, `out/figs/fig19_dl_recheck_v1.png`.
+
+
+## 11/2026 (America/New_York) — Robust-testing pass: size control, shrinkage, out-of-sample (DL first, then WR / TE / DB)
+
+Kevin approved rebuilding the pipeline so that size control, shrinkage of noisy rates and leave-one-season-out validation are on by default (new defaults documented in `METRICS.md` §7). Draft slot / pick / round is not used anywhere, including as a control (asserted in code). New code: `robust.py` (module), `dl_robust.py`, `pos_robust.py`, `forest.py`, `robust_report.py`. Figures: `out/figs/fig19_dl_recheck.png` (redone), `out/figs/fig19_dl_recheck_v2_presize.png` (the previous version, kept), `out/figs/fig20_forest_size_controlled.png` (new). Full tables for every test × outcome: `out/dl_robust_tests.csv`, `out/pos_robust_tests.csv`, `out/robust_tables.md`.
+
+**What each number means.** *raw ρ* = plain Spearman. *year+role ρ* = rank partial correlation controlling draft year and Edge/Interior (DL) or CB/S (DB). **size-controlled ρ** = the same plus weight and height (the weight row controls height only and the height row weight only). Rates are shrunk (beta-binomial, toward the role mean, using the player's snaps); *unshrunk ρ* and *snap-weighted ρ* are the sensitivities. CI = 2,000-resample player bootstrap. *perm p* = Freedman–Lane permutation p; *FDR q* = BH over every cell in the group. *Out-of-sample ΔR²* = gain in R² from adding the test to a size-only model, trained on two draft classes and tested on the third (pooled over 2023 / 2024 / 2025; "3/3" = helps in all three held-out classes).
+
+**Label fix.** The "−0.80 / +0.51 get-off" chain was speed in the first second after the snap from tracking, not the NFL/NGS get-off. It is now called **1-sec burst speed**. The NFL/NGS get-off time (`player_get_off`) is a separate row. Size-controlled chain (n; 95% CI): official 10-yard → 1-sec burst speed −0.32 (72; −0.54 to −0.08; was −0.80 with year control only); 1-sec burst speed → pressure rate +0.33 (89; +0.13 to +0.51); official 10-yard → NGS get-off time +0.30 (71; +0.05 to +0.53; slower 10-yard, slower get-off); NGS get-off time → pressure rate −0.34 (88; −0.54 to −0.12).
+
+### 1. DL: the headline numbers got smaller, and none of the athletic tests clears FDR once size is held fixed
+
+273 cells in the pooled DL family. 20 have permutation p < 0.05 (about 14 expected by chance); **5 clear FDR < 0.05 and all five are weight vs a movement outcome** (weight vs 1-sec burst speed −0.53, NGS get-off +0.49, penetration at 2 s −0.45 / −0.46, pass-play penetration −0.59): heavier linemen are slower off the ball, which is a size effect, not a Combine test. No athletic test clears FDR for any production outcome (best FDR q = 0.16, official 40 vs pressure rate; over the five production outcomes only the best q is 0.43). Edge alone: 2 of 267 cells clear (both weight vs movement); Interior alone: 0 of 248.
+
+**Earlier headline cells, before vs after** (old = year control only, unshrunk; new = size-controlled, shrunk):
+
+| Pair | Old ρ (CI, FDR) | New size-controlled ρ (CI) | Unshrunk | perm p | FDR q | Out-of-sample ΔR² | Verdict |
+|---|---|---|---:|---:|---:|---|---|
+| 3-cone → pressure rate (n = 34) | −0.65 (−0.83 to −0.36, 0.0002) | **−0.31** (−0.67 to +0.13) | −0.43 | 0.106 | 0.75 | +0.050 (p 0.046, 2/3) | not significant after size control |
+| Official 10-yard → pressure rate (72) | −0.47 (−0.65 to −0.24, 0.0002) | **−0.25** (−0.45 to −0.01) | −0.16 | 0.047 | 0.64 | +0.047 (p 0.015, 3/3) | lean |
+| Official 40 → pressure rate (72) | −0.47 (−0.66 to −0.23, 0.0002) | **−0.35** (−0.54 to −0.11) | −0.25 | 0.004 | 0.16 | +0.056 (p 0.008, 3/3) | lean (best DL production cell) |
+| Broad jump → pressure rate (76) | +0.45 (+0.21 to +0.64, 0.0003) | **+0.27** (+0.03 to +0.49) | +0.17 | 0.026 | 0.44 | +0.056 (p 0.010, 2/3) | lean |
+| Burst Score → TFL per snap (54) | +0.43 (+0.16 to +0.63, 0.006) | **+0.32** (+0.03 to +0.55) | +0.31 | 0.027 | 0.44 | +0.069 (p 0.009, 3/3) | lean |
+| Short shuttle → pressure rate (35) | −0.59 (−0.81 to −0.25, 0.001) | **−0.29** (−0.64 to +0.16) | −0.40 | 0.115 | 0.75 | −0.043 (p 0.83, 2/3) | not significant, does not help out of sample |
+
+**Read.** The direction of every pass-rush link survives (faster, more explosive, more pressure) and the pooled sign holds in both Edge and Interior for all four lean production cells (CIs inside each subtype include zero). But a quarter to a half of each earlier correlation was body size and Edge-vs-Interior composition: the 10-yard correlation with pressure roughly halved (−0.47 to −0.25), the 40's fell from −0.47 to −0.35, the 3-cone's fell to −0.31 with a CI that now includes zero (n = 34, five-parameter fit), and nothing survives multiple-testing correction. The 3-cone is still the best *candidate* on the unshrunk rate (−0.43, CI −0.71 to −0.05, perm p 0.02) and it improves out-of-sample prediction in two of three classes, but it is a lean on 34 self-selected players, not a finding. The 3-cone story should be told as "most promising, unproven".
+
+**Does shrinkage change things?** Modestly. Across 105 scored DL cells the shrunk and unshrunk size-controlled ρ correlate 0.92, the median change is 0.04, 11 near-zero cells flip sign, and mean |ρ| goes from 0.128 to 0.137. It matters for specific cells: 40 → pressure −0.25 unshrunk vs −0.35 shrunk; 10-yard → pressure −0.16 vs −0.25; 3-cone → pressure −0.43 vs −0.31. Prior strength: pressure-rate prior is worth about 130 snaps for Edge and 170 for Interior (median rusher has 230 / 146 snaps), so low-snap rushers are pulled hard toward their role mean. Snap-weighted versions agree on direction (mean |ρ| 0.18). Stable conclusions do not depend on this choice; the 3-cone and 40 magnitudes do.
+
+**Out of sample.** Of 79 scored DL production cells (excluding weight and height), 32 have positive incremental out-of-sample R² and 13 of those have permutation p < 0.05, but the gains are small (best +0.09 R² on top of a size-only model; typical +0.04). Adding the official 40 to a size-only model improves pressure-rate prediction in all three held-out classes (+0.056); for pressure rate, vertical, bench, arm length, hand size, wingspan and height never help (ΔR² ≤ 0.00 in each case). Run stops: no test helps out of sample in any meaningful way (median ΔR² −0.01, best +0.06 for tracked 3-cone Brakes at n = 31, p 0.065), and none of the 30 scored run-stop cells has permutation p below 0.10 (best: Combine top speed vs near-line run tackles −0.22, p 0.108).
+
+**Nulls that hold.** Arm length, wingspan, hand size and height vs pressure / sack / TFL / run stops: all |size-controlled ρ| ≤ 0.16 (largest: wingspan vs TFL +0.16), every permutation p ≥ 0.18, CIs span zero, out-of-sample ΔR² ≤ 0.04. Bench reps (n = 42): +0.17, CI −0.21 to +0.56, no gain. Tracked 3-cone / shuttle Brakes and Re-Burst: no cell. Time to pressure: nothing stable (split-half reliability 0.12).
+
+#### DL · pressure rate (shrunk), all tests
+
+| Combine test | n | raw ρ | year+role ρ | size-controlled ρ | 95% CI | unshrunk ρ | snap-wtd ρ | perm p | FDR q | out-of-sample ΔR² (perm p, classes +) | verdict |
+|---|---:|---:|---:|---:|---|---:|---:|---:|---:|---|---|
+| Official 10-yard | 72 | -0.70 | -0.34 | **-0.25** | -0.45 to -0.01 | -0.16 | -0.27 | 0.047 | 0.64 | +0.047 (p 0.015, 3/3) | lean |
+| Official 40 | 72 | -0.74 | -0.41 | **-0.35** | -0.54 to -0.11 | -0.25 | -0.50 | 0.004 | 0.16 | +0.056 (p 0.008, 3/3) | lean |
+| Vertical | 78 | +0.54 | +0.25 | **+0.14** | -0.09 to +0.35 | +0.10 | +0.27 | 0.227 | 0.81 | -0.062 (p 0.980, 0/3) |  |
+| Broad jump | 76 | +0.71 | +0.33 | **+0.27** | +0.03 to +0.49 | +0.17 | +0.37 | 0.026 | 0.44 | +0.056 (p 0.010, 2/3) | lean |
+| 3-cone | 34 | -0.73 | -0.48 | **-0.31** | -0.67 to +0.13 | -0.43 | -0.26 | 0.106 | 0.75 | +0.050 (p 0.046, 2/3) |  |
+| Short shuttle | 35 | -0.72 | -0.38 | **-0.29** | -0.64 to +0.16 | -0.40 | -0.49 | 0.115 | 0.75 | -0.043 (p 0.831, 2/3) |  |
+| Bench reps | 42 | -0.15 | +0.12 | **+0.17** | -0.21 to +0.56 | +0.24 | +0.13 | 0.303 | 0.84 | -0.066 (p 0.910, 0/3) |  |
+| Arm length | 89 | -0.02 | -0.10 | **-0.08** | -0.30 to +0.16 | -0.07 | -0.22 | 0.490 | 0.90 | -0.018 (p 0.763, 0/3) |  |
+| Hand size | 89 | -0.25 | -0.09 | **-0.04** | -0.28 to +0.19 | -0.05 | +0.02 | 0.688 | 0.92 | +0.000 (p 0.271, 1/3) |  |
+| Wingspan | 89 | -0.11 | -0.07 | **-0.04** | -0.27 to +0.18 | -0.05 | -0.09 | 0.687 | 0.92 | -0.093 (p 1.000, 0/3) |  |
+| Weight | 89 | -0.71 | -0.23 | **-0.20** | -0.39 to -0.00 | -0.15 | -0.29 | 0.059 | 0.64 | +0.014 (p 0.068, 2/3) | size |
+| Height | 89 | -0.07 | -0.13 | **-0.08** | -0.32 to +0.16 | -0.07 | -0.12 | 0.455 | 0.86 | -0.042 (p 0.959, 0/3) | size |
+| 20-yard split (tracking) | 71 | -0.34 | -0.19 | **-0.12** | -0.39 to +0.15 | -0.09 | -0.10 | 0.324 | 0.85 | +0.042 (p 0.013, 3/3) |  |
+| 10-yard split (tracking) | 71 | -0.16 | -0.12 | **-0.08** | -0.36 to +0.19 | -0.06 | -0.06 | 0.530 | 0.91 | +0.021 (p 0.062, 3/3) |  |
+| Combine top speed | 71 | +0.70 | +0.34 | **+0.25** | -0.01 to +0.48 | +0.14 | +0.41 | 0.044 | 0.64 | +0.008 (p 0.172, 2/3) |  |
+| 40-yard peak accel | 71 | +0.37 | +0.07 | **+0.02** | -0.22 to +0.27 | +0.03 | +0.02 | 0.898 | 0.94 | -0.003 (p 0.389, 2/3) |  |
+| 3-cone Brakes (tracked peak decel) | 37 | +0.27 | +0.17 | **+0.24** | -0.16 to +0.56 | +0.34 | +0.60 | 0.185 | 0.81 | -0.087 (p 0.964, 0/3) |  |
+| 3-cone Re-Burst (tracked peak accel) | 37 | +0.10 | -0.02 | **+0.11** | -0.26 to +0.50 | +0.29 | +0.21 | 0.568 | 0.91 | +0.012 (p 0.165, 2/3) |  |
+| Shuttle Brakes (tracked peak decel) | 28 | +0.44 | +0.27 | **+0.18** | -0.36 to +0.57 | +0.32 | +0.05 | 0.399 | 0.86 | +0.014 (p 0.220, 2/3) | small n |
+| Shuttle Re-Burst (tracked peak accel) | 28 | +0.50 | +0.05 | **-0.10** | -0.57 to +0.50 | +0.01 | -0.29 | 0.634 | 0.92 | +0.017 (p 0.203, 2/3) | small n |
+| Burst Score (0-100) | 64 | +0.62 | +0.31 | **+0.22** | -0.03 to +0.46 | +0.14 | +0.28 | 0.083 | 0.71 | +0.043 (p 0.031, 3/3) |  |
+
+(Sack, TFL, run-stop, 1-sec burst speed, NGS get-off tables: `out/robust_tables.md`.)
+
+### 2. WR: Sunday Speed from the 40 holds up; the new lean is vertical and Burst Score → separation on break routes
+
+Outcomes: tracking route separation (mean over routes, ≥30 routes), Sunday Speed and SSOE (official sample). 68 cells; FDR is BH over those 68. Global BH over all 521 pooled cells is noted as "global q".
+
+- **Combine top speed → Sunday Speed +0.58** (n = 62; CI +0.37 to +0.74; q 0.003; ΔR² +0.25, 3/3) and **official 40 → Sunday Speed −0.52** (n = 63; CI −0.68 to −0.30; q 0.003; ΔR² +0.20, 3/3) survive every check. Obvious but real, and it survives size control. These are the translation-rate result again.
+- **Vertical → separation on break routes +0.38** (n = 61; CI +0.13 to +0.58; perm p 0.003; q 0.039; global q 0.15; ΔR² +0.14, 3/3) and **Burst Score → separation on break routes +0.39** (n = 57; CI +0.11 to +0.62; q 0.039; global q 0.15; ΔR² +0.09, 3/3) pass every check inside the WR family. Weighting by routes shrinks them (+0.21, +0.30) but keeps the sign. They fail a global BH across all groups and neither was pre-declared, so this is the strongest *new* lead, not a settled result. The same two tests are lean for separation on all routes (vertical +0.30, Burst +0.37).
+- **Weight → SSOE −0.38** (n = 62; q 0.039; ΔR² +0.15, 3/3): heavier receivers run slower on Sunday than their 40 predicts. Weight is a size control, not an athletic test, so it is a role/size note for the scouting card, not a Combine-test finding.
+- **Size explained the "long arms hurt separation" pattern.** Arm length, hand size and wingspan vs all-route separation are −0.32 to −0.35 unadjusted and +0.02 to +0.13 once weight and height are held fixed.
+- The 3-cone (n = 23) is not scored (small n): −0.25 vs break-route separation, CI −0.66 to +0.32.
+- Official 10-yard and 40 do **not** predict separation after size control (|ρ| ≤ 0.19 on all routes and break routes). The tracking 10- and 20-yard splits show a weak lean on break routes (−0.29 / −0.28, CIs touching zero, FDR q 0.21 / 0.22), nothing on all routes.
+
+### 3. TE: nothing can be claimed
+
+n is 18–24 for most tests and 7–11 for 3-cone, shuttle and bench. All tests are labelled small n and not scored. For the record, Combine top speed vs separation is −0.51 (n = 21; CI −0.79 to +0.07) and weight vs separation +0.37 (n = 24; CI −0.12 to +0.77): CIs span zero. Not for the writeup beyond "too few TEs have tracked Combine data and game routes".
+
+### 4. DB (CB + S combined, CB/S role control): clean null
+
+152 cells, 0 clear FDR; 9 have permutation p < 0.05 (7–8 expected by chance) and 3 pass the lean rules. Tackle rate (shrunk): official 40 −0.05 (n = 59; CI −0.32 to +0.22), 20-yard split +0.05, Burst Score +0.17, Combine Brakes −0.16, none with a meaningful out-of-sample gain (ΔR² ≤ 0.003). The three lean cells are not credible: broad jump → PFR yards per target allowed has the *wrong* sign (longer jump, more yards allowed, +0.35), arm length → Sunday Speed (−0.29) and Combine Brakes → closing rate (+0.25, the same lean as before; CI +0.01 to +0.45, FDR q 0.79, tiny out-of-sample gain +0.02, p 0.09). Height → tackle rate is −0.31 (size variable). **Answer for DB: no Combine test translates to tackling or coverage proxies once size and role are held fixed.**
+
+### 5. Figures
+
+`fig19_dl_recheck.png`: the DL heat map with size-controlled ρ, same orientation as before (timed drills flipped; "Speed & agility" vs "Power, size & length" row blocks; pass rush vs TFL & run defense column blocks). New marks: ◆ = lean, * = permutation p < 0.05 only, ** = FDR < 0.05 (only the weight row). New columns: 1-sec burst speed (relabelled) and NFL/NGS get-off time. `fig20_forest_size_controlled.png`: six panels (DL pressure, DL TFL, WR separation all / break routes, TE separation, DB tackle rate), each test with the unadjusted (grey) and size-controlled (colour) estimates and 95% CIs, oriented so right = better athlete goes with higher outcome.
+
+### 6. What survives and what dies
+
+- **Survives every check:** WR Combine top speed and official 40 → Sunday Speed; WR vertical and Burst Score → break-route separation (within the WR family only; not under global BH); weight → movement outcomes at DL (size).
+- **Lean (nominal, direction consistent, out-of-sample support, FDR not cleared):** DL official 40, 10-yard and broad jump → pressure rate; DL Burst Score → TFL; DL 40 / 10-yard / jumps / Burst → 1-sec burst speed and NGS get-off (movement, not production).
+- **Dies or weakens to not significant:** DL 3-cone and short shuttle → pressure (CI includes 0 after size control); DL run stops; DL length measures; DB everything; TE (underpowered).
+
+**Caveats.** (1) Every correlation here is among players who made rosters and have tracked snaps; players who skipped a drill are not random (only 34 of 89 rushers ran the 3-cone). (2) With 34 players and 5–6 fitted terms, CIs are wide; a CI including zero is "can't tell", not "zero effect". (3) FDR family sizes differ by group. (4) Leave-one-class-out uses three classes of 10–30 players each; ΔR² values of +0.05 are small and noisy. (5) Shrinkage priors are fit per role on the same data (not refit inside each bootstrap), so CIs slightly understate uncertainty on the rate outcomes. (6) Older logs above that mention draft-pick controls (RESULTS_LOG 11/10–11/11 sections, `dl_burst.py`, `gameplay_success.py`, `multi_test_models.py`, `combine_gems.py` outputs) predate the no-draft-slot rule; their `out/*_players.csv` files still carry pick columns. They were not changed here.

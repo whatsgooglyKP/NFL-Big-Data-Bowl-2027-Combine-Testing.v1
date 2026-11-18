@@ -148,8 +148,8 @@ Every official success definition below uses a field that actually exists in `pl
 
 **Get-off (the process metric, not the success metric).**
 
-- Tracking get-off: the player’s median speed 1.0 second after the snap, in mph. Companion views: speed at 1.5s, time to travel 5 yards, first-step acceleration.
-- NFL get-off time: the median of `player_get_off` (seconds; lower is faster).
+- **1-sec burst speed** (relabelled 11/2026; earlier pages called this “tracking get-off” or “Sunday get-off”): the player’s median speed 1.0 second after the snap, in mph, from the Kaggle tracking. It is **not** the NFL/NGS get-off. Companion views: speed at 1.5s, time to travel 5 yards, first-step acceleration.
+- **NFL/NGS get-off time**: the median of `player_get_off` (seconds; lower is faster). A separate measure from 1-sec burst speed; both are reported as separate rows/columns.
 
 Game tracking covers only the 510-player rookie cohort, so these numbers come from the rusher’s own track. There are no blocker or quarterback tracks.
 
@@ -212,3 +212,18 @@ Game tracking covers only the 510-player rookie cohort, so these numbers come fr
 ## 6D. How a coach should read the two layers
 
 Sunday Speed answers: *does his Combine speed show up on Sunday?* Success metrics answer: *does that speed, or that get-off, show up as production?* A player can have a real Combine-to-Sunday-Speed (or Combine-to-get-off) link and still have a null to yards, tackles, or even playing time. We report both layers, and we do not promote a null into a value grade.
+
+---
+
+## 7. Robust testing defaults (11/2026, Kevin-approved; supersedes the controls in §6)
+
+**Draft slot is no longer used anywhere.** Every reference above to “log draft pick”, “year+pick partial” or “UDFA = 260” describes the *earlier* analyses and is superseded: no draft slot, pick or round is used as a feature, control, filter or label in any new test, and `robust.assert_no_draft_slot` fails the run if such a column reaches an analysis table. Draft **year** (class) is still a control because classes have different amounts of NFL experience.
+
+Module: `robust.py` (generic), `dl_robust.py` (DL), `pos_robust.py` (WR / TE / DB), `forest.py` (Figure 20), `robust_report.py` (tables). Every Combine test × outcome pair gets all of the following by default:
+
+1. **Size control.** Rank partial correlation: rank the test, the outcome and each continuous control, regress both rank vectors on the controls (draft-year dummies, role dummy for DL Edge/Interior and DB CB/S, **weight and height**), then take the Pearson correlation of the residuals. For the weight row the only size control is height, and for the height row only weight (“beyond the other size measure”). Reported next to the **unadjusted Spearman** and a **year + role only** version. Pooled groups use the role dummy; the Edge / Interior / CB / S breakouts do not.
+2. **Noisy rate outcomes.** Empirical-Bayes beta-binomial shrinkage: for each role, fit Beta(α, β) to the players’ counts by marginal likelihood, then use the posterior mean (α + k) / (α + β + n) with the player’s own snap count n. Applied to pressure rate, sack rate, TFL rate, run-stop rate, near-line run-stop rate (DL) and tackle rate, TFL rate (DB). The shrunk rate is the **primary** outcome. Sensitivities reported beside it: the unshrunk rate and a snap-weighted rank partial correlation. Players who are below the old snap floors stay excluded. Separation, penetration and speed outcomes are medians/means of continuous per-play values, so they are not beta-binomial; their sensitivity is the snap/route-weighted version.
+3. **Out-of-sample check.** Leave-one-draft-class-out (2023, 2024, 2025): fit a size-only ridge model and a size + test ridge model on two classes (both on within-class normal scores of every variable, α = 5, fixed, not tuned) and predict the third. Pooled over the three held-out classes we report out-of-sample R² for both models, **ΔR² = incremental out-of-sample R²** of adding the test, Spearman of predictions vs truth for both models, the number of held-out classes where the test helps, and a permutation p-value (test values shuffled within class, 1,000 permutations, full leave-one-class-out refit each time). The size-only model for DL includes the Edge/Interior dummy.
+4. **Inference.** 2,000-resample player-level bootstrap 95% CI (every resample re-ranks and refits); Freedman–Lane permutation p-value (10,000 permutations of the reduced-model residuals); parametric t p-value for reference; BH-FDR on the permutation p across **every** test × outcome cell in the group (273 for DL; DL FDR is also reported over the 5 production outcomes only, `fdr_prod`). Calibration check: 300 simulated null outcomes with a size confounder gave a 5.7% false-positive rate at p < 0.05 for the permutation test and 3.3% for the leave-one-class-out p.
+5. **Verdict labels used in the Results Log.** *Survives* = FDR < 0.05, bootstrap CI excludes 0, raw and size-controlled signs agree, unshrunk sign agrees, ΔR² > 0 with permutation p < 0.10 and positive in ≥ 2 of 3 held-out classes. *Lean* = permutation p < 0.05, CI excludes 0, unshrunk sign agrees and the out-of-sample check passes, but FDR ≥ 0.05. *Small n* = fewer than 25 players or fewer than 5 players per fitted parameter: shown but never scored. Weight and height are labelled *size* because they are controls, not athletic tests.
+6. **Interpretation limits.** FDR families differ in size (DL 273, DB 152, WR 68, TE 28), so a star in one group is not comparable to a star in another; a global BH across all 521 pooled cells is also reported. Everything is association in a selected sample (players who made an NFL roster and have tracked snaps; players who skipped a drill are not a random subset). With n ≈ 34 the size-controlled fit has 5–6 parameters, so wide CIs are expected, not a bug.

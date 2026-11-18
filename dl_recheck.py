@@ -36,7 +36,7 @@ TESTS = OFFICIAL + TRACKING + [
 OUTCOMES = [
     ("pressure_rate", "Pressure rate (reference)", +1),
     ("sack_rate", "Sack rate (reference)", +1),
-    ("speed_1s_mph", "Sunday get-off: speed at 1.0 s (reference)", +1),
+    ("speed_1s_mph", "1-sec burst speed (tracking, mph; not NGS get-off)", +1),
     ("ttp_median", "Time to pressure, median (s)", -1),
     ("tfl_rate", "TFL per snap", +1),
     ("run_stop_rate", "Run stops per run snap", +1),
@@ -226,7 +226,7 @@ POWER_SIZE = [
     "combine_weight", "combine_height", "arm_length", "hand_size", "wing_span",
 ]
 PASS_RUSH = [
-    "speed_1s_mph", "pressure_rate", "sack_rate", "ttp_median",
+    "speed_1s_mph", "player_get_off", "pressure_rate", "sack_rate", "ttp_median",
     "pen_max_2s", "pen_2s", "pen_pass_2s",
 ]
 RUN_DEF = [
@@ -236,7 +236,7 @@ FLIP_TESTS = {
     "ten_yd_split", "forty", "three_cone", "short_shuttle",
     "c_t10_derived", "c_t20_derived",
 }
-FLIP_OUTCOMES = {"ttp_median", "run_tackle_depth"}
+FLIP_OUTCOMES = {"ttp_median", "run_tackle_depth", "player_get_off"}
 
 FIG19_ROW_LABELS = {
     "ten_yd_split": "Official 10-yard  †",
@@ -262,7 +262,8 @@ FIG19_ROW_LABELS = {
     "wing_span": "Wingspan",
 }
 FIG19_COL_LABELS = {
-    "speed_1s_mph": "Sunday get-off (1.0 s)",
+    "speed_1s_mph": "1-sec burst speed (tracking)",
+    "player_get_off": "NFL/NGS get-off time (faster = higher)",
     "pressure_rate": "Pressure rate",
     "sack_rate": "Sack rate",
     "ttp_median": "Time to pressure (faster = higher)",
@@ -288,7 +289,8 @@ def _fig19_edges(n1: int, n2: int, gap: float = _FIG19_GAP) -> np.ndarray:
 def _fig19_fill_gap(src: np.ndarray, n1r: int, n1c: int) -> np.ndarray:
     """Insert a NaN gap row and column into a (n1r+n2r) x (n1c+n2c) array."""
     n2r, n2c = src.shape[0] - n1r, src.shape[1] - n1c
-    out = np.full((n1r + 1 + n2r, n1c + 1 + n2c), np.nan)
+    shape = (n1r + 1 + n2r, n1c + 1 + n2c)
+    out = np.full(shape, "", dtype=object) if src.dtype == object else np.full(shape, np.nan)
     out[:n1r, :n1c] = src[:n1r, :n1c]
     out[:n1r, n1c + 1:] = src[:n1r, n1c:]
     out[n1r + 1:, :n1c] = src[n1r:, :n1c]
@@ -302,14 +304,18 @@ def _fig19_centers(edges: np.ndarray, n1: int, n2: int) -> np.ndarray:
     return np.concatenate([c1, c2])
 
 
-def fig19(t: pd.DataFrame, d: pd.DataFrame, path: Path | None = None) -> Path:
+def fig19(t: pd.DataFrame, d: pd.DataFrame, path: Path | None = None, *, subtitle: str | None = None,
+          rho_desc: str = "year-only ρ", row_labels: dict | None = None, footer: str | None = None,
+          fdr_text: str = "FDR", scatter_titles: tuple | None = None, ylabels: tuple | None = None) -> Path:
     """Coach-oriented heat map plus the 3-cone and Burst Score scatter panels.
 
     Reuses saved Spearman / FDR values; only the display signs and layout change.
     """
     p = t[(t.group == "DL") & (t.control == "year")].copy()
     rows = SPEED_AGILITY + POWER_SIZE
-    cols = PASS_RUSH + RUN_DEF
+    cols = [c for c in PASS_RUSH + RUN_DEF if c in set(p.outcome)]
+    PASS_RUSH_ = [c for c in PASS_RUSH if c in cols]; RUN_DEF_ = [c for c in RUN_DEF if c in cols]
+    rlab = {**FIG19_ROW_LABELS, **(row_labels or {})}
     M = p.pivot(index="test", columns="outcome", values="rho").reindex(index=rows, columns=cols)
     Q = p.pivot(index="test", columns="outcome", values="fdr").reindex_like(M)
     Pval = p.pivot(index="test", columns="outcome", values="p").reindex_like(M)
@@ -319,11 +325,15 @@ def fig19(t: pd.DataFrame, d: pd.DataFrame, path: Path | None = None) -> Path:
     oriented = M.to_numpy(float) * flip_r[:, None] * flip_c[None, :]
 
     n1r, n2r = len(SPEED_AGILITY), len(POWER_SIZE)
-    n1c, n2c = len(PASS_RUSH), len(RUN_DEF)
+    n1c, n2c = len(PASS_RUSH_), len(RUN_DEF_)
     ye, xe = _fig19_edges(n1r, n2r), _fig19_edges(n1c, n2c)
     C = _fig19_fill_gap(oriented, n1r, n1c)
     Qm = _fig19_fill_gap(Q.to_numpy(float), n1r, n1c)
     Pm = _fig19_fill_gap(Pval.to_numpy(float), n1r, n1c)
+    MK = None
+    if "mark" in p.columns:
+        MKp = p.pivot(index="test", columns="outcome", values="mark").reindex(index=rows, columns=cols)
+        MK = _fig19_fill_gap(MKp.fillna("").to_numpy(object), n1r, n1c)
 
     fig = plt.figure(figsize=(21.6, 12.0))
     GS = fig.add_gridspec(
@@ -344,7 +354,7 @@ def fig19(t: pd.DataFrame, d: pd.DataFrame, path: Path | None = None) -> Path:
             v = C[i, j]
             if not np.isfinite(v):
                 continue
-            mark = "**" if Qm[i, j] < 0.05 else ("*" if Pm[i, j] < 0.05 else "")
+            mark = MK[i, j] if MK is not None else ("**" if Qm[i, j] < 0.05 else ("*" if Pm[i, j] < 0.05 else ""))
             xc = 0.5 * (xe[j] + xe[j + 1])
             yc = 0.5 * (ye[i] + ye[i + 1])
             color = "white" if abs(v) >= 0.48 else "black"
@@ -352,7 +362,7 @@ def fig19(t: pd.DataFrame, d: pd.DataFrame, path: Path | None = None) -> Path:
                     fontsize=7.3, color=color)
 
     ax.set_yticks(_fig19_centers(ye, n1r, n2r))
-    ax.set_yticklabels([FIG19_ROW_LABELS[r] for r in rows], fontsize=8.5)
+    ax.set_yticklabels([rlab[r] for r in rows], fontsize=8.5)
     ax.set_xticks(_fig19_centers(xe, n1c, n2c))
     ax.set_xticklabels([FIG19_COL_LABELS[c] for c in cols], rotation=38, ha="right", fontsize=8.0)
     ax.tick_params(axis="x", pad=3, length=0)
@@ -405,7 +415,7 @@ def fig19(t: pd.DataFrame, d: pd.DataFrame, path: Path | None = None) -> Path:
     )
     fig.text(
         0.50, 0.928,
-        "Spearman ρ controlled for draft year.  Timed drills (†) and lower-is-better outcomes are sign-flipped "
+        subtitle or "Spearman ρ controlled for draft year.  Timed drills (†) and lower-is-better outcomes are sign-flipped "
         "so red always means “better athlete goes with better result.”\n"
         "** BH-FDR < 0.05,   * raw p < 0.05.   Weight and height have no assumed “better” direction "
         "(red = heavier / taller with a better result).",
@@ -422,8 +432,8 @@ def fig19(t: pd.DataFrame, d: pd.DataFrame, path: Path | None = None) -> Path:
         ax2.set_xlabel(xlabel, fontsize=8.6)
         ax2.set_ylabel(ylabel, fontsize=8.6)
         ax2.set_title(
-            f"{title_lead}\nyear-only ρ = {row.rho:+.2f} (95% CI {row.lo:+.2f} to {row.hi:+.2f}), "
-            f"n = {int(row.n)}, FDR = {fmt_p(row.fdr)}",
+            f"{title_lead}\n{rho_desc} = {row.rho:+.2f} (95% CI {row.lo:+.2f} to {row.hi:+.2f}),\n"
+            f"n = {int(row.n)}, {fdr_text} = {fmt_p(row.fdr)}",
             fontsize=8.5,
         )
         ax2.legend(fontsize=7.6, frameon=True, fancybox=False, edgecolor="#cccccc")
@@ -434,20 +444,20 @@ def fig19(t: pd.DataFrame, d: pd.DataFrame, path: Path | None = None) -> Path:
     scatter_panel(
         ax_a, "three_cone", "pressure_rate",
         xlabel="3-cone (s)   ← faster",
-        ylabel="Pressure rate",
-        title_lead="3-cone vs pressure  (holds within subtype)",
+        ylabel=(ylabels or ("Pressure rate", "TFL per snap"))[0],
+        title_lead=(scatter_titles or ("3-cone vs pressure  (holds within subtype)", "Burst Score vs TFL  (best new production link)"))[0],
     )
     ax_b = fig.add_subplot(GS[1, 1])
     scatter_panel(
         ax_b, "burst_0_100", "tfl_rate",
         xlabel="Burst Score (0–100)",
-        ylabel="TFL per snap",
-        title_lead="Burst Score vs TFL  (best new production link)",
+        ylabel=(ylabels or ("Pressure rate", "TFL per snap"))[1],
+        title_lead=(scatter_titles or ("3-cone vs pressure  (holds within subtype)", "Burst Score vs TFL  (best new production link)"))[1],
     )
 
     fig.text(
         0.012, 0.012,
-        "Sample: 2023–2025 rookie DL, REG snaps that stood, lined up EDGE/INTERIOR_LINE.  "
+        footer or "Sample: 2023–2025 rookie DL, REG snaps that stood, lined up EDGE/INTERIOR_LINE.  "
         "Rates ≥100 snaps; run rates ≥50 run snaps; penetration ≥50 tracked snaps; time to pressure ≥5 pressures.  "
         "No draft slot used.  † Timed drill (lower raw time is faster) — sign-flipped in the heat map only.  "
         "The two scatter panels use raw (unflipped) values.",
