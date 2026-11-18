@@ -262,3 +262,27 @@ Module: `robust.py` (generic), `dl_robust.py` (DL), `pos_robust.py` (WR / TE / D
 **Hypothesis verdicts.** H1 and H3 survive only if at least one of their contrasts SURVIVES. H2 survives only if at least one of vertical jump / Burst Score is a SURVIVES cell for break routes; LEAN is reported as LEAN. We state in advance that with ~55–75 WRs a paired-contrast CI has half-width ≈ 0.30, so a null contrast here is "not detected", not "no difference".
 
 **Man vs zone source.** Provided BDB label `team_coverage_man_zone` (team-level, per play). No external FTN/participation join needed.
+
+---
+
+## 9. Scorecard verdict rules ("What translates and what doesn't", written 11/2026 before the scorecard was built)
+
+**Source.** Every number in `out/scorecard.csv` is copied from `out/dl_robust_tests.csv` (DL, Edge, Interior), `out/pos_robust_tests.csv` (WR, TE, DB) or `out/wr_route_lead_cells.csv` (WR break-route separation, the pre-declared §8 re-test, which supersedes the broader break family in the §7 table). Nothing is recomputed. Draft slot, pick and round are never involved.
+
+**Rows.** One row per group × Combine test × primary outcome. Tests: official 40, official 10-yard, vertical, broad jump, 3-cone, short shuttle, Combine top speed (tracking), Burst Score (tracking), and for DB the two Combine drill metrics (brakes, re-burst). Size variables (weight, height, arm, hand, wingspan) and bench are not scorecard tests; weight is reported separately in `out/scorecard_weight.csv`. Primary outcomes: WR Sunday Speed, all-route separation, break-route separation; TE all-route separation; DB tackle rate, TFL rate, closing speed, PFR yards/target, PFR missed-tackle %, Sunday Speed; DL (all, Edge, Interior) pressure rate, sack rate, TFL rate, run-stop rate, 1-second get-off speed. Outcomes with no better/worse direction (tackle depth) are left out. The full grid is `out/scorecard_full.csv`.
+
+**Which rows go on the card (fixed in advance, not by verdict).** For each group and outcome, the test with the smallest permutation p among tests with n ≥ 25 (or among all tests if none has n ≥ 25). If a group has fewer than 4 rows, the next-best tests by permutation p are added until it has 4, never more than 8. DL Edge and Interior are shown for the same test × outcome pairs picked for all-DL (breakout columns), not re-picked. The false-discovery q is always the one from the full family (hundreds of cells), so picking the best row per outcome does not flatter the verdict.
+
+**Orientation.** ρ is flipped so that **+ always means a better athlete goes with a better result** (faster time, higher jump, higher top speed; more pressure, fewer yards allowed).
+
+**Verdicts (applied in this order).**
+
+1. **TOO FEW TO TELL**: n < 25 (also when n per fitted control < 5).
+2. **TRANSLATES**: the §7 "survives all checks" rule: size-controlled bootstrap CI excludes 0, BH q < 0.05, raw and size-controlled signs agree, shrunk and unshrunk signs agree, leave-one-class-out ΔR² > 0 with permutation p < 0.10 and a gain in ≥ 2 of 3 classes.
+3. **SIZE, NOT SPEED**: |raw ρ| ≥ 0.30, size-controlled |ρ| ≤ half of raw |ρ|, and the size-controlled CI includes 0 (the effect collapsed). 
+4. **LEANS**: size-controlled CI excludes 0 **or** permutation p < 0.05, same sign as raw, but q ≥ 0.05. Rows where more than half of the raw effect disappears after size control carry "mostly body size" in the coach line.
+5. **DOESN'T TRANSLATE**: everything else with adequate n (a null, not a proof of zero; the CI is shown).
+
+**Out-of-sample column.** ΔR² of adding the test to a size-only ridge model, trained on two draft classes and scored on the third, plus how many of the three classes improved.
+
+**Combine-tracking gate.** Each row is tagged `combine_source = tracking` for tests derived from the 10 Hz Combine tracking (top speed, tracking splits, Burst Score, DB drill metrics) and `official` for laser/stopwatch results. All outcomes are regular-season game tracking or play data.
