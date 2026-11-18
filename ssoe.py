@@ -27,7 +27,6 @@ OUT = ROOT / "out"
 FIGS = OUT / "figs"
 
 MPH = 2.0455
-UDFA_PICK = 260
 POS_ORDER = ["WR", "CB", "S"]
 POS_COLOR = {"WR": "#0072B2", "CB": "#D55E00", "S": "#009E73"}
 POS_LABEL = {"WR": "Wide receivers", "CB": "Cornerbacks", "S": "Safeties"}

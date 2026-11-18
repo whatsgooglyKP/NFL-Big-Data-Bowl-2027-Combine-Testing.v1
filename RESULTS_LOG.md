@@ -875,3 +875,15 @@ Unchanged to two decimals: WR yards per route / deep route / target share outcom
 | **S1** (secondary) weight cost on screens and crossers | Weight → crossers −0.29 (n = 49, p 0.051, q 0.069); screens +0.06 (n = 27, null). Same cost on break routes −0.25 (n = 66) and vertical routes −0.28 (n = 69, p 0.022). Crosser − vertical diff −0.02 (CI −0.35 to +0.31) | Heavier receivers have lower separation on **every** route type (about −0.25 to −0.29, LEAN-sized, q ≈ 0.07); no screen/crosser-specific cost |
 
 Sensitivity: man vs zone on break routes only shows no contrast either (diffs +0.10, +0.01, +0.02, all CIs span 0). The older lean (vertical +0.38 and Burst +0.39 on a broader break family, q 0.039 within WR) was an easier family; with the narrower pre-declared break family and a 14-cell correction it is LEAN, not SURVIVES.
+
+---
+
+## 11/2026 — "What translates and what doesn't" scorecard, fig 22, notebook restructure
+
+**Built.** `scorecard.py` reads only the saved robust outputs (`dl_robust_tests`, `pos_robust_tests`, `wr_route_lead_cells`) and writes `out/scorecard.csv` (card, 4–6 rows per group plus DL Edge/Interior breakout rows), `out/scorecard_full.csv` (every group × test × primary outcome, 10 tests), `out/scorecard_weight.csv` and `out/scorecard.md`. Verdict rules and the row-selection rule were written in METRICS.md §9 before building. Nothing was recomputed or invented. WR break-route separation uses the pre-declared §8 re-test (vertical jump +0.34 LEANS), which supersedes the §7 break family (+0.38, q 0.039).
+
+**Card result.** TRANSLATES: WR 40 → deep-route game speed (+0.52, n 63) and WR tracked top speed → deep-route game speed (+0.58, n 62). Both q 0.003, held-out 3/3. LEANS: WR vertical → break-route separation (+0.34, q 0.185), WR Burst Score → all-route separation (+0.37, q 0.057), DL 40 → pressure (+0.35, raw +0.74), DL 10-yard → get-off speed (+0.32, raw +0.81), DL Burst Score → TFL (+0.32), DB drill braking → closing speed (+0.25), DB 40 → yards allowed per target (−0.35, the wrong way, q 0.75). SIZE, NOT SPEED: DL 40 → sack rate (raw +0.72 → +0.23). TE: every row TOO FEW (n ≤ 21). DB: no outcome translates.
+
+**Figure.** `out/figs/fig22_scorecard.png` (`scorecard_fig.py`). Recommended headline: fig 22 (answers the question in five seconds, honest about size via the raw-vs-controlled diamond). Fig 20 is the supporting methods figure (full grid, dense).
+
+**Notebook.** `notebook/bdb2027_writeup.ipynb` restructured into the 8-section scorecard outline (draft prose 1,363 words, caps total under 2,000), built by `notebook/build_writeup_notebook.py`; the old skeleton is `notebook/bdb2027_writeup_v1_skeleton_backup.ipynb`. Plan: 5 figures (fig 1, 20, 22, 21, 19) + 2 tables = 7 of the 9 allowed. Code cells load saved CSVs only, include the explicit Combine-tracking → regular-season gate (PASS), and expect `out/` to be attached as a Kaggle dataset. Also removed an unused `UDFA_PICK` constant from `ssoe.py`.
