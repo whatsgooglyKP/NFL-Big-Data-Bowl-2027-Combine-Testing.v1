@@ -13,7 +13,7 @@ Frozen for the NFL Big Data Bowl 2027 submission. These are the numbers a coach 
 - Wide receivers: at least **20** go / post / corner / wheel routes (`route_ran` in `{GO, POST, CORNER, WHEEL}`).
 - Cornerbacks and safeties: at least **30** pass plays (`pass_result` not null) whose `coverage_assignment` contains `MAN` or `DEEP`.
 
-Safeties group `FS` and `SS`. Undrafted players are treated as pick **260** whenever we control for draft slot. Current official samples: **WR 62, CB 33, S 26**.
+Safeties group `FS` and `SS`. Current official samples: **WR 62, CB 33, S 26**.
 
 ---
 
@@ -101,7 +101,7 @@ This is a development / scouting residual, in mph. It is not a claim that SSOE p
 = \text{SS}^{\text{mph}}_i - \widehat{\text{SS}}^{\text{mph}}_i.
 \]
 
-Official SSOE is **not** adjusted for weight, draft year, or draft slot. Those belong in a later hierarchical model if we need a covariate-adjusted residual. The scouting-card number answers one question only: *given the 40 he ran at his position, is he faster or slower on Sunday than that 40 predicts?*
+Official SSOE is **not** adjusted for weight or draft year (draft slot is never used). Those belong in a later hierarchical model if we need a covariate-adjusted residual. The scouting-card number answers one question only: *given the 40 he ran at his position, is he faster or slower on Sunday than that 40 predicts?*
 
 **How to read it at each position.** For receivers the 40 actually predicts Sunday Speed, so SSOE is a meaningful “over/under the 40” flag. For corners and safeties the 40 barely predicts Sunday Speed (translation rate indistinguishable from zero), so SSOE is close to “faster or slower than the position average.” We say that plainly on the scouting card.
 
@@ -130,7 +130,7 @@ Kevin’s decision (2026-11-10, America/New_York): success should not be measure
 
 Every official success definition below uses a field that actually exists in `player_play.csv`. Fields that do not exist are listed so they are not invented later.
 
-**Controls.** Official tests residualize both sides on **draft-year dummies and log draft pick** (UDFA = 260). 2023 rookies have had three seasons in this file; 2025 rookies have had one. Rates already adjust for opportunity; we still control for draft year so a one-season sample is not treated as interchangeable with a three-season sample. 95% confidence intervals are player-level bootstraps (2,000 resamples). Holm correction is applied inside each pre-declared family.
+**Controls.** Official tests residualize both sides on **draft-year dummies only** (no draft slot, pick or round). 2023 rookies have had three seasons in this file; 2025 rookies have had one. Rates already adjust for opportunity; we still control for draft year so a one-season sample is not treated as interchangeable with a three-season sample. 95% confidence intervals are player-level bootstraps (2,000 resamples). Holm correction is applied inside each pre-declared family.
 
 ---
 
@@ -166,11 +166,11 @@ Game tracking covers only the 510-player rookie cohort, so these numbers come fr
 
 **Secondary / context:** career defensive snaps, defensive snaps per game active, start rate.
 
-**Pre-declared Combine-to-success family (6 tests, Holm on year+pick partial p):** official 10-yard split vs pressure rate and vs sack rate, in All DL, Edge, and Interior. Headline rows are All DL; Edge and Interior remain pre-declared breakouts in the same family (they do not survive Holm). We do not shrink the family to the two All-DL tests, which would quietly change the All-DL sack Holm p. This is the competition-required Combine-to-NFL-performance link.
+**Pre-declared Combine-to-success family (6 tests, Holm on year-controlled partial p):** official 10-yard split vs pressure rate and vs sack rate, in All DL, Edge, and Interior. Headline rows are All DL; Edge and Interior remain pre-declared breakouts in the same family (they do not survive Holm). We do not shrink the family to the two All-DL tests, which would quietly change the All-DL sack Holm p. This is the competition-required Combine-to-NFL-performance link.
 
-**Get-off-to-success family (4 tests, Holm on year+pick partial p, All DL):** tracking speed at 1.0s and NFL get-off time, each vs pressure rate and sack rate. This is the middle of the chain, not a Combine test.
+**Get-off-to-success family (4 tests, Holm on year-controlled partial p, All DL):** tracking speed at 1.0s and NFL get-off time, each vs pressure rate and sack rate. This is the middle of the chain, not a Combine test.
 
-**Mediation (supporting, not in either Holm family):** official 10-yard split vs pressure / sack after residualizing on draft year, log pick, **and** game get-off. If the direct 10-yard link shrinks to near zero, get-off is carrying the result. This is association, not a causal claim: we cannot see the blocker or the quarterback.
+**Mediation (supporting, not in either Holm family):** official 10-yard split vs pressure / sack after residualizing on draft year **and** game get-off. If the direct 10-yard link shrinks to near zero, get-off is carrying the result. This is association, not a causal claim: we cannot see the blocker or the quarterback.
 
 ---
 
@@ -186,7 +186,7 @@ Game tracking covers only the 510-player rookie cohort, so these numbers come fr
 
 **Companion outcomes:** catch rate (`rec_yards` not null / targets, ≥8 targets), mean `separation_at_pass_forward` on deep routes, YAC over expected (`yards_after_catch − expected_yards_after_catch` on catches), overall target rate.
 
-**Pre-declared family (6 tests, Holm on year+pick partial p):** Sunday Speed and SSOE, each vs yards per route, deep yards per deep route, and deep target share. Combine top speed vs the same outcomes is reported as a companion Combine-to-production check.
+**Pre-declared family (6 tests, Holm on year-controlled partial p):** Sunday Speed and SSOE, each vs yards per route, deep yards per deep route, and deep target share. Combine top speed vs the same outcomes is reported as a companion Combine-to-production check.
 
 ---
 
@@ -205,7 +205,7 @@ Game tracking covers only the 510-player rookie cohort, so these numbers come fr
 - **Tackle involvement rate** = share of snaps where the player recorded a solo tackle or an assist.
 - **Tackle-for-loss rate** = share of snaps where `tackle_for_loss` is true.
 
-**Pre-declared family (4 tests, Holm on year+pick partial p):** Combine top speed vs tackle involvement rate and vs TFL rate, for CB and for S, on the broader sample (tracked 40 and ≥50 snaps). The original CB “speed tax” vs start rate remains a **playing-time** supporting finding, not a gameplay success result.
+**Pre-declared family (4 tests, Holm on year-controlled partial p):** Combine top speed vs tackle involvement rate and vs TFL rate, for CB and for S, on the broader sample (tracked 40 and ≥50 snaps). The CB “speed tax” vs start rate (now year-controlled; the original “beyond draft slot” version is retired) remains a **playing-time** supporting finding, not a gameplay success result.
 
 ---
 
@@ -217,7 +217,7 @@ Sunday Speed answers: *does his Combine speed show up on Sunday?* Success metric
 
 ## 7. Robust testing defaults (11/2026, Kevin-approved; supersedes the controls in §6)
 
-**Draft slot is no longer used anywhere.** Every reference above to “log draft pick”, “year+pick partial” or “UDFA = 260” describes the *earlier* analyses and is superseded: no draft slot, pick or round is used as a feature, control, filter or label in any new test, and `robust.assert_no_draft_slot` fails the run if such a column reaches an analysis table. Draft **year** (class) is still a control because classes have different amounts of NFL experience.
+**Draft slot is no longer used anywhere.** (Part A, 11/2026: the references above were rewritten to year-only and the scripts rerun; `combine_gems.py` and `cb_deep_dive.py` were retired because they were defined by draft slot.) Any leftover mention of “log draft pick”, “year+pick partial” or “UDFA = 260” in an old doc describes a retired analysis: no draft slot, pick or round is used as a feature, control, filter or label in any new test, and `robust.assert_no_draft_slot` fails the run if such a column reaches an analysis table. Draft **year** (class) is still a control because classes have different amounts of NFL experience.
 
 Module: `robust.py` (generic), `dl_robust.py` (DL), `pos_robust.py` (WR / TE / DB), `forest.py` (Figure 20), `robust_report.py` (tables). Every Combine test × outcome pair gets all of the following by default:
 
@@ -227,3 +227,38 @@ Module: `robust.py` (generic), `dl_robust.py` (DL), `pos_robust.py` (WR / TE / D
 4. **Inference.** 2,000-resample player-level bootstrap 95% CI (every resample re-ranks and refits); Freedman–Lane permutation p-value (10,000 permutations of the reduced-model residuals); parametric t p-value for reference; BH-FDR on the permutation p across **every** test × outcome cell in the group (273 for DL; DL FDR is also reported over the 5 production outcomes only, `fdr_prod`). Calibration check: 300 simulated null outcomes with a size confounder gave a 5.7% false-positive rate at p < 0.05 for the permutation test and 3.3% for the leave-one-class-out p.
 5. **Verdict labels used in the Results Log.** *Survives* = FDR < 0.05, bootstrap CI excludes 0, raw and size-controlled signs agree, unshrunk sign agrees, ΔR² > 0 with permutation p < 0.10 and positive in ≥ 2 of 3 held-out classes. *Lean* = permutation p < 0.05, CI excludes 0, unshrunk sign agrees and the out-of-sample check passes, but FDR ≥ 0.05. *Small n* = fewer than 25 players or fewer than 5 players per fitted parameter: shown but never scored. Weight and height are labelled *size* because they are controls, not athletic tests.
 6. **Interpretation limits.** FDR families differ in size (DL 273, DB 152, WR 68, TE 28), so a star in one group is not comparable to a star in another; a global BH across all 521 pooled cells is also reported. Everything is association in a selected sample (players who made an NFL roster and have tracked snaps; players who skipped a drill are not a random subset). With n ≈ 34 the size-controlled fit has 5–6 parameters, so wide CIs are expected, not a bug.
+
+---
+
+## 8. Pre-declaration: WR break-route lead (11/2026, written before any Part-B number was computed)
+
+**Why.** The robust pass (§7) left one lean result: WR vertical jump (+0.38) and Burst Score (+0.39) vs tracking separation on break routes (BH q 0.039 within WR, global q 0.148). It was found on the same 2023–25 sample used here, so this is a **re-test with a sharper, pre-declared design, not an independent replication**. Route-family definitions below are new (the earlier break family also included POST, CORNER and CROSS), so the contrasts are new questions on old data.
+
+**Data.** `data/player_play.csv`: `route_ran`, `separation_at_pass_forward`, `team_coverage_man_zone` (MAN_COVERAGE / ZONE_COVERAGE), `pass_result`. Regular-season plays only (`season_type == REG`), play not nullified by penalty, separation non-missing, coverage label non-missing. Players: WR (`lined_up_position` irrelevant; the player's `pos_group` = WR), draft years 2023–25. No draft slot, pick or round is read. `robust.assert_no_draft_slot` is enforced.
+
+**Route families (this data has no separate COMEBACK or DIG label; HITCH contains curls/hitches/comebacks and IN contains digs):**
+
+- Break: OUT, IN, HITCH, SLANT.
+- Vertical: GO, POST, CORNER.
+- Secondary only: CROSS (crossers) and SCREEN. FLAT, WHEEL, ANGLE are in no family (too rare or not a separation route).
+
+**Outcome.** Per play, separation minus the mean separation of that route type (and, in coverage splits, of that route type × man/zone cell), so a player is not rewarded for running more screens or hitches, or for facing more zone. Player outcome = mean of that residual over his plays in the split. Primary outcome is **empirical-Bayes shrunk** (normal–normal: shrink toward the split mean with weight τ²/(τ²+σ²ᵢ/nᵢ), τ² from the method of moments, floored at 0). Sensitivity: unshrunk mean (`alt`) and route-count-weighted partial correlation (`weight`).
+
+**Minimum n.** A player enters a split only with ≥ **20** qualifying routes in that split (≥ **10** for SCREEN). A paired contrast (break vs vertical, man vs zone) uses only players who meet the minimum in **both** cells. Every table reports the player n and the median route count.
+
+**Tests (all via `robust.py` defaults: rank partial correlation controlling draft year, weight and height — minus the test itself; player-level bootstrap 95% CI, 2,000 resamples; Freedman–Lane permutation p, 10,000; leave-one-draft-class-out ΔR² with within-class permutation p; BH-FDR).** Quickness tests are oriented so positive ρ means better test → more separation.
+
+| ID | Hypothesis | Cells | Contrast |
+|---|---|---|---|
+| H1 | 3-cone and short shuttle matter more on break routes than vertical routes | {3-cone, shuttle} × {break, vertical} | ρ(break) − ρ(vertical) > 0, per test |
+| H2 | Vertical jump and Burst Score predict break-route separation | {vertical, Burst Score} × {break} (vertical routes shown for contrast) | none (cell test, the original lead) |
+| H3 | Quickness tests (3-cone, short shuttle, official 10-yard) matter more vs man than zone | {3-cone, shuttle, 10-yard} × {man, zone} (all routes) | ρ(man) − ρ(zone) > 0, per test |
+| S1 (secondary) | Weight costs separation on screens and crossers | weight × {screen, crosser}, controlling year and height only (weight is the test), break and vertical shown as reference | none |
+
+**Formal contrast test.** The difference in partial correlations is tested on the same players with (a) a paired player-level bootstrap (2,000) CI and (b) a within-player swap permutation (10,000) of the two standardized, control-residualized outcomes. **A contrast SURVIVES** if the difference has the predicted sign, the bootstrap 95% CI excludes 0, the swap-permutation p < 0.05 and BH q < 0.05 across the five contrasts (H1 ×2, H3 ×3). LEAN if the first three hold and q ≥ 0.05. Otherwise NOT SUPPORTED (sign opposite to prediction is reported as REVERSED). Two separate correlations that differ in significance are **not** evidence of a difference.
+
+**Cell verdicts** use the §7 rule (SURVIVES / LEAN / small n) with BH q taken across all Part-B cells (H1, H2, H3: 18 cells). S1 gets its own BH family (6 cells).
+
+**Hypothesis verdicts.** H1 and H3 survive only if at least one of their contrasts SURVIVES. H2 survives only if at least one of vertical jump / Burst Score is a SURVIVES cell for break routes; LEAN is reported as LEAN. We state in advance that with ~55–75 WRs a paired-contrast CI has half-width ≈ 0.30, so a null contrast here is "not detected", not "no difference".
+
+**Man vs zone source.** Provided BDB label `team_coverage_man_zone` (team-level, per play). No external FTN/participation join needed.
