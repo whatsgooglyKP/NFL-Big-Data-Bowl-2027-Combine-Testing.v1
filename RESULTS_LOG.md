@@ -914,3 +914,32 @@ Sensitivity: man vs zone on break routes only shows no contrast either (diffs +0
 - Predictions: one OLS per TRANSLATES/LEANS cell, result ~ test + weight + height + role + draft-year dummies, year effects at the sample mean, 80% range = ±1.28 residual SD. Percentiles use 11-point quantile tables. Comps: nearest 5 by RMS z-distance on 40, vertical, broad, 3-cone, shuttle, height, weight (≥3 shared), pool = 64 most recent historical Combine athletes per group with ≥6 of 7 measurements.
 - Only DB 40 and broad jump → yards allowed are LEANS with a negative sign (wrong way); the page labels them DO NOT USE.
 - Drive: superseded scorecard figures/CSV/notebook, pre-fix fig 19/20, retired-analysis figures (combine_gems, cb_deep_dive, fig8, cb_speed_tax, cb_gauntlet, fig 1/4/5/6/7/9) renamed with a "SUPERSEDED – " prefix. Nothing deleted. A dated 11/2026 correction section was appended to the Results Log Google Doc.
+
+## 11/2026 — Athletic comps dropped (Kevin, 11/19/2026)
+
+Athletic comps (KNN player comparisons) are removed from the project: `athletic_comps.py` and `out/athletic_comps*.csv` deleted, the comps section and bundled comps data removed from the coach dashboard and `dashboard_export.py`, README and attribution mentions removed. The decision is recorded in METRICS.md §10. No scorecard, verdict, percentile or prediction depended on comps, so no result changes. Earlier entries in this log that mention comps are historical and superseded.
+
+## 11/2026 (11/19/2026): statistical audit of p-values, q-values, CIs and prediction ranges
+
+Trigger: Kevin, "those p values and margins seem suspect". Method and full findings are in METRICS.md §11; `audit_stats.py` -> `out/audit_stats.csv`, `out/audit_prediction_coverage.csv`.
+
+**Wrong or misleading displayed numbers, old vs new**
+
+| Item | Old | New | Cause |
+|---|---|---|---|
+| 80% prediction range, DL pressure rate (10-yd, 40, broad jump) | ±2.0 to 2.3 pts at the typical player | ±3.9 to 4.2 pts | model fit on the shrunk rate (SD ~0.018 vs 0.032 as reported); old range covered ~50% of real rates |
+| 80% prediction range, WR break-route separation (vertical) | ±0.154 yd | ±0.305 yd | same: shrunk-scale fit |
+| 80% range, the other 6 models | ±1.28 SD | +2% to 3% wider at the typical player, wider still off-center | normal quantile and no estimation variance; now t quantile and leverage term |
+| "Typical player" and percentiles of predictions, pressure rate / break route | 7.95% median / shrunk quantiles | 7.22% median / as-reported quantiles | same |
+| Permutation p of the two WR TRANSLATES cells | printed 0.000 (dashboard 0.0) | <0.001 (floor 0.0001) | rounding of a bounded permutation p |
+| q of the same cells and weight rows | printed 0.00 | <0.01 | rounding |
+| CI shown for n = 12 and 14 (Interior short shuttle -> run stops; DB 3-cone -> yards allowed) | -1.00 to +1.00 | hidden (n < 15) | bootstrap collapses |
+| Raw (year-only) ρ for rate outcomes, pooled DL e.g. 40 -> sack rate | +0.37 (as-reported rate) | +0.72 (same outcome as size-controlled) | SIZE test compared as-reported raw with shrunk size-controlled |
+| Raw (year-only) ρ, DB tackle / TFL weight rows | +0.23 / +0.06 | +0.35 / +0.09 | same |
+| DB weight callout "heavier DBs tend to post worse results" | stated as fact (q 0.90) | "not established" unless q < 0.05 and CI excludes 0 | callout ignored its own q |
+
+**Verdicts that changed (12).** To SIZE, NOT SPEED: DL pooled 10-yd -> sack, 40 -> sack, vertical -> sack, 3-cone -> sack, shuttle -> sack, Burst -> sack, 10-yd -> TFL, 40 -> TFL, broad jump -> TFL, top speed -> TFL (from DOESN'T TRANSLATE) and top speed -> pressure (from LEANS). DL Interior top speed -> TFL went back to DOESN'T TRANSLATE. TRANSLATES (2 WR rows) unchanged.
+
+**Fine as published.** n in all 208 rows; size-controlled ρ; permutation p (two-sided, matches an independent 20,000-shuffle run and the analytic t p); BH q (per-group families, monotone, q ≥ p); bootstrap CIs (player-level, refit, 2,000 resamples, contain the point estimate, agree with BCa and Fisher-z intervals except six borderline rows).
+
+**Multiple-testing flags.** 28 of 164 cells with n ≥ 25 reach p < 0.05 (about 8 by chance); only the two WR Sunday-Speed cells clear q < 0.05 under any family choice. All 26 LEANS rows are nominal leads (smallest whole-grid q 0.19).

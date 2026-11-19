@@ -7,8 +7,7 @@ vertical — used together — predict on-field gameplay success for WR, TE,
 CB, and S?
 
 RB is excluded from every model. The 2023–2025 rookie file has one running
-back (Sione Vaki), which is too few to fit or to pool. His athletic comps,
-if produced, are an anecdote only.
+back (Sione Vaki), which is too few to fit or to pool. He is an anecdote only.
 
 Success is a median split on a gameplay outcome, among rookies who clear a
 minimum-snap (or route) floor. Playing time is not the outcome.
@@ -420,7 +419,7 @@ def coverage_rows(M: pd.DataFrame, table: pd.DataFrame, rb_note: pd.DataFrame) -
                                 "feasible": pos != "RB",
                 "exclusion_reason": (
                     "Only one RB in the 2023–2025 rookie file (Sione Vaki). "
-                    "Excluded from every model; athletic comps are an anecdote."
+                    "Excluded from every model; one player is an anecdote."
                     if pos == "RB" else ""
                 ),
             }

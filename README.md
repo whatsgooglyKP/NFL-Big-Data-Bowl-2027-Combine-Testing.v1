@@ -37,7 +37,7 @@ Draft-day lines:
 - **TE:** the tracking 20-yard is the lead and the best test vs yards per route (ρ = −0.56, n = 25, p = 0.004, CI excludes 0) and does not survive FDR (0.19). Adding jumps does not help; the Burst Score does not beat the 20-yard alone. No deployable multi-test model (n = 22, train AUC ≈ 1.00).
 - **DB (CB + S):** no Combine-to-tackle finding. 20-yard vs tackle ρ = −0.07; Burst Score OOF ρ = +0.13 (CI includes 0). Year-only beats every multi-test model. Safeties have a higher median tackle rate than corners (0.100 vs 0.081) — a pooled DB median can confound role. Yards allowed and closing speed are not in this file. Tackle rate is a fallback.
 
-Details in [`MULTI_TEST_MODELS.md`](MULTI_TEST_MODELS.md). Headline figures: Figure 10 (heatmap), Figure 11 (Bayesian forest), and Figure 13 (Burst Score). Athletic comps against the public nflverse Combine remain scouting cards, not a prediction rule.
+Details in [`MULTI_TEST_MODELS.md`](MULTI_TEST_MODELS.md). Headline figures: Figure 10 (heatmap), Figure 11 (Bayesian forest), and Figure 13 (Burst Score).
 
 ## How to reproduce
 
@@ -50,7 +50,6 @@ python3 -m venv .venv
 .venv/bin/python ssoe.py                   # SSOE scouting card, NGS incremental, CB speed tax
 .venv/bin/python dl_burst.py               # DL get-off, pressure / sack success, Figures 5–6
 .venv/bin/python gameplay_success.py       # WR production and CB/S tackle tests, Figure 7
-.venv/bin/python athletic_comps.py         # KNN historical athletic comps (uses external/nflverse)
 .venv/bin/python combine_to_game.py        # Combine → Sunday matrix, year only, no pick; Burst Score; Figures 10–13
 ```
 
@@ -82,6 +81,7 @@ About 2.3 GB total. Licensed CC BY-NC 4.0. Column notes and gotchas are in [`DAT
 | Path | What it is |
 |---|---|
 | `METRICS.md` | Frozen official definitions (Sunday Speed, translation, SSOE, and gameplay success) |
+| `audit_stats.py` | Independent recomputation of every scorecard ρ, p, q-check and bootstrap interval (METRICS.md §11); writes `out/audit_stats.csv` |
 | `RESULTS_LOG.md` | Append-only working-session results |
 | `PHASE2_RESULTS.md` | Skill-drill tests vs the 40 |
 | `STRATEGY.md` | Concept, writeup plan, past-winner framing |
@@ -94,8 +94,7 @@ About 2.3 GB total. Licensed CC BY-NC 4.0. Column notes and gotchas are in [`DAT
 | `combine_gems.py`, `cb_deep_dive.py` | Retired stubs (draft-slot-defined analyses) |
 | `multi_test_models.py` | Multi-test models (draft-year-only baseline), Figure 9 |
 | `combine_to_game.py` | Combine → in-game matrix, 20-yard lead, Burst Score, year-only models and Bayesian pool, Figures 10–13 |
-| `athletic_comps.py` | KNN athletic comps vs nflverse Combine 2000–2022 |
-| `external/` | Public nflverse Combine and draft_picks cache (not Kaggle), with attribution |
+| `external/` | Public nflverse caches (not Kaggle), with attribution |
 | `explore.py`, `profile.py` | First-pass exploration |
 | `out/sunday_speed_players.csv` | Official skill-player table |
 | `out/ssoe_leaderboard.csv` | Scouting card |
@@ -107,7 +106,6 @@ About 2.3 GB total. Licensed CC BY-NC 4.0. Column notes and gotchas are in [`DAT
 | `out/combine_to_game_auc.csv`, `out/combine_to_game_lasso_stability.csv` | Year-only model comparison and lasso stability |
 | `out/combine_to_game_bayes.csv` | Bayesian hierarchical posterior ORs |
 | `out/combine_to_game_appendix_cb_s.csv` | Appendix: CB vs S breakout |
-| `out/athletic_comps.csv`, `out/athletic_comps_summary.csv` | Historical athletic comps (5 per rookie) |
 | `out/figs/fig1_translation_scatter.png` | Combine vs Sunday Speed, by position |
 | `out/figs/fig2_exchange_rate.png` | mph on Sunday per Combine mph |
 | `out/figs/fig3_phase2_drills.png` | Do the skill drills beat the 40? |

@@ -1,0 +1,11 @@
+group,test,outcome,n,outcome_scale,resid_sd,loo_coverage_80
+DL,ten_yd_split,pressure_rate,72,as-reported,0.032277960051201565,0.8472222222222222
+DL,forty,pressure_rate,72,as-reported,0.032110791648152164,0.8472222222222222
+DL,broad_jump,pressure_rate,76,as-reported,0.029972779890115413,0.868421052631579
+DL,ten_yd_split,speed_1s_mph,72,unshrunk,0.5963267585159517,0.7777777777777778
+DL,forty,speed_1s_mph,72,unshrunk,0.601671129457424,0.7777777777777778
+WR,vertical,sep_all_mean,64,unshrunk,0.2969712378075785,0.8125
+WR,forty,sunday_speed_mph,63,unshrunk,0.5182213117496469,0.8095238095238095
+DB,forty,pfr_yds_tgt,53,unshrunk,1.234732559913588,0.8113207547169812
+DB,broad_jump,pfr_yds_tgt,47,unshrunk,1.1109144332030092,0.8085106382978723
+WR,vertical,break_y,58,as-reported,0.23328776163906165,0.7931034482758621

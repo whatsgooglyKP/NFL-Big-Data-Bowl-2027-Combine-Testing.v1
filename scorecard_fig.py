@@ -36,7 +36,7 @@ for ax, g in zip(axs, ["WR", "TE", "DB", "DL"]):
             if sg == "All":
                 ax.text(1.02, yy + 0.03, x.verdict, color=col if x.verdict != "TOO FEW TO TELL" else "#8a8a8a", ha="left", va="bottom", fontsize=8.2, fontweight="bold",
                         transform=ax.get_yaxis_transform())
-                ax.text(1.02, yy - 0.04, f"n {int(x.n)}  q {x.fdr_q:.2f}  held-out {x.classes_helped}", ha="left", va="top", fontsize=7.2, color="#444",
+                ax.text(1.02, yy - 0.04, f"n {int(x.n)}  q {("<0.01" if x.fdr_q < 0.01 else format(x.fdr_q, ".2f"))}  held-out {x.classes_helped}", ha="left", va="top", fontsize=7.2, color="#444",
                         transform=ax.get_yaxis_transform())
         ticks.append(y - (0.28 if g == "DL" else 0)); labs.append(f"{SHORT_T[r.test]} → {SHORT_O[r.outcome]}")
         y -= 1.45 if g == "DL" else 1.0

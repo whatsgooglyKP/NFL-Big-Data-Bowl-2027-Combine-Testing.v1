@@ -1,6 +1,6 @@
 """Figure 20: forest plot, each Combine test vs the primary outcome per position group.
 
-Two estimates per test: year-controlled Spearman on the as-reported outcome (grey, open; corrected 11/2026, was a plain pooled Spearman on the shrunk outcome) and the size-controlled rank partial
+Two estimates per test: year-controlled Spearman on the same outcome as the size-controlled fit (grey, open; corrected 11/2026, was a plain pooled Spearman, then an as-reported-rate version that mixed outcomes) and the size-controlled rank partial
 correlation (colour; controls = draft year, role, weight, height). 95% bootstrap CIs.
 Orientation: timed drills are sign-flipped so RIGHT of zero always means "better athlete goes
 with the higher outcome". No draft slot is used anywhere.
@@ -31,7 +31,7 @@ def forest(path=None):
     for ax, (g, oc, title, col) in zip(axes.ravel(), PANELS):
         p = t[(t.group == g) & (t.outcome == oc)].set_index("test").copy()
         fr = _frames()[("DL", "All") if g == "DL" else (g, "All")]
-        for r_ in p.index:  # hollow marker = year-controlled Spearman on the as-reported outcome (METRICS §9 correction)
+        for r_ in p.index:  # hollow marker = year-controlled Spearman on the same outcome (METRICS §9 corrections)
             p.loc[r_, ["rho_raw", "raw_lo", "raw_hi"]] = year_raw(fr, r_, oc)[:3]
         rows = [r for r in ORDER if r in p.index and np.isfinite(p.loc[r, "rho_size"])]
         ys = np.arange(len(rows))[::-1]
@@ -56,7 +56,7 @@ def forest(path=None):
     fig.text(0.5, 0.012,
              "Bars = 95% player-level bootstrap CI (2,000 resamples).  Timed drills sign-flipped (faster = right).  ‡ weight / height are controlled for the other size measure only.\n"
              "★ passes every check (FDR<0.05 within its group, CI excludes 0, unshrunk sign, leave-one-class-out).  ◆ nominal only (permutation p<0.05 + CI + out-of-sample) — FDR not cleared.   small-n rows (n<25 or <5 players per fitted parameter) are shown but not scored.\n"
-             "Rates shrunk toward the role mean (beta-binomial) in the filled markers; hollow markers use the as-reported rates.  FDR families differ in size by group (DL 273 cells, WR 68, DB 152), so stars are not comparable across groups.  Draft slot / pick / round never used.  2023–2025 rookie classes, REG snaps.",
+             "Rates are shrunk toward the role mean (beta-binomial) in both marker types.  FDR families differ in size by group (DL 273 cells, WR 68, DB 152), so stars are not comparable across groups.  Draft slot / pick / round never used.  2023–2025 rookie classes, REG snaps.",
              ha="center", fontsize=8.2)
     fig.tight_layout(rect=[0, 0.05, 1, 0.94])
     path = path or FIGS / "fig20_forest_size_controlled.png"

@@ -12,7 +12,7 @@ These files are **not** from the NFL Big Data Bowl Kaggle competition. They are 
   Access: `nflreadr::load_draft_picks()` / https://github.com/nflverse/nflverse-data/releases/download/draft_picks/draft_picks.csv  
   We use weighted Approximate Value (`w_av`); the `car_av` column is empty in this snapshot.
 
-Downloaded 11/2026. If you refresh the files, re-run `athletic_comps.py`.
+Downloaded 11/2026.
 
 - `advstats_season_def.parquet`, `advstats_season_rec.parquet`, `advstats_season_rush.parquet` — Pro-Football-Reference advanced season stats (defense, receiving, rushing), 2018 onward.
   Source: https://github.com/nflverse/nflverse-data/releases/tag/pfr_advstats

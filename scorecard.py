@@ -94,8 +94,8 @@ RL_SIGN = {"three_cone": -1, "short_shuttle": -1, "ten_yd_split": -1, "vertical"
 
 
 def year_raw(fr: pd.DataFrame, test: str, outcome: str):
-    """(rho, lo, hi, n): year-controlled Spearman of `test` vs the as-reported outcome, same sample as the robust fit."""
-    rc = outcome + "_raw" if (outcome + "_raw") in fr.columns else outcome
+    """(rho, lo, hi, n): year-controlled Spearman of `test` vs the same outcome the size-controlled fit uses, same sample as the robust fit."""
+    rc = outcome  # audit fix 11/2026: same outcome as the size-controlled fit
     s = fr[list(dict.fromkeys([test, outcome, rc, "draft_year"] + SIZE_COLS))].dropna()
     if len(s) < 12 or s[test].nunique() < 3 or s[rc].nunique() < 3:
         return (np.nan,) * 3 + (len(s),)
@@ -105,10 +105,13 @@ def year_raw(fr: pd.DataFrame, test: str, outcome: str):
 
 
 def add_year_only(t: pd.DataFrame) -> pd.DataFrame:
-    """Replace plain pooled Spearman on the (shrunk) outcome by the year-controlled Spearman on the as-reported rate."""
+    """Replace plain pooled Spearman by the year-controlled Spearman on the same outcome as the size-controlled fit (+ as-reported check column)."""
     F = _frames(); t = t.copy()
-    t["rho_unadjusted"] = t.rho_raw; t["raw_def"] = "year-controlled Spearman, as-reported (unshrunk) outcome"
-    new = {"rho_raw": [], "raw_lo": [], "raw_hi": [], "n_raw": []}
+    t["rho_unadjusted"] = t.rho_raw
+    # audit fix 11/2026: the year-only "raw" link is computed on the SAME outcome the size-controlled fit uses (shrunk rate where one exists),
+    # so the SIZE test compares like with like; the as-reported (unshrunk) year-controlled value is kept in rho_asreported.
+    t["raw_def"] = "year-controlled Spearman (demean within draft year), same outcome as the size-controlled fit"
+    new = {"rho_raw": [], "raw_lo": [], "raw_hi": [], "n_raw": [], "rho_asreported": []}
     for _, r in t.iterrows():
         rl = r.outcome == "break_y"
         fr = F[("WR", "RL")] if rl else F[(r.card_group, r.subgroup)]
@@ -117,12 +120,13 @@ def add_year_only(t: pd.DataFrame) -> pd.DataFrame:
         cols = [r.test, out_col, raw_col, "draft_year"] + SIZE_COLS
         s = fr[list(dict.fromkeys(cols))].dropna()
         x = s[r.test].to_numpy(float) * (RL_SIGN[r.test] if rl else 1)
-        y = s[raw_col].to_numpy(float); yr = s["draft_year"].to_numpy()
+        y = s[out_col].to_numpy(float); yr = s["draft_year"].to_numpy(); ya = s[raw_col].to_numpy(float)
         if len(s) < 12 or np.unique(x).size < 3 or np.unique(y).size < 3:
             for k in new: new[k].append(np.nan)
             continue
         lo, hi = year_partial_ci(x, y, yr)
         new["rho_raw"].append(year_partial(x, y, yr)); new["raw_lo"].append(lo); new["raw_hi"].append(hi); new["n_raw"].append(len(s))
+        new["rho_asreported"].append(year_partial(x, ya, yr))
     for k, v in new.items():
         t[k] = v
     bad = t[(t.n_raw != t.n) & t.n_raw.notna()]
@@ -179,7 +183,7 @@ def coach(r) -> str:
         body = f" About {share:.0%} of the year-controlled link goes away once weight, height{' and role' if r.subgroup == 'All' and r.card_group in ('DL', 'DB') else ''} are held fixed." if share >= 0.5 else ""
         return f"{tp} {side} {op} ({rs}, n {int(r.n)}), but it does not clear the false-discovery bar.{body}"
     if r.verdict == "SIZE, NOT SPEED":
-        return f"{tp} looks tied to {op} (year-controlled {r.rho_raw_o:+.2f}), but that is body size: it drops to {r.rho_o:+.2f} once weight and height are held fixed."
+        return f"{tp} looks tied to {op} (year-controlled {r.rho_raw_o:+.2f}), but that is body size: it drops to {r.rho_o:+.2f} once weight, height{' and role' if r.subgroup == 'All' and r.card_group in ('DL', 'DB') else ''} are held fixed."
     if r.verdict == "TOO FEW TO TELL":
         return f"Only {int(r.n)} players. Too few to say whether {tl} goes with {op}."
     return f"No sign that {tl} shows up as {op} ({rs}, CI {r.lo_o:+.2f} to {r.hi_o:+.2f}, n {int(r.n)})."
@@ -189,6 +193,7 @@ def prep(t: pd.DataFrame) -> pd.DataFrame:
     t = t.copy()
     s = np.sign(t.orient).replace(0, 1)
     t["rho_o"], t["rho_raw_o"], t["rho_unadj_o"] = t.rho_size * s, t.rho_raw * s, t.rho_unadjusted * s
+    t["rho_asrep_o"] = t.rho_asreported * s
     t["lo_o"] = np.where(s > 0, t.lo, -t.hi); t["hi_o"] = np.where(s > 0, t.hi, -t.lo)
     t["raw_lo_o"] = np.where(s > 0, t.raw_lo, -t.raw_hi); t["raw_hi_o"] = np.where(s > 0, t.raw_hi, -t.raw_lo)
     t["verdict"] = t.apply(verdict, axis=1)
@@ -231,8 +236,8 @@ def pick_rows(full: pd.DataFrame) -> pd.DataFrame:
 def main() -> None:
     full = prep(load()).reset_index(drop=True)
     cols = ["card_group", "subgroup", "test", "test_label", "combine_source", "outcome", "outcome_label", "n", "rho_raw_o", "raw_lo_o", "raw_hi_o", "rho_unadj_o",
-            "rho_o", "lo_o", "hi_o", "p_perm", "fdr", "fdr_basis", "loso_dr2", "classes_helped", "verdict", "coach_line"]
-    ren = {"card_group": "group", "rho_unadj_o": "rho_unadjusted_pooled_shrunk", "rho_raw_o": "rho_raw", "raw_lo_o": "raw_lo", "raw_hi_o": "raw_hi", "rho_o": "rho_size",
+            "rho_o", "lo_o", "hi_o", "p_perm", "fdr", "fdr_basis", "rho_asrep_o", "loso_dr2", "classes_helped", "verdict", "coach_line"]
+    ren = {"rho_asrep_o": "rho_asreported_yearctrl", "card_group": "group", "rho_unadj_o": "rho_unadjusted_pooled_shrunk", "rho_raw_o": "rho_raw", "raw_lo_o": "raw_lo", "raw_hi_o": "raw_hi", "rho_o": "rho_size",
            "lo_o": "ci_lo", "hi_o": "ci_hi", "fdr": "fdr_q", "loso_dr2": "oos_delta_r2"}
     full[cols].rename(columns=ren).to_csv(OUT / "scorecard_full.csv", index=False)
     card = pick_rows(full)
@@ -251,7 +256,7 @@ def main() -> None:
         fr = F[("DL", r.group)] if r.group in ("DL", "Edge", "Interior") else F[(r.group, "All")]
         rc = r.outcome + "_raw" if (r.outcome + "_raw") in fr.columns else r.outcome
         s_ = fr[list(dict.fromkeys(["combine_weight", r.outcome, rc, "draft_year", "combine_height"]))].dropna()
-        return year_partial(s_.combine_weight, s_[rc], s_.draft_year) if len(s_) >= 12 else np.nan
+        return year_partial(s_.combine_weight, s_[r.outcome], s_.draft_year) if len(s_) >= 12 else np.nan
     w["rho_raw"] = w.apply(wraw, axis=1)
     w["rho_raw_o"] = w.rho_raw * np.where(w.outcome_good > 0, 1, -1)
     w = w[["group", "outcome", "outcome_label", "n", "rho_raw_o", "rho_o", "lo_o", "hi_o", "p_perm", "fdr", "loso_dr2", "loso_pos_folds"]]
@@ -262,16 +267,25 @@ def main() -> None:
     print(card[card.card_group.notna()].groupby(["card_group", "verdict"]).size())
 
 
+def fp(p: float) -> str:
+    """Permutation p with 10,000 shuffles cannot go below 1/10,001: print it as a bound, never as 0.000."""
+    return "" if not np.isfinite(p) else ("<0.001" if p < 0.001 else f"{p:.3f}")
+
+
+def fq(q: float) -> str:
+    return "" if not np.isfinite(q) else ("<0.01" if q < 0.01 else f"{q:.2f}")
+
+
 def fmt_row(r) -> str:
-    q = "" if not np.isfinite(r.fdr) else f"{r.fdr:.2f}"
-    return (f"| {r.test_label} | {r.outcome_label} | {int(r.n)} | {r.rho_raw_o:+.2f} | {r.rho_o:+.2f} ({r.lo_o:+.2f} to {r.hi_o:+.2f}) | {r.p_perm:.3f} | {q} | "
+    q = "" if not np.isfinite(r.fdr) else fq(r.fdr)
+    return (f"| {r.test_label} | {r.outcome_label} | {int(r.n)} | {r.rho_raw_o:+.2f} | {r.rho_o:+.2f} ({r.lo_o:+.2f} to {r.hi_o:+.2f}) | {fp(r.p_perm)} | {q} | "
             f"{r.loso_dr2:+.2f} ({r.classes_helped}) | **{r.verdict}** | {r.coach_line} |")
 
 
 def write_md(card, w, full) -> None:
     L = ["# What translates and what doesn't: Combine → regular-season scorecard", "",
          "Generated by `scorecard.py` from the saved robust outputs (METRICS.md §9). ρ is oriented so **+ = a better athlete goes with a better result**. "
-         "Year-controlled ρ is the raw link: both sides demeaned within draft year, as-reported (unshrunk) outcome, nothing else held fixed (METRICS.md §9 correction). Size-controlled ρ also holds weight and height fixed (DB also CB vs S; DL also Edge vs Interior; shrunk outcome). q = BH false-discovery rate over the full family; "
+         "Year-controlled ρ is the raw link: both sides demeaned within draft year, on the same outcome as the size-controlled fit (shrunk rate where one exists), nothing else held fixed (METRICS.md §9, audit fix 11/2026; the as-reported-rate version is in `scorecard_full.csv` as `rho_asreported_yearctrl`). Size-controlled ρ also holds weight and height fixed (DB also CB vs S; DL also Edge vs Interior). q = BH false-discovery rate over the full family; "
          "ΔR² = held-out-draft-class gain over a size-only model (classes that improved). Draft slot is never used.", ""]
     H = "| Test | Result | n | year-controlled ρ | size-controlled ρ (95% CI) | perm p | q | out-of-sample ΔR² | Verdict | Coach line |\n|---|---|---:|---:|---|---:|---:|---|---|---|"
     for g, title in [("WR", "Wide receivers"), ("TE", "Tight ends"), ("DB", "Defensive backs (CB + S)"), ("DL", "Defensive line (all DL)")]:
@@ -294,10 +308,12 @@ def write_md(card, w, full) -> None:
           "Weight as the test, controlling draft year and height (+ = heavier goes with the better result). Rows with n ≥ 25, sorted by permutation p.", "",
           "| Group | Result | n | year-controlled ρ | ρ (height held) (95% CI) | perm p | q |", "|---|---|---:|---:|---|---:|---:|"]
     for _, r in w.head(12).iterrows():
-        L.append(f"| {r.group} | {r.outcome_label} | {int(r.n)} | {r.rho_raw:+.2f} | {r.rho_height_ctrl:+.2f} ({r.ci_lo:+.2f} to {r.ci_hi:+.2f}) | {r.p_perm:.3f} | {r.fdr_q:.2f} |")
+        L.append(f"| {r.group} | {r.outcome_label} | {int(r.n)} | {r.rho_raw:+.2f} | {r.rho_height_ctrl:+.2f} ({r.ci_lo:+.2f} to {r.ci_hi:+.2f}) | {fp(r.p_perm)} | {fq(r.fdr_q)} |")
     L += ["", "## Selection and caveats", "",
           "- One row per group × result: the test with the smallest permutation p among tests with n ≥ 25 (rule fixed in METRICS.md §9). The full grid is `out/scorecard_full.csv`.",
-          f"- SIZE, NOT SPEED rows in the full grid (n ≥ 25): {int((full.verdict == 'SIZE, NOT SPEED').sum())}, none of them the best test for its result, so none is on the card. All are DL. Six are get-off speed (vertical, broad jump, 3-cone, shuttle, top speed, Burst Score): year-controlled ρ +0.66 to +0.77 falls to +0.06 to +0.20 once weight, height and role are held fixed. The 10-yard split and 40 keep +0.32 / +0.28.",
+          f"- SIZE, NOT SPEED rows in the full grid: {int((full.verdict == 'SIZE, NOT SPEED').sum())} (all DL; {int(((full.verdict == 'SIZE, NOT SPEED') & full.index.isin(card.index)).sum())} on the card). Get-off speed rows are the clearest case: year-controlled ρ of about +0.65 to +0.78 falls to roughly +0.06 to +0.20 once weight, height and role are held fixed.",
+          f"- Multiple testing: the grid has {int((full.n >= MIN_N).sum())} cells with n ≥ {MIN_N}; about {0.05 * int((full.n >= MIN_N).sum()):.0f} would reach perm p < 0.05 by chance alone, and {int(((full.n >= MIN_N) & (full.p_perm < 0.05)).sum())} do. Only {int(((full.n >= MIN_N) & (full.fdr < 0.05)).sum())} clear q < 0.05 (the TRANSLATES rows). LEANS rows are nominal-p findings and should be read as leads. The card shows the best-p test per result, so card ρ values are optimistic by construction.",
+          "- Confidence intervals are 2,000-resample percentile bootstraps over players (the whole fit is redone in each resample). Below n = 15 the bootstrap is unreliable and the dashboard hides the interval.",
           "- WR break-route separation comes from the pre-declared re-test (METRICS.md §8); the broader break family in the first robust pass is not used.",
           "- Same 2023–25 players generated the leads and test them; held-out draft classes are the only out-of-sample check, and there are three.",
           "- A TOO FEW or DOESN'T TRANSLATE verdict is absence of evidence at this sample size, not proof of no effect."]

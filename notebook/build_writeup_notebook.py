@@ -71,7 +71,7 @@ C.append(md("""
 - **False-discovery control.** Hundreds of tests were run. Every p-value carries a Benjamini-Hochberg q across its whole family, with 10,000 permutations and player-level bootstrap intervals.
 - **Pre-declaration.** The verdict rules, and the receiver route and man-vs-zone hypotheses, were written into the repo before the numbers were computed.
 
-**Verdicts.** TRANSLATES: survives size, q < 0.05 and held-out classes. LEANS: the interval excludes zero or p < 0.05, but q does not clear. SIZE, NOT SPEED: a real raw link that collapses with size control. DOESN'T TRANSLATE: enough players, no signal. TOO FEW: under 25 players.
+**Verdicts.** TRANSLATES: survives size, q < 0.05 and held-out classes. LEANS: the interval excludes zero or p < 0.05, but q does not clear. SIZE, NOT SPEED: a real raw link that collapses with size control. DOESN'T TRANSLATE: enough players, no signal. About one cell in twenty reaches p < 0.05 by chance, so LEANS rows are leads to check, not findings. TOO FEW: under 25 players.
 """))
 C.append(code("""
 display(Image(str(FIGS / "fig20_forest_size_controlled.png")))
