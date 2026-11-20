@@ -5,7 +5,7 @@
 
 **The required link, stated plainly.** We connect each rookie's 10 Hz Combine tracking (2023 to 2025 classes) to his regular-season game tracking. A receiver's tracked Combine top speed predicts his regular-season speed on deep routes (ρ +0.63 year-controlled, **+0.58 with body size held fixed**, n 62). The cell below recomputes that from the raw tracking files.
 
-Data: the competition's Combine tracking, game tracking, play, player and game files, plus free public Pro-Football-Reference season stats for two defensive-back outcomes. No draft-position information is used; draft *year* is a control only. Running backs are excluded. **Sunday Speed** is a player's 90th-percentile top speed per play where his job asks for speed (deep routes for receivers; man or deep coverage for defensive backs), regular season. **Burst Score** is a 0 to 100 within-position blend of the tracked 20-yard time and the jumps. ρ is a rank correlation; positive means the better athlete does better.
+Data: the competition's Combine tracking, game tracking, play, player and game files, plus free public Pro-Football-Reference stats (two DB outcomes). No draft-position information is used; draft *year* is a control only. Running backs are excluded. **Sunday Speed** is a player's 90th-percentile top speed per play where his job asks for speed (deep routes for receivers; man or deep coverage for defensive backs), regular season. **Burst Score** is a 0 to 100 within-position blend of the tracked 20-yard time and the jumps. ρ is a rank correlation; positive means the better athlete does better.
 
 ## 1. Receivers: speed is real, and it carries to Sunday
 Two Combine measures clear every check, and both are receiver straight-line speed. The 40-yard dash goes with faster game speed on deep routes (ρ +0.52 with size held fixed, 95% CI +0.30 to +0.68, n 63, q <0.01). The tracked Combine top speed does so even more strongly (+0.58, +0.37 to +0.74, n 62, q <0.01). Both improve predictions on held-out draft classes (3/3 each).
@@ -16,14 +16,14 @@ Figure 2 is the proof of method. Of 164 tests with at least 25 players, 28 reach
 
 ![Figure 1](writeup_figs/fig1_gate_wr.png)
 
-*Figure 1. Each dot is a receiver: faster at the Combine, faster on Sunday deep routes.*
+*Figure 1. Each dot is a receiver. A: as measured. B: after removing draft year, weight and height from both axes (ranks).*
 
 ![Figure 2](writeup_figs/fig2_wr_control.png)
 
-*Figure 2. Left: every receiver test against deep-route speed. Right: all 164 tests; only two survive correction.*
+*Figure 2. A: every receiver test against deep-route speed. B: all 164 tests; only two survive correction.*
 
 ## 2. Defensive line: the drills predict pass rush, mostly through body size
-Linemen's Combine numbers do carry information: faster linemen get off quicker, rush more and sack more. The catch is how much is body size. Across the four outcomes with a strong raw link (get-off, pressure, sack, tackle for loss), 32 test-by-outcome cells have at least 25 players. Their median year-controlled link is ρ +0.68. Hold weight, height and role (edge or interior) fixed and the median is +0.21, so about 69% of the raw link runs through body size (Figure 3).
+Linemen's Combine numbers do carry information: faster linemen get off quicker, rush more and sack more. The catch is how much is body size. Across the four outcomes with a strong raw link (get-off, pressure, sack, tackle for loss), 32 test-by-outcome cells have at least 25 players. Their median year-controlled link is ρ +0.68. Hold weight, height and role (edge or interior) fixed and the median is +0.21, so on the median about 69% of the raw link is shared with body size and role (a statistical split, not proof of cause; Figure 3).
 
 What remains is still positive and still useful:
 - The 40 against **pressure rate** goes from +0.71 to +0.35 (95% CI +0.11 to +0.54, q 0.16).
@@ -34,7 +34,7 @@ What remains is still positive and still useful:
 
 ![Figure 3](writeup_figs/fig3_dl_size.png)
 
-*Figure 3. Defensive-line tests, raw to size-adjusted. The gap is body size. 3-cone and shuttle (under 36 linemen) are left out.*
+*Figure 3. Defensive-line tests, raw to size-adjusted. The gap is what body size and role account for.*
 
 ## 3. Consistent leads that need more seasons
 Five results hold in every held-out draft class (3/3 each) but do not clear the false-discovery bar. We call them leads and show the honest q:
@@ -43,7 +43,7 @@ Five results hold in every held-out draft class (3/3 each) but do not clear the 
 
 Each estimate is at or below what these samples reliably detect even before correction (about 0.37 for receivers, 0.37 for linemen), and well below what the correction demands (about 0.51 and 0.56). If the true links equal today's estimates, confirming them needs roughly 4 to 9 more draft classes (Figure 4). That is optimistic: leads are the best-looking tests.
 
-The textbook agility stories were not detected. We pre-declared that 3-cone and shuttle matter more on break than vertical routes (differences -0.24 and -0.11, intervals include zero) and that quickness matters more against man than zone (10-yard difference +0.15, CI -0.13 to +0.41). Only 22 to 30 receivers ran those drills, so only effects of about 0.57 or more were visible. Not detected is not ruled out.
+The textbook agility stories were not detected. We pre-declared that 3-cone and shuttle matter more on break than vertical routes (differences -0.24 and -0.11, intervals include zero) and that quickness matters more against man than zone (10-yard difference +0.15, CI -0.13 to +0.41). Only 22 to 30 receivers ran those drills, so only effects of about 0.57 or more were visible; not detected is not ruled out.
 
 ![Figure 4](writeup_figs/fig4_leads.png)
 
@@ -72,7 +72,7 @@ One result runs the wrong way. A faster 40 goes with *more* yards allowed per ta
 *Figure 5. Defensive backs, best test per result: mostly inside the gray band, so not detected, not ruled out.*
 
 ## 5. Weight is the variable scouts must adjust for
-A stopwatch cannot tell weight from talent. Holding height and draft year fixed (Figure 6):
+A stopwatch cannot tell weight from talent. Holding height and draft year fixed (role too for linemen; Figure 6):
 
 - **Defensive line.** Heavier linemen get off the ball slower (ρ -0.49, 95% CI -0.62 to -0.30, q <0.01) and reach a lower speed one second after the snap (-0.53, q <0.01). This is why Section 2 reads linemen size-adjusted.
 - **Receivers.** Heavier receivers run slower on deep routes (-0.43, q <0.01) and slower than their own 40 predicts (-0.38, q 0.04).
@@ -85,15 +85,14 @@ Weight does not move everything: pressure rate is only weakly tied to it (-0.20,
 *Figure 6. Weight against on-field results. Left of zero: heavier players do worse.*
 
 ## How a scout uses this
-A scorecard, not a ranking (Figure 7), behind a lookup dashboard: enter a Combine line and each test returns a tag and a one-line read. Two examples:
+A scorecard, not a ranking (Figure 7), behind a lookup dashboard: enter a Combine line and each test returns a tag and a one-line read. One example:
 - **A faster 40 shows up as faster game speed on deep routes. It holds after size control and on a held-out draft class (ρ +0.52, n 63).**
-- **A faster 40 tends to go with a higher pressure rate (ρ +0.35, n 72), but it does not clear the false-discovery bar.**
 
-Rules of thumb: trust a receiver's 40 and tracked top speed; compare linemen only with linemen of their weight and role; treat defensive-back numbers as one input among several. Every line carries its n and interval, so a lead is never mistaken for a verdict.
+Rules of thumb: trust a receiver's 40 and tracked top speed; compare linemen only with linemen of their weight and role; treat defensive-back numbers as one input among several. Every line carries its n and interval.
 
 ![Figure 7](writeup_figs/fig7_scorecard.png)
 
-*Figure 7. The scorecard, with the smallest detectable effect (MDE). Green translates, orange leans, red mostly size, gray not detected.*
+*Figure 7. The scorecard, with the smallest detectable effect (MDE). Green translates, orange leans, purple mostly size, gray not detected.*
 
 ## Methods, in plain language
 - **Size control.** Every link is repeated holding draft year, weight and height fixed (plus CB versus S, edge versus interior). Hollow marks are the link before size.
@@ -101,12 +100,12 @@ Rules of thumb: trust a receiver's 40 and tracked top speed; compare linemen onl
 - **False-discovery control.** Each p comes from 10,000 permutations, each interval from a player-level bootstrap, and each result carries a Benjamini-Hochberg q across its whole family of tests. Verdict rules and receiver hypotheses were written first, and every p and interval was re-checked with a second method.
 - **Power.** The smallest detectable effect (MDE, 80% power) is a Fisher-z approximation, checked by simulation (77% to 82% power at the MDE).
 
-**Verdicts.** TRANSLATES: q below 0.05, interval excludes zero, held-out classes agree. LEANS: interval excludes zero or p below 0.05, but q does not clear. SIZE, NOT SPEED: a raw link of at least 0.30 that falls by half or more. TOO FEW: under 25 players. **NOT DETECTED (low power):** enough players, none of the above; no link larger than the MDE, not no link.
+**Verdicts.** TRANSLATES: q below 0.05, interval excludes zero, held-out classes agree. LEANS: interval excludes zero or p below 0.05, but q does not clear. SIZE, NOT SPEED: a raw link of at least 0.30 that falls by half or more. TOO FEW: under 25 players. **NOT DETECTED (low power):** none of the above; no link above the MDE was seen, not no link.
 
 ## Limitations
 - Rookies only (2023 to 2025 classes) with tracked snaps; skipped drills are not random.
 - Counts are small: receivers about 60, defensive backs about 59, linemen about 70, tight ends about 21. Tight ends are all too few to tell (0.66 detectable, 20% power at 0.30).
-- The same players produced the leads and test them; three held-out classes are the only out-of-sample check. Burst Score recipes were chosen using game results, so those numbers are optimistic.
+- The same players produced the leads and test them; three held-out classes are the only out-of-sample check. Burst Score recipes were chosen using game results, and Figures 5 and 7 show the best-looking test per result, so those numbers are optimistic.
 - Pooled defensive-line size may partly mean role; edge and interior splits have only 39 and 33 players (about 0.48 and 0.51 detectable).
 - No blocker or quarterback tracks are linked: pressure and sack results are association, not causation.
 

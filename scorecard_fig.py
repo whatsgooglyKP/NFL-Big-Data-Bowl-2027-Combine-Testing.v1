@@ -6,7 +6,7 @@ from matplotlib.lines import Line2D
 from dl_recheck import OUT
 
 c = pd.read_csv(OUT / "scorecard.csv")
-COL = {"TRANSLATES": "#1a9850", "LEANS": "#f1a340", "SIZE, NOT SPEED": "#d95f02", "NOT DETECTED (low power)": "#7f7f7f", "TOO FEW TO TELL": "#bdbdbd"}
+COL = {"TRANSLATES": "#009E73", "LEANS": "#E69F00", "SIZE, NOT SPEED": "#CC79A7", "NOT DETECTED (low power)": "#7f7f7f", "TOO FEW TO TELL": "#bdbdbd"}
 SHORT_T = {"forty": "40", "ten_yd_split": "10-yd", "vertical": "Vertical", "broad_jump": "Broad jump", "three_cone": "3-cone", "short_shuttle": "Shuttle",
            "c_top_mph": "Top speed (tracked)", "burst_0_100": "Burst Score", "c_decel": "DB-drill braking", "c_accel": "DB-drill re-burst"}
 SHORT_O = {"sunday_speed_mph": "deep-route game speed", "sep_all_mean": "separation (all routes)", "break_y": "separation (break routes)",

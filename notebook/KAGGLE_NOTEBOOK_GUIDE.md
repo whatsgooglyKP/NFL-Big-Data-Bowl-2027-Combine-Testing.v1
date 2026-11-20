@@ -7,7 +7,7 @@ Rules checked against the official Kaggle pages (Overview, Evaluation, Submissio
 ## What the rules require (and where we stand)
 | Rule | Our status |
 |---|---|
-| Writeup at most 2,000 words, fewer than 10 tables or figures | 1,832 markdown words (about 1,950 if a counter also counts the table's markup); 7 figures + 1 table = 8 |
+| Writeup at most 2,000 words, fewer than 10 tables or figures | 1,826 markdown words (about 1,945 if a counter also counts the table's markup); 7 figures + 1 table = 8 |
 | Explicitly link Combine tracking to regular-season game performance (pass/fail gate) | Stated at the top and recomputed in the GATE cell |
 | Readable markdown, embedded visuals, attached **public** Kaggle notebook (pass/fail gate) | Notebook ready; you make it public and attach it |
 | Must use the provided player tracking data (otherwise not scored) | GATE cell reads `combine_tracking`, `game_tracking_2023/24/25`, `player_play` |
@@ -24,8 +24,7 @@ Kaggle: **Datasets, New Dataset**, name it `bdb2027-outputs`. Upload a folder na
 - `out/scorecard.csv`
 - `out/scorecard_full.csv`
 - `out/scorecard_weight.csv`
-- `out/figs/fig22_scorecard.png`
-- `out/figs/fig1_translation_scatter.png` (fallback only, used if the competition data is not attached)
+- `out/figs/fig1_gate_wr.png` (fallback only: shown in the gate cell if the competition data is not attached; every other figure is drawn from the three CSVs)
 
 The notebook finds `scorecard_full.csv` anywhere under `/kaggle/input`, so the folder layout just has to keep `out/` and `out/figs/`.
 
@@ -46,3 +45,6 @@ Optional: a short YouTube video link. Any external link must be viewable without
 
 ## Writeup structure (five findings)
 Hook and gate; 1 Receivers (Fig 1, Fig 2); 2 Defensive line, raw vs size-adjusted (Fig 3); 3 Consistent leads, honest q (Fig 4); 4 Defensive backs, not detected with MDE and power (Table 1, Fig 5); 5 Weight (Fig 6); how a scout uses it (Fig 7); methods; limitations. The verdict once called "DOESN'T TRANSLATE" is now "NOT DETECTED (low power)" (same rule; see METRICS 9 and 12).
+
+## Figure review (11/20/2026)
+All seven figures were audited against the best-practice checklist and rebuilt: one colour-blind-safe palette, a zero line on every effect plot, 95% intervals with n and q on the plot (interval hidden and flagged below 15 players), + always = better athlete, footnotes for the Burst Score circularity and for best-test-per-result selection, and fonts sized for the Kaggle column. Figure 7 is now drawn live from `scorecard.csv`, so `fig22_scorecard.png` is no longer needed in the dataset. Upload the PNGs in `notebook/writeup_figs/` again; the earlier uploads are superseded.
