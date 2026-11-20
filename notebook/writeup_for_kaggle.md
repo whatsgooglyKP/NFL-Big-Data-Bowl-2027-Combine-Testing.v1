@@ -12,7 +12,7 @@ Two Combine measures clear every check, and both are receiver straight-line spee
 
 Each extra mph of Combine top speed goes with about 0.67 mph more on a deep route in a game (Figure 1). Size barely moves this result (+0.63 before size control, +0.58 after), unlike the defensive line. The other receiver tests (10-yard split, jumps, shuttle, Burst Score) were not detected against deep-route speed (about 0.37 or more was needed to see them).
 
-Figure 2 is the proof of method. Of 164 tests with at least 25 players, 28 reach p < 0.05 against about 8 expected by chance (cells share players, so that overstates independent findings). After false-discovery correction exactly 2 remain, both receiver rows. The method finds real signal where it exists.
+Figure 2 is the proof of method. Of 164 tests with at least 25 players, 28 reach p < 0.05 against about 8 expected by chance (cells share players, so that overstates independent findings). After false-discovery correction exactly 2 remain, both receiver rows. The method finds real signal where it exists. A blind unsupervised search that never saw game outcomes rediscovered this speed axis (ρ +0.50, q 0.004; held-out +0.44, 3 of 3 classes).
 
 ![Figure 1](writeup_figs/fig1_gate_wr.png)
 
@@ -98,6 +98,7 @@ Rules of thumb: trust a receiver's 40 and tracked top speed; compare linemen onl
 - **Size control.** Every link is repeated holding draft year, weight and height fixed (plus CB versus S, edge versus interior). Hollow marks are the link before size.
 - **Shrinkage and held-out classes.** Rates from few snaps are pulled toward the group average. We train on two draft classes, predict the third, and ask whether adding the test beats a size-only model.
 - **False-discovery control.** Each p comes from 10,000 permutations, each interval from a player-level bootstrap, and each result carries a Benjamini-Hochberg q across its whole family of tests. Verdict rules and receiver hypotheses were written first, and every p and interval was re-checked with a second method.
+- Clustering found no stable athletic types at receiver, tight end or defensive back (only lean-edge versus heavy-interior linemen), and we skipped skill-drill braking, cut-speed and turn-rate tracking because they mostly do not repeat across drills (reliability 0.42 or less).
 - **Power.** The smallest detectable effect (MDE, 80% power) is a Fisher-z approximation, checked by simulation (77% to 82% power at the MDE).
 
 **Verdicts.** TRANSLATES: q below 0.05, interval excludes zero, held-out classes agree. LEANS: interval excludes zero or p below 0.05, but q does not clear. SIZE, NOT SPEED: a raw link of at least 0.30 that falls by half or more. TOO FEW: under 25 players. **NOT DETECTED (low power):** none of the above; no link above the MDE was seen, not no link.

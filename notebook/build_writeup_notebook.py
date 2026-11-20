@@ -113,6 +113,24 @@ s_scr, s_cro, s_brk, s_ver = RL("screen", "combine_weight"), RL("crosser", "comb
 te_n = int(full[full.group == "TE"].n.max())
 L_WR = F("WR", "forty", "sunday_speed_mph").coach_line; L_DL = F("DL", "forty", "pressure_rate").coach_line
 
+# ---------------------------------------------------------------- unsupervised track (branch `unsupervised`, aggregates copied to out/unsupervised/, 11/2026)
+UD = OUTD / "unsupervised"
+ub = pd.read_csv(UD / "familyB.csv"); urel = pd.read_csv(UD / "drill_reliability.csv")
+usel = pd.read_csv(UD / "cluster_selection.csv"); unull = pd.read_csv(UD / "cluster_null.csv")
+uwr = ub[(ub.group == "WR") & (ub.pc == 3) & (ub.outcome == "sunday_speed_mph")].iloc[0]
+assert uwr.q_size < 0.05 and uwr.loso_p < 0.05 and int(uwr.loso_classes_pos) == 3 and uwr.rho_size > 0 and uwr.loso_rho > 0
+U_RHO, U_Q, U_HELD, U_CLS = sg(uwr.rho_size), f"{uwr.q_size:.3f}", sg(uwr.loso_rho), int(uwr.loso_classes_pos)
+assert (U_RHO, U_Q, U_HELD) == ("+0.50", "0.004", "+0.44"), (U_RHO, U_Q, U_HELD)
+# no stable distinct types at WR/TE/DB: no stable k >= 3 (k-means/GMM/Ward), and the stable k = 2 is no more distinct than one blob; DL k = 2 is
+for gname in ("WR", "TE", "DB"):
+    assert not usel[(usel.group == gname) & (usel.fset == "ALL") & (usel.k >= 3) & (usel.method != "hdbscan")].stable.any()
+    assert unull[(unull.group == gname) & (unull.fset == "ALL") & (unull.k == 2)].p_one_blob.iloc[0] > 0.05
+assert unull[(unull.group == "DL") & (unull.fset == "ALL") & (unull.k == 2)].p_one_blob.iloc[0] < 0.05
+rr = urel[urel.feature.isin(["drill_dec", "drill_keep", "drill_turn"])]
+rr_ex = rr[~((rr.group == "TE") & (rr.feature == "drill_turn"))]
+U_REL = f"{rr_ex.alpha_k.max():.2f}"; assert U_REL == "0.42", U_REL
+assert rr[(rr.group == "TE") & (rr.feature == "drill_turn")].alpha_k.iloc[0] >= 0.6   # the one exception, named in the sentence
+
 PT_CELL = """
 pt = power_table(full)
 tbl = pt.copy()
@@ -185,7 +203,7 @@ Two Combine measures clear every check, and both are receiver straight-line spee
 
 Each extra mph of Combine top speed goes with about {SLOPE:.2f} mph more on a deep route in a game (Figure 1). Size barely moves this result ({sg(wtop.rho_raw)} before size control, {sg(wtop.rho_size)} after), unlike the defensive line. The other receiver tests (10-yard split, jumps, shuttle, Burst Score) were not detected against deep-route speed (about {mde_wr:.2f} or more was needed to see them).
 
-Figure 2 is the proof of method. Of {N_CELLS} tests with at least 25 players, {N_P05} reach p < 0.05 against about {N_EXP} expected by chance (cells share players, so that overstates independent findings). After false-discovery correction exactly {N_Q05} remain, both receiver rows. The method finds real signal where it exists.
+Figure 2 is the proof of method. Of {N_CELLS} tests with at least 25 players, {N_P05} reach p < 0.05 against about {N_EXP} expected by chance (cells share players, so that overstates independent findings). After false-discovery correction exactly {N_Q05} remain, both receiver rows. The method finds real signal where it exists. A blind unsupervised search that never saw game outcomes rediscovered this speed axis (ρ {U_RHO}, q {U_Q}; held-out {U_HELD}, {U_CLS} of 3 classes).
 """))
 C.append(md("*Figure 1. Each dot is a receiver. A: as measured. B: after removing draft year, weight and height from both axes (ranks).*"))
 C.append(code(open(HERE / "fig_cells" / "fig2.py").read()))
@@ -264,6 +282,7 @@ C.append(md(f"""
 - **Size control.** Every link is repeated holding draft year, weight and height fixed (plus CB versus S, edge versus interior). Hollow marks are the link before size.
 - **Shrinkage and held-out classes.** Rates from few snaps are pulled toward the group average. We train on two draft classes, predict the third, and ask whether adding the test beats a size-only model.
 - **False-discovery control.** Each p comes from 10,000 permutations, each interval from a player-level bootstrap, and each result carries a Benjamini-Hochberg q across its whole family of tests. Verdict rules and receiver hypotheses were written first, and every p and interval was re-checked with a second method.
+- Clustering found no stable athletic types at receiver, tight end or defensive back (only lean-edge versus heavy-interior linemen), and we skipped skill-drill braking, cut-speed and turn-rate tracking because they mostly do not repeat across drills (reliability {U_REL} or less).
 - **Power.** The smallest detectable effect (MDE, 80% power) is a Fisher-z approximation, checked by simulation ({SIM_LO}% to {SIM_HI}% power at the MDE).
 
 **Verdicts.** TRANSLATES: q below 0.05, interval excludes zero, held-out classes agree. LEANS: interval excludes zero or p below 0.05, but q does not clear. SIZE, NOT SPEED: a raw link of at least 0.30 that falls by half or more. TOO FEW: under 25 players. **NOT DETECTED (low power):** none of the above; no link above the MDE was seen, not no link.

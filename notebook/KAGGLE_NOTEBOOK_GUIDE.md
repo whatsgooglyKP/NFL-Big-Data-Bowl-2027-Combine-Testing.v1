@@ -7,7 +7,7 @@ Rules checked against the official Kaggle pages (Overview, Evaluation, Submissio
 ## What the rules require (and where we stand)
 | Rule | Our status |
 |---|---|
-| Writeup at most 2,000 words, fewer than 10 tables or figures | 1,826 markdown words (about 1,945 if a counter also counts the table's markup); 7 figures + 1 table = 8 |
+| Writeup at most 2,000 words, fewer than 10 tables or figures | 1,889 markdown words (1,913 counting the table's words; 2,020 only if a counter also counts every table pipe and image line as a word); 7 figures + 1 table = 8 |
 | Explicitly link Combine tracking to regular-season game performance (pass/fail gate) | Stated at the top and recomputed in the GATE cell |
 | Readable markdown, embedded visuals, attached **public** Kaggle notebook (pass/fail gate) | Notebook ready; you make it public and attach it |
 | Must use the provided player tracking data (otherwise not scored) | GATE cell reads `combine_tracking`, `game_tracking_2023/24/25`, `player_play` |
