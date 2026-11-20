@@ -5,6 +5,7 @@ import numpy as np, pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import matplotlib.ticker
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from common import CACHE, OUT, FIGS, GROUPS, SEED
@@ -23,7 +24,10 @@ OUTS = {"sunday_speed_mph": "Game speed (mph)", "sep_all_mean": "Separation, all
         "tackle_rate": "Tackle rate", "tfl_rate": "TFL rate", "close_rate_mph": "Closing speed", "pfr_yds_tgt": "Yds/target allowed (lower better)",
         "pfr_mtkl_pct": "Missed-tackle % (lower better)", "pressure_rate": "Pressure rate", "sack_rate": "Sack rate", "run_stop_rate": "Run-stop rate",
         "speed_1s_mph": "Get-off speed at 1 s"}
-C2 = ["#1f77b4", "#d62728", "#2ca02c"]
+UNITS = {"sunday_speed_mph": "mph", "sep_all_mean": "yards", "break_y": "yards vs expected (shrunk)", "pressure_rate": "pressures per pass rush",
+         "sack_rate": "sacks per pass rush", "pfr_yds_tgt": "yards per target", "close_rate_mph": "mph", "tfl_rate": "TFL per snap",
+         "tackle_rate": "tackles per snap", "pfr_mtkl_pct": "missed-tackle %", "run_stop_rate": "run stops per run snap", "speed_1s_mph": "mph"}
+C2 = ["#1f77b4", "#e66100", "#5e3c99"]   # blue / orange / purple: colourblind-safe
 
 
 def fig_biplot(cf, arch):
@@ -53,7 +57,7 @@ def fig_types():
     ax = axs[0]
     km = s[(s.method == "kmeans") & (s.fset == "ALL")]
     for i, g in enumerate(GROUPS):
-        d = km[km.group == g]; ax.plot(d.k, d.boot_ari_median, "o-", label=g)
+        d = km[km.group == g]; ax.plot(d.k, d.boot_ari_median, ["o-", "s--", "^-", "D-."][i], color=["#1f77b4", "#e66100", "#5e3c99", "#222222"][i], label=g)
     ax.axhline(.6, ls="--", c="k", lw=1); ax.text(6.05, .6, "stable\n(ARI 0.6)", fontsize=8, va="center")
     ax.set_xlabel("number of archetypes (k-means k)"); ax.set_ylabel("bootstrap stability (median ARI)"); ax.set_ylim(0, 1)
     ax.set_title("Only 2-way splits are stable", loc="left", fontweight="bold"); ax.legend(frameon=False)
@@ -67,11 +71,11 @@ def fig_types():
         for xi, (_, r) in zip(x, e.iterrows()):
             if r.p_one_blob < 0.05:
                 ax.text(xi + (j - 1) * w, r.sil_obs + .01, "*", ha="center", fontsize=14)
-    ax.set_xticks(x, GROUPS); ax.set_ylabel("silhouette (higher = more distinct types)")
+    ax.set_xticks(x, GROUPS); ax.set_xlabel("Position group"); ax.set_ylabel("silhouette (higher = more distinct types)")
     ax.set_title("Real data vs one continuous blob (black = blob median to 95th pct)", loc="left", fontweight="bold", fontsize=10)
-    ax.legend(frameon=False, fontsize=8); ax.text(0, -.16, "* = more distinct than a single blob (p < 0.05).\nOnly DL k = 2 (edge build vs interior build) and an unstable WR k = 3 qualify.",
+    ax.legend(frameon=False, fontsize=8); ax.text(0, -.24, "* = more distinct than a single blob (p < 0.05).\nOnly DL k = 2 (edge build vs interior build) and an unstable WR k = 3 qualify.",
                                                    transform=ax.transAxes, fontsize=8)
-    fig.tight_layout(rect=(0, .05, 1, 1)); fig.savefig(FIGS / "u_fig2_types_or_continuum.png", bbox_inches="tight"); plt.close(fig)
+    fig.tight_layout(rect=(0, .08, 1, 1)); fig.savefig(FIGS / "u_fig2_types_or_continuum.png", bbox_inches="tight"); plt.close(fig)
 
 
 def fig_centroids():
@@ -105,6 +109,7 @@ def fig_arch_outcome():
             ax.errorbar(e.arch, e["median"], yerr=[[e["median"] - e.boot_lo], [e.boot_hi - e["median"]]], fmt="o", ms=8, color=C2[int(e.arch)], capsize=5)
             ax.text(e.arch, e.boot_hi, f" n={e.n}", fontsize=8, va="bottom", ha="center")
         ax.set_xticks(d.arch, [ARCH_NAME[(g, fs)][int(k)].replace(" (", "\n(") for k in d.arch], fontsize=7.5); ax.set_xlim(-.6, 1.6)
+        ax.set_ylabel(f"median {UNITS[o]} (95% CI)", fontsize=8.5)
         ax.set_title(f"{g} {'size-adj.' if fs == 'SIZEADJ' else 'all'}: {OUTS[o]}", loc="left", fontsize=9, fontweight="bold")
         held = "yes" if (r.loso_p < .05 and r.loso_classes_pos >= 2 and r.loso_rho > 0) else "no"
         ax.text(.02, -.32, f"beyond size p={r.p_size:.3f} (q={r.q_size:.2f})\nheld-out class rho={r.loso_rho:+.2f}, passes: {held}", transform=ax.transAxes, fontsize=7.5)
@@ -119,19 +124,23 @@ def fig_crosstab():
           "DB": {0: "Deep / zone\n(high safety,\nbig cushion)", 1: "Man / press\n(tight, faster)"},
           "DL": {0: "Edge rusher\n(fast first second)", 1: "Interior\n(slower first second)"}}
     style_name = lambda g, k: SN[g][k]
-    fig, axs = plt.subplots(1, 4, figsize=(17, 4.6), gridspec_kw=dict(width_ratios=[3, 3, 2, 2], wspace=.75))
-    for ax, g in zip(axs, GROUPS):
+    fig, axs = plt.subplots(2, 2, figsize=(13, 9.5), gridspec_kw=dict(wspace=.55, hspace=.75))
+    for ax, g in zip(axs.flat, GROUPS):
         m = ct[ct.group == g].pivot_table(index="combine_arch", columns="game_style", values="count", fill_value=0)
         sh = m.div(m.sum(axis=1), axis=0)
-        ax.imshow(sh, cmap="Blues", vmin=0, vmax=1)
+        im = ax.imshow(sh, cmap="Blues", vmin=0, vmax=1)
         for i in range(m.shape[0]):
             for j in range(m.shape[1]):
-                ax.text(j, i, f"{int(m.iloc[i, j])}", ha="center", va="center", color="k" if sh.iloc[i, j] < .6 else "w")
+                ax.text(j, i, f"{int(m.iloc[i, j])}\n({sh.iloc[i, j]:.0%})", ha="center", va="center", fontsize=9, color="k" if sh.iloc[i, j] < .6 else "w")
+        ax.set_xlabel("In-game style (game movement + deployment cluster)", fontsize=9)
+        ax.set_ylabel("Combine archetype", fontsize=9)
         ax.set_yticks(range(m.shape[0]), [ARCH_NAME[(g, "ALL")][k].replace(" (", "\n(") for k in m.index], fontsize=8.5)
-        ax.set_xticks(range(m.shape[1]), [style_name(g, k) for k in m.columns], fontsize=7.5)
+        ax.set_xticks(range(m.shape[1]), [style_name(g, k) for k in m.columns], fontsize=8.5)
         r = t[t.group == g].iloc[0]
         ax.set_title(f"{g} (n={r.n}): ARI {r.ari:.2f}, q={r.q_ari:.3f}{'' if r.style_stable else ' (styles unstable)'}", loc="left", fontsize=9, fontweight="bold")
-    fig.suptitle("Combine archetype (rows) vs in-game movement/deployment style (columns): counts, shaded by row share", x=.01, ha="left")
+    cb = fig.colorbar(im, ax=list(axs.flat), fraction=.025, pad=.03)
+    cb.set_label("Share of the archetype's players\nin each game style (row %)", fontsize=9); cb.ax.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
+    fig.suptitle("Combine archetype (rows) vs in-game movement/deployment style (columns)\nCell = number of players (row %); shading = row %", x=.01, ha="left")
     fig.savefig(FIGS / "u_fig5_combine_vs_game_style.png", bbox_inches="tight"); plt.close(fig)
 
 
@@ -142,33 +151,40 @@ def fig_forest():
     fig, ax = plt.subplots(figsize=(10, 13))
     y = np.arange(len(b))
     held = (b.loso_p < .05) & (b.loso_classes_pos >= 2) & (b.loso_rho > 0)
-    col = np.where(b.q_size < .05, "#2ca02c", np.where(b.p_size < .05, "#ff7f0e", "0.6"))
+    col = np.where(b.q_size < .05, "#1f4e9c", np.where(b.p_size < .05, "#e66100", "0.6"))
     ax.hlines(y, b.lo, b.hi, color=col); ax.scatter(b.rho_size, y, c=col, s=np.where(held, 60, 20), zorder=3, edgecolor=np.where(held, "k", "none"))
     ax.axvline(0, c="k", lw=.8); ax.set_yticks(y, b.name, fontsize=7)
     ax.set_xlabel("rank partial correlation, draft year + weight + height (+ role) held fixed; 95% bootstrap CI")
-    ax.set_title("Latent Combine axes vs game outcomes (Family B)\ngreen = q < 0.05, orange = p < 0.05 only, grey = not detected\nbig black-edged dot = training-class fit also ranks the held-out class (either sign)", loc="left", fontsize=9)
+    ax.set_title("Latent Combine axes vs game outcomes (Family B)\ndark blue = q < 0.05, orange = p < 0.05 only, grey = not detected\nbig black-edged dot = training-class fit also ranks the held-out class (either sign)", loc="left", fontsize=9)
     fig.tight_layout(); fig.savefig(FIGS / "u_fig6_latent_axes_forest.png", bbox_inches="tight"); plt.close(fig)
 
 
 def fig_quality():
     r = pd.read_csv(OUT / "drill_reliability.csv"); ph = pd.read_csv(OUT / "posthoc.csv")
-    fig, axs = plt.subplots(1, 2, figsize=(13, 5), gridspec_kw=dict(wspace=.45))
+    fig, axs = plt.subplots(1, 2, figsize=(15, 5.4), gridspec_kw=dict(wspace=.9, width_ratios=[1, 1.1]))
     ax = axs[0]
     piv = r.pivot_table(index="feature", columns="group", values="alpha_k")[GROUPS]
     names = {"drill_top": "peak speed", "drill_acc": "peak accel", "drill_dec": "braking", "drill_keep": "speed kept in cuts", "drill_turn": "turn rate", "drill_dur": "duration"}
-    im = ax.imshow(piv.clip(-.2, 1), cmap="RdYlGn", vmin=-.2, vmax=1)
+    im = ax.imshow(piv.clip(-.2, 1), cmap="viridis", vmin=-.2, vmax=1)
     for i in range(piv.shape[0]):
         for j in range(piv.shape[1]):
-            ax.text(j, i, f"{piv.iloc[i, j]:.2f}", ha="center", va="center", fontsize=8)
+            v = piv.iloc[i, j]
+            ax.text(j, i, f"{v:.2f}" + (" *" if v >= .6 else ""), ha="center", va="center", fontsize=9, color="k" if v > .45 else "w",
+                    fontweight="bold" if v >= .6 else "normal")
     ax.set_xticks(range(4), GROUPS); ax.set_yticks(range(len(piv)), [names[i] for i in piv.index])
-    ax.set_title("Skill-drill tracking: does the trait\nrepeat across drills? (reliability alpha;\n0.6+ used, below = drill noise)", loc="left", fontsize=9, fontweight="bold")
+    ax.set_xlabel("Position group"); ax.set_ylabel("Skill-drill movement trait (tracking)")
+    cb = fig.colorbar(im, ax=ax, fraction=.06, pad=.05, ticks=[-.2, 0, .2, .4, .6, .8, 1.0])
+    cb.ax.set_yticklabels(["-0.2", "0.0", "0.2", "0.4", "0.6 trustworthy", "0.8", "1.0"], fontsize=8.5)
+    cb.set_label("Reliability (Cronbach's alpha): how consistently\na trait repeats across drills", fontsize=9)
+    cb.ax.axhline(.6, color="#e66100", lw=3)
+    ax.set_title("Skill-drill tracking: does the trait repeat across drills?\n(* = alpha 0.6 or more, used; below = drill noise, not used)", loc="left", fontsize=9, fontweight="bold")
     ax = axs[1]
     d = ph[ph.check.str.startswith("3 ") & ph.check.str.contains("f40_s1 vs ten_fast")]
     d2 = ph[ph.check.str.startswith("3 ") & ph.check.str.contains("f40_acc vs ten_fast")]
     x = np.arange(4)
     ax.bar(x - .2, d.rho, .4, label="tracked speed 1 s into the 40", color=C2[0]); ax.bar(x + .2, d2.rho, .4, label="tracked peak accel in the 40", color=C2[1])
-    ax.set_xticks(x, GROUPS); ax.axhline(0, c="k", lw=.8); ax.set_ylim(-.1, 1)
-    ax.set_ylabel("Spearman with official 10-yd split speed")
+    ax.set_xticks(x, GROUPS); ax.axhline(0, c="k", lw=.8); ax.set_ylim(-.1, 1); ax.set_xlabel("Position group")
+    ax.set_ylabel("Spearman ρ with official 10-yd split\n(faster split = higher; 1 = perfect agreement)")
     ax.set_title("Tracked 'launch' barely agrees with the official 10-yd split\n(10 Hz frames are too coarse for the first step, except heavier DL)", loc="left", fontsize=9, fontweight="bold")
     ax.legend(frameon=False, fontsize=8)
     fig.savefig(FIGS / "u_fig7_tracking_reliability.png", bbox_inches="tight"); plt.close(fig)
