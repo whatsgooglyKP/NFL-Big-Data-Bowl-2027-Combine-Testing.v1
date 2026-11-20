@@ -150,9 +150,9 @@ C.append(md(f"""
 
 **Three positions, three stories.** Receivers: speed is real and shows up on Sunday. Linemen: the drills predict pass rush, mostly through body size, so read them size-adjusted. Defensive backs: the Combine alone is a weak guide at this sample size.
 
-**The required link, stated plainly.** We connect each rookie's 10 Hz Combine tracking (2023 to 2025 classes) to his regular-season game tracking. A receiver's tracked Combine top speed predicts his regular-season speed on deep routes (ρ {sg(wtop.rho_raw)} year-controlled, **{sg(wtop.rho_size)} with body size held fixed**, n {int(wtop.n)}). The cell below recomputes that from the raw tracking files.
+**The required link, stated plainly.** We connect each rookie's 10 Hz Combine tracking (2023 to 2025 classes) to his regular-season game tracking. A receiver's tracked Combine top speed predicts his regular-season speed on deep routes (ρ {sg(wtop.rho_raw)} year-controlled, **{sg(wtop.rho_size)} with body size held fixed**, n {int(wtop.n)}). This notebook recomputes that from the raw tracking files.
 
-Data: the competition's Combine, game-tracking, play, player and game files, plus public Pro-Football-Reference stats (two DB outcomes). No draft-position information is used; draft *year* is a control only. Running backs are excluded. **Sunday Speed** is a player's 90th-percentile top speed per play where his job asks for speed (deep routes for receivers; man or deep coverage for defensive backs), regular season. **Burst Score** is a 0 to 100 within-position blend of the tracked 20-yard time and the jumps. ρ is a rank correlation; positive means the better athlete does better.
+Data: the competition's Combine, game-tracking, play, player and game files, plus public Pro-Football-Reference stats via nflverse (two DB outcomes). Source: NFL Big Data Bowl 2027 (CC BY-NC 4.0). No draft-position information is used; draft *year* is a control only. Running backs are excluded. **Sunday Speed** is a player's 90th-percentile top speed per play where his job asks for speed (deep routes for receivers; man or deep coverage for defensive backs), regular season. **Burst Score** is a 0 to 100 within-position blend of the tracked 20-yard time and the jumps. ρ is a rank correlation; positive means the better athlete does better.
 """))
 
 C.append(code('''
@@ -269,7 +269,7 @@ C.append(md("*Figure 6. Weight against on-field results. Left of zero: heavier p
 # =====================================================================================  SCOUT USE
 C.append(md(f"""
 ## How a scout uses this
-A scorecard, not a ranking (Figure 7), behind a lookup dashboard: enter a Combine line and each test returns a tag and a one-line read. One example:
+A scorecard, not a ranking (Figure 7), built for lookup: for each Combine test it returns a tag and a one-line read. One example:
 - **{L_WR}**
 
 Rules of thumb: trust a receiver's 40 and tracked top speed; compare linemen only with linemen of their weight and role; treat defensive-back numbers as one input among several. Every line carries its n and interval.
@@ -298,7 +298,7 @@ C.append(md(f"""
 """))
 C.append(md("""
 ## Appendix
-Code cells are collapsed. Attach the `bdb2027-outputs` dataset (audited result tables) and the competition data.
+Code: this public Kaggle notebook (competition data plus the public `bdb2027-outputs` result tables). All code is open source.
 """))
 
 for i, c in enumerate(C):
@@ -326,23 +326,15 @@ for c in C:
     t = "".join(c["source"]); m = re.match(r"\*(Figure \d|Table 1)\.", t)
     if m: parts.append("\n".join(tbl) if m.group(1) == "Table 1" else f"![{m.group(1)}](writeup_figs/{IMG[m.group(1)]})")
     parts.append(t)
-# Writeup-only wording (audit 11/2026, F2-F6; approved by Kevin). Notebook cells above are left as published on Kaggle (v2).
+# Writeup wording (audit 11/2026, F2-F6; approved by Kevin). Notebook cells carry the same F2-F5 text (notebook v3).
 _md_out = "\n\n".join(parts) + "\n"
 WRITEUP_EDITS = [
     # F6: the Writeup form's title field carries the title, so the body drops the H1
     ("# Read the Combine through body size: three positions, three different stories\n", ""),
-    # F2: no code cells in a Writeup
-    ("The cell below recomputes that from the raw tracking files.",
+    # F2/F3: the notebook says "this notebook"; the Writeup points to the attached one (F4/F5 wording is shared, set in the cells above)
+    ("This notebook recomputes that from the raw tracking files.",
      "The attached public notebook recomputes that from the raw tracking files."),
-    # F5: explicit data credit
-    ("plus public Pro-Football-Reference stats (two DB outcomes).",
-     "plus public Pro-Football-Reference stats via nflverse (two DB outcomes). Source: NFL Big Data Bowl 2027 (CC BY-NC 4.0)."),
-    # F4: judges cannot open a dashboard
-    ("behind a lookup dashboard: enter a Combine line and each test returns a tag and a one-line read.",
-     "built for lookup: for each Combine test it returns a tag and a one-line read."),
-    # F3: notebook language out of the Appendix
-    ("Code cells are collapsed. Attach the `bdb2027-outputs` dataset (audited result tables) and the competition data.",
-     "Code: the attached public Kaggle notebook (competition data plus the public `bdb2027-outputs` result tables). All code is open source."),
+    ("Code: this public Kaggle notebook", "Code: the attached public Kaggle notebook"),
 ]
 for _old, _new in WRITEUP_EDITS:
     assert _md_out.count(_old) == 1, ("writeup edit target not found exactly once", _old[:60])
