@@ -53,8 +53,8 @@ def power_table(full):
             ("   interior only", g[(g.group == "DL") & (g.subgroup == "Interior")]),
             ("Defensive backs", g[g.group == "DB"]),
             ("Tight ends (n 15+)", full[(full.group == "TE") & (full.n >= 15)])]
-    rows = [dict(Group=lab, **{"Typical n": int(d.n.median()), "Smallest |rho| seen 8 times in 10": round(float(d.mde80.median()), 2),
-                               "...after multiple-test correction": round(float(d.mde80_bh.median()), 2),
+    rows = [dict(Group=lab, **{"Typical n": int(d.n.median()), "Smallest |rho| seen 8 times in 10": float(f"{d.mde80.median():.2f}"),
+                               "...after multiple-test correction": float(f"{d.mde80_bh.median():.2f}"),
                                "Chance to see a true rho of 0.30": float(d.power_rho03.median()),
                                "...after correction": float(d.power_rho03_bh.median())}) for lab, d in spec]
     return pd.DataFrame(rows)
@@ -99,6 +99,7 @@ CLS_LO, CLS_HI = int(round(min(cls_needed))), int(np.ceil(max(cls_needed)))
 wvert, wburst, dlb = lead[0], lead[1], lead[4]
 h1c, h1s, h3t = RC("H1", "three_cone"), RC("H1", "short_shuttle"), RC("H3", "ten_yd_split")
 wr3c, wrsh = F("WR", "three_cone", "sunday_speed_mph"), F("WR", "short_shuttle", "sunday_speed_mph")
+_ag = full[(full.group == "WR") & full.test.isin(["three_cone", "short_shuttle"])].n; AG_LO, AG_HI = int(_ag.min()), int(_ag.max())   # was hard-coded "22 to 30"; audited range is used
 
 OTH = g[g.group.isin(['WR', 'DB']) & (g.subgroup == 'All') & (g.rho_raw.abs() >= 0.30)]
 OTH_BIG = len(OTH); assert int((OTH.rho_size.abs() <= 0.5 * OTH.rho_raw.abs()).sum()) == 0
@@ -135,11 +136,11 @@ PT_CELL = """
 pt = power_table(full)
 tbl = pt.copy()
 for c in ["Chance to see a true rho of 0.30", "...after correction"]:
-    tbl[c] = (100 * tbl[c]).round(0).astype(int).astype(str) + "%"
+    tbl[c] = (100 * tbl[c]).map(lambda v: f"{v:.0f}%")
 display(tbl.reset_index(drop=True))
 """
 md = lambda s: {"cell_type": "markdown", "metadata": {}, "source": s.strip("\n").splitlines(True)}
-code = lambda s: {"cell_type": "code", "metadata": {"jupyter": {"source_hidden": True}, "tags": ["hide-input"]}, "execution_count": None, "outputs": [], "source": s.strip("\n").splitlines(True)}
+code = lambda s: {"cell_type": "code", "metadata": {"jupyter": {"source_hidden": True}, "_kg_hide-input": True, "tags": ["hide-input"]}, "execution_count": None, "outputs": [], "source": s.strip("\n").splitlines(True)}
 C = []
 
 # =====================================================================================  HOOK + GATE
@@ -147,11 +148,11 @@ C.append(md(f"""
 # Read the Combine through body size: three positions, three different stories
 *NFL Big Data Bowl 2027 · Open Track · Combine tracking linked to regular-season game tracking · WR, TE, DB, DL*
 
-**Read Combine numbers through body size, and three positions tell three different stories.** Receivers: speed is real and shows up on Sunday. Linemen: the drills predict pass rush, mostly through body size, so read them size-adjusted. Defensive backs: the Combine alone is a weak guide at this sample size.
+**Three positions, three stories.** Receivers: speed is real and shows up on Sunday. Linemen: the drills predict pass rush, mostly through body size, so read them size-adjusted. Defensive backs: the Combine alone is a weak guide at this sample size.
 
 **The required link, stated plainly.** We connect each rookie's 10 Hz Combine tracking (2023 to 2025 classes) to his regular-season game tracking. A receiver's tracked Combine top speed predicts his regular-season speed on deep routes (ρ {sg(wtop.rho_raw)} year-controlled, **{sg(wtop.rho_size)} with body size held fixed**, n {int(wtop.n)}). The cell below recomputes that from the raw tracking files.
 
-Data: the competition's Combine tracking, game tracking, play, player and game files, plus free public Pro-Football-Reference stats (two DB outcomes). No draft-position information is used; draft *year* is a control only. Running backs are excluded. **Sunday Speed** is a player's 90th-percentile top speed per play where his job asks for speed (deep routes for receivers; man or deep coverage for defensive backs), regular season. **Burst Score** is a 0 to 100 within-position blend of the tracked 20-yard time and the jumps. ρ is a rank correlation; positive means the better athlete does better.
+Data: the competition's Combine, game-tracking, play, player and game files, plus public Pro-Football-Reference stats (two DB outcomes). No draft-position information is used; draft *year* is a control only. Running backs are excluded. **Sunday Speed** is a player's 90th-percentile top speed per play where his job asks for speed (deep routes for receivers; man or deep coverage for defensive backs), regular season. **Burst Score** is a 0 to 100 within-position blend of the tracked 20-yard time and the jumps. ρ is a rank correlation; positive means the better athlete does better.
 """))
 
 C.append(code('''
@@ -195,31 +196,31 @@ print("audited outputs:", OUT, "| competition data:", COMP)
 C.append(code(open(HERE / "fig_cells" / "setup_helpers.py").read()))
 
 C.append(code(open(HERE / "fig_cells" / "gate.py").read()))
+C.append(md("*Figure 1. Each dot is a receiver. A: as measured. B: after removing draft year, weight and height from both axes (ranks).*"))
 
 # =====================================================================================  1 WR
 C.append(md(f"""
 ## 1. Receivers: speed is real, and it carries to Sunday
-Two Combine measures clear every check, and both are receiver straight-line speed. The 40-yard dash goes with faster game speed on deep routes (ρ {sg(w40.rho_size)} with size held fixed, 95% CI {CI(w40)}, n {int(w40.n)}, q {qf(w40.fdr_q)}). The tracked Combine top speed does so even more strongly ({sg(wtop.rho_size)}, {CI(wtop)}, n {int(wtop.n)}, q {qf(wtop.fdr_q)}). Both improve predictions on held-out draft classes ({w40.classes_helped} each).
+Two Combine measures clear every check, and both are receiver straight-line speed. The 40-yard dash goes with faster game speed on deep routes (ρ {sg(w40.rho_size)} with size held fixed, 95% CI {CI(w40)}, n {int(w40.n)}, q {qf(w40.fdr_q)}). Tracked Combine top speed is stronger ({sg(wtop.rho_size)}, {CI(wtop)}, n {int(wtop.n)}, q {qf(wtop.fdr_q)}). Both improve predictions on held-out draft classes ({w40.classes_helped} each).
 
-Each extra mph of Combine top speed goes with about {SLOPE:.2f} mph more on a deep route in a game (Figure 1). Size barely moves this result ({sg(wtop.rho_raw)} before size control, {sg(wtop.rho_size)} after), unlike the defensive line. The other receiver tests (10-yard split, jumps, shuttle, Burst Score) were not detected against deep-route speed (about {mde_wr:.2f} or more was needed to see them).
+Each extra mph of Combine top speed goes with about {SLOPE:.2f} mph more on a deep route in a game (Figure 1). Size barely moves it, unlike the defensive line. The other receiver tests (10-yard split, jumps, shuttle, Burst Score) were not detected (about {mde_wr:.2f} or more was needed).
 
 Figure 2 is the proof of method. Of {N_CELLS} tests with at least 25 players, {N_P05} reach p < 0.05 against about {N_EXP} expected by chance (cells share players, so that overstates independent findings). After false-discovery correction exactly {N_Q05} remain, both receiver rows. The method finds real signal where it exists. A blind unsupervised search that never saw game outcomes rediscovered this speed axis (ρ {U_RHO}, q {U_Q}; held-out {U_HELD}, {U_CLS} of 3 classes).
 """))
-C.append(md("*Figure 1. Each dot is a receiver. A: as measured. B: after removing draft year, weight and height from both axes (ranks).*"))
 C.append(code(open(HERE / "fig_cells" / "fig2.py").read()))
 C.append(md("*Figure 2. A: every receiver test against deep-route speed. B: all 164 tests; only two survive correction.*"))
 
 # =====================================================================================  2 DL
 C.append(md(f"""
 ## 2. Defensive line: the drills predict pass rush, mostly through body size
-Linemen's Combine numbers do carry information: faster linemen get off quicker, rush more and sack more. The catch is how much is body size. Across the four outcomes with a strong raw link (get-off, pressure, sack, tackle for loss), {DL_N} test-by-outcome cells have at least 25 players. Their median year-controlled link is ρ {sg(DL_RAW)}. Hold weight, height and role (edge or interior) fixed and the median is {sg(DL_SIZE)}, so on the median about {pc(DL_SHARE)} of the raw link is shared with body size and role (a statistical split, not proof of cause; Figure 3).
+Faster linemen get off quicker, rush more and sack more, but much of that is body size. Across {DL_N} cells with at least 25 players (tests against get-off, pressure, sack and tackles for loss), the median year-controlled link is ρ {sg(DL_RAW)}. Hold weight, height and role (edge or interior) fixed and it is {sg(DL_SIZE)}: about {pc(DL_SHARE)} of the raw link is shared with body size and role (a statistical split, not proof of cause; Figure 3).
 
-What remains is still positive and still useful:
+What remains is still positive:
 - The 40 against **pressure rate** goes from {sg(dl40p.rho_raw)} to {sg(dl40p.rho_size)} (95% CI {CI(dl40p)}, q {dl40p.fdr_q:.2f}).
 - The 10-yard split against **get-off speed** goes from {sg(dl10g.rho_raw)} to {sg(dl10g.rho_size)} (q {dl10g.fdr_q:.2f}).
 - The 40 against **sack rate** goes from {sg(dl40s.rho_raw)} to {sg(dl40s.rho_size)}, and its interval ({CI(dl40s)}) now touches zero.
 
-**How scouts should read it:** a lineman's 40 is a size-adjusted signal. Compare him with linemen of the same weight and role, not the whole group. The pressure lean appears separately for edge ({sg(dl40p_e.rho_size)}, n {int(dl40p_e.n)}) and interior ({sg(dl40p_i.rho_size)}, n {int(dl40p_i.n)}) rushers. Of {BIG_N} defensive-line cells with a raw link of at least 0.30, {BIG_HALF} lose half or more to size; none of {OTH_BIG} receiver or DB cells do.
+The pressure lean appears separately for edge ({sg(dl40p_e.rho_size)}, n {int(dl40p_e.n)}) and interior ({sg(dl40p_i.rho_size)}, n {int(dl40p_i.n)}) rushers. Of {BIG_N} defensive-line cells with a raw link of at least 0.30, {BIG_HALF} lose half or more to size; none of {OTH_BIG} receiver or DB cells do.
 """))
 C.append(code(open(HERE / "fig_cells" / "fig3.py").read()))
 C.append(md("*Figure 3. Defensive-line tests, raw to size-adjusted. The gap is what body size and role account for.*"))
@@ -227,13 +228,13 @@ C.append(md("*Figure 3. Defensive-line tests, raw to size-adjusted. The gap is w
 # =====================================================================================  3 LEADS
 C.append(md(f"""
 ## 3. Consistent leads that need more seasons
-Five results hold in every held-out draft class ({lead[0].classes_helped} each) but do not clear the false-discovery bar. We call them leads and show the honest q:
+Five results hold in every held-out draft class ({lead[0].classes_helped} each) but do not clear the false-discovery bar. We call them leads:
 - **Receivers:** a higher vertical jump ({sg(wvert.rho_size)}, n {int(wvert.n)}, q {wvert.fdr_q:.2f}) and Burst Score ({sg(wburst.rho_size)}, n {int(wburst.n)}, q {wburst.fdr_q:.2f}) go with more separation on break routes.
 - **Defensive line:** the 40 goes with pressure rate ({sg(lead[2].rho_size)}, q {lead[2].fdr_q:.2f}), the 10-yard split with get-off speed ({sg(lead[3].rho_size)}, q {lead[3].fdr_q:.2f}), and Burst Score with tackles for loss ({sg(dlb.rho_size)}, q {dlb.fdr_q:.2f}).
 
 Each estimate is at or below what these samples reliably detect even before correction (about {mde_wr:.2f} for receivers, {mde_dl:.2f} for linemen), and well below what the correction demands (about {P("Receivers","...after multiple-test correction"):.2f} and {P("Defensive line, all","...after multiple-test correction"):.2f}). If the true links equal today's estimates, confirming them needs roughly {CLS_LO} to {CLS_HI} more draft classes (Figure 4). That is optimistic: leads are the best-looking tests.
 
-The textbook agility stories were not detected. We pre-declared that 3-cone and shuttle matter more on break than vertical routes (differences {sg(h1c['diff'])} and {sg(h1s['diff'])}, intervals include zero) and that quickness matters more against man than zone (10-yard difference {sg(h3t['diff'])}, CI {CI(h3t,'lo','hi')}). Only 22 to 30 receivers ran those drills, so only effects of about {wrsh.mde80:.2f} or more were visible; not detected is not ruled out.
+The textbook agility stories were not detected. We pre-declared that 3-cone and shuttle matter more on break than vertical routes (differences {sg(h1c['diff'])} and {sg(h1s['diff'])}, intervals include zero) and that quickness matters more against man than zone (10-yard difference {sg(h3t['diff'])}, CI {CI(h3t,'lo','hi')}). Only {AG_LO} to {AG_HI} receivers ran those drills, so only effects of about {wrsh.mde80:.2f} or more were visible; not detected is not ruled out.
 """))
 C.append(code(open(HERE / "fig_cells" / "fig4.py").read()))
 C.append(md("*Figure 4. The five leads. Gray band: what each sample could reliably see. Right label: players needed to confirm the estimate after correction, if it is true.*"))
@@ -241,11 +242,11 @@ C.append(md("*Figure 4. The five leads. Gray band: what each sample could reliab
 # =====================================================================================  4 DB
 C.append(md(f"""
 ## 4. Defensive backs: the Combine alone is a weak guide at this sample size
-{DB_N} cornerback and safety cells have at least 25 players. {DB_NO} are **not detected** and {DB_LEAN} lean; none clears the correction (lowest q {DB_QMIN:.2f}). The Combine is not useless for defensive backs; with about {n_db} players, only links of ρ {mde_db:.2f} or more would be seen 8 times in 10, and a true link of 0.30 only {pc(pw_db)} of the time ({pc(pwbh_db)} after correction; Table 1).
+{DB_N} cornerback and safety cells have at least 25 players. {DB_NO} are **NOT DETECTED (low power)** and {DB_LEAN} lean; none clears the correction (lowest q {DB_QMIN:.2f}). That is a power problem: with about {n_db} players, only links of ρ {mde_db:.2f} or more would be seen 8 times in 10, and a true link of 0.30 only {pc(pw_db)} of the time ({pc(pwbh_db)} after correction; Table 1).
 
-The intervals are wide. The 40 against missed tackles is {sg(db_missed.rho_size)} (CI {CI(db_missed)}); DB-drill braking against tackle rate is {sg(db_tackle.rho_size)} ({CI(db_tackle)}). Absence of evidence is not evidence of absence.
+The intervals are wide. The 40 against missed tackles is {sg(db_missed.rho_size)} (CI {CI(db_missed)}); DB-drill braking against tackle rate is {sg(db_tackle.rho_size)} ({CI(db_tackle)}).
 
-One result runs the wrong way. A faster 40 goes with *more* yards allowed per target ({sg(db40.rho_size)}, n {int(db40.n)}, 95% CI {CI(db40)}), and broad jump agrees ({sg(dbbj.rho_size)}). We read that as coverage role, not "speed hurts", and it does not clear correction. Use the Combine for defensive backs as one input beside tape and role. Table 1 shows what every group's sample can see; tight ends (about {n_te} players, {mde_te:.2f} detectable) are too few to say anything.
+One result runs the wrong way. A faster 40 goes with *more* yards allowed per target ({sg(db40.rho_size)}, n {int(db40.n)}, 95% CI {CI(db40)}), and broad jump agrees ({sg(dbbj.rho_size)}). We read that as coverage role, not "speed hurts", and it does not clear correction. Use the Combine for defensive backs as one input beside tape and role.
 """))
 C.append(code(POWER_CODE + "\n" + PT_CELL + "\n" + open(HERE / "fig_cells" / "fig5.py").read()))
 C.append(md("*Table 1. What each sample can see: the smallest correlation seen 8 times in 10, and the chance of seeing a true 0.30 (medians over tests with 25+ players).*"))
@@ -256,7 +257,7 @@ C.append(md(f"""
 ## 5. Weight is the variable scouts must adjust for
 A stopwatch cannot tell weight from talent. Holding height and draft year fixed (role too for linemen; Figure 6):
 
-- **Defensive line.** Heavier linemen get off the ball slower (ρ {sg(gw.rho_height_ctrl)}, 95% CI {CI(gw)}, q {qf(gw.fdr_q)}) and reach a lower speed one second after the snap ({sg(gb.rho_height_ctrl)}, q {qf(gb.fdr_q)}). This is why Section 2 reads linemen size-adjusted.
+- **Defensive line.** Heavier linemen get off the ball slower (ρ {sg(gw.rho_height_ctrl)}, 95% CI {CI(gw)}, q {qf(gw.fdr_q)}) and reach a lower speed one second after the snap ({sg(gb.rho_height_ctrl)}, q {qf(gb.fdr_q)}).
 - **Receivers.** Heavier receivers run slower on deep routes ({sg(wsun.rho_height_ctrl)}, q {qf(wsun.fdr_q)}) and slower than their own 40 predicts ({sg(wss.rho_height_ctrl)}, q {qf(wss.fdr_q)}).
 - **Separation.** Heavier receivers also get less separation on break ({sg(s_brk.rho_size)}), vertical ({sg(s_ver.rho_size)}) and crosser ({sg(s_cro.rho_size)}) routes, not on screens ({sg(s_scr.rho_size)}): a lead (q {s_cro.fdr:.2f}).
 
@@ -274,30 +275,30 @@ A scorecard, not a ranking (Figure 7), behind a lookup dashboard: enter a Combin
 Rules of thumb: trust a receiver's 40 and tracked top speed; compare linemen only with linemen of their weight and role; treat defensive-back numbers as one input among several. Every line carries its n and interval.
 """))
 C.append(code(open(HERE / "fig_cells" / "fig7.py").read()))
-C.append(md("*Figure 7. The scorecard, with the smallest detectable effect (MDE). Green translates, orange leans, purple mostly size, gray not detected.*"))
+C.append(md("*Figure 7. The scorecard, with the smallest detectable effect (MDE). Green TRANSLATES, orange LEANS, purple SIZE, NOT SPEED, gray NOT DETECTED (low power), light gray TOO FEW TO TELL.*"))
 
 # =====================================================================================  METHODS + LIMITS
 C.append(md(f"""
 ## Methods, in plain language
-- **Size control.** Every link is repeated holding draft year, weight and height fixed (plus CB versus S, edge versus interior). Hollow marks are the link before size.
+- **Size control.** Every link is repeated holding draft year, weight and height fixed (plus CB versus S, edge versus interior).
 - **Shrinkage and held-out classes.** Rates from few snaps are pulled toward the group average. We train on two draft classes, predict the third, and ask whether adding the test beats a size-only model.
 - **False-discovery control.** Each p comes from 10,000 permutations, each interval from a player-level bootstrap, and each result carries a Benjamini-Hochberg q across its whole family of tests. Verdict rules and receiver hypotheses were written first, and every p and interval was re-checked with a second method.
 - Clustering found no stable athletic types at receiver, tight end or defensive back (only lean-edge versus heavy-interior linemen), and we skipped skill-drill braking, cut-speed and turn-rate tracking because they mostly do not repeat across drills (reliability {U_REL} or less).
 - **Power.** The smallest detectable effect (MDE, 80% power) is a Fisher-z approximation, checked by simulation ({SIM_LO}% to {SIM_HI}% power at the MDE).
 
-**Verdicts.** TRANSLATES: q below 0.05, interval excludes zero, held-out classes agree. LEANS: interval excludes zero or p below 0.05, but q does not clear. SIZE, NOT SPEED: a raw link of at least 0.30 that falls by half or more. TOO FEW: under 25 players. **NOT DETECTED (low power):** none of the above; no link above the MDE was seen, not no link.
+**Verdicts.** TRANSLATES: q below 0.05, interval excludes zero, held-out classes agree. LEANS: interval excludes zero or p below 0.05, but q does not clear. SIZE, NOT SPEED: a raw link of at least 0.30 that falls by half or more. TOO FEW TO TELL: under 25 players. **NOT DETECTED (low power):** none of the above; no link above the MDE was seen, not no link.
 """))
 C.append(md(f"""
 ## Limitations
 - Rookies only (2023 to 2025 classes) with tracked snaps; skipped drills are not random.
-- Counts are small: receivers about 60, defensive backs about {n_db}, linemen about 70, tight ends about {te_n}. Tight ends are all too few to tell ({mde_te:.2f} detectable, {pc(pw_te)} power at 0.30).
+- Counts are small: receivers about {int(P("Receivers", "Typical n"))}, defensive backs about {n_db}, linemen about {int(P("Defensive line, all", "Typical n"))}, tight ends about {n_te}, too few to tell ({mde_te:.2f} detectable, {pc(pw_te)} power at 0.30).
 - The same players produced the leads and test them; three held-out classes are the only out-of-sample check. Burst Score recipes were chosen using game results, and Figures 5 and 7 show the best-looking test per result, so those numbers are optimistic.
-- Pooled defensive-line size may partly mean role; edge and interior splits have only 39 and 33 players (about {mde_ed:.2f} and {mde_in:.2f} detectable).
+- Pooled defensive-line size may partly mean role; edge and interior splits have only {int(dl40p_e.n)} and {int(dl40p_i.n)} players (about {mde_ed:.2f} and {mde_in:.2f} detectable).
 - No blocker or quarterback tracks are linked: pressure and sack results are association, not causation.
 """))
 C.append(md("""
 ## Appendix
-Code cells are collapsed. The notebook reads the audited result tables from the `bdb2027-outputs` dataset and the raw competition files; attach both.
+Code cells are collapsed. Attach the `bdb2027-outputs` dataset (audited result tables) and the competition data.
 """))
 
 for i, c in enumerate(C):
@@ -327,5 +328,13 @@ for c in C:
     parts.append(t)
 (HERE / "writeup_for_kaggle.md").write_text("\n\n".join(parts) + "\n")
 print(f"exported writeup_for_kaggle.md; visuals: {len(IMG)} figures + 1 table = {len(IMG) + 1}")
+_md = (HERE / "writeup_for_kaggle.md").read_text()
+STRICT = len(re.findall(r"\S+", _md))   # strictest count: every token of the paste-ready markdown, table pipes and image lines included
+_plain = re.sub(r"!\[.*?\]\(.*?\)", " ", _md); _plain = re.sub(r"[#*|>]+|(?<!\w)[-:]+(?!\w)", " ", _plain)
+PLAIN = len([w for w in re.findall(r"\S+", _plain) if re.search(r"[A-Za-z0-9]", w)])
+print(f"word counts: markdown cells {words}; paste-ready md, words only {PLAIN}; strict (every token) {STRICT}")
+assert STRICT <= 1900, STRICT
+_bad = re.findall(r"(?i)\b(pick\w*|round\w*|slot\w*)\b", _md + "".join("".join(c["source"]) for c in C))
+assert not _bad, _bad
 print(f"slope {SLOPE:.3f}; DL share {DL_SHARE:.2f}; classes needed {cls_needed}; DB n {n_db} mde {mde_db} pw {pw_db:.2f}/{pwbh_db:.2f}; sim {SIM_LO}-{SIM_HI}")
 print(PT.round(2).to_string())

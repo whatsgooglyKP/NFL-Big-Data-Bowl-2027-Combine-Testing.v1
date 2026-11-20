@@ -6,7 +6,7 @@ def draw_ci(ax, y, lo, hi, n, col, lw=2.4, alpha=1.0):
     """95% interval; hidden below 15 players (the bootstrap is unreliable there) and flagged on the plot."""
     if n < 15 or not np.isfinite(lo) or not np.isfinite(hi):
         ax.text(0.02, y, "interval not shown (n<15)", fontsize=7.5, color=col, va="center"); return
-    ax.plot([lo, hi], [y, y], color=col, lw=lw, alpha=alpha, solid_capstyle="round")
+    ax.plot([lo, hi], [y, y], color=col, lw=lw, alpha=alpha, solid_capstyle="butt")
 
 def tag(n, q, extra=""):
     return f"n {int(n)} · q {qtxt(q)}" + (f" · {extra}" if extra else "")

@@ -1,0 +1,33 @@
+{
+  "title": "bdb2027-outputs",
+  "id": "kevinpolymath/bdb2027-outputs",
+  "subtitle": "Audited aggregate result tables for a Big Data Bowl 2027 writeup",
+  "description": "Aggregate, test-level result tables (one row per Combine test x on-field outcome x position group; no player rows) behind the NFL Big Data Bowl 2027 notebook 'Read the Combine through body size'. scorecard_full.csv: every test x outcome cell with size-controlled rank correlation, 95% CI, permutation p, Benjamini-Hochberg q, held-out-class check, MDE and verdict. scorecard.csv: the one test per result shown in the scorecard figure. scorecard_weight.csv: weight against on-field results with height and draft year held fixed. figs/fig1_gate_wr.png: saved gate figure used when the competition data is not attached. No raw competition data is included.",
+  "licenses": [
+    {
+      "name": "CC-BY-NC-4.0"
+    }
+  ],
+  "keywords": [
+    "american football",
+    "sports"
+  ],
+  "resources": [
+    {
+      "path": "scorecard_full.csv",
+      "description": "All test x outcome cells (aggregate)"
+    },
+    {
+      "path": "scorecard.csv",
+      "description": "Scorecard rows, one test per result (aggregate)"
+    },
+    {
+      "path": "scorecard_weight.csv",
+      "description": "Weight vs on-field results (aggregate)"
+    },
+    {
+      "path": "figs/fig1_gate_wr.png",
+      "description": "Saved gate figure (fallback)"
+    }
+  ]
+}

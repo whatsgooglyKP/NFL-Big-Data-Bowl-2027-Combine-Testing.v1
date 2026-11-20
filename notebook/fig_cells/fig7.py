@@ -14,6 +14,6 @@ for grp in order:
 ax.set_yticks(yt); ax.set_yticklabels(yl, fontsize=8); ax.axvline(0, color="k", lw=.8); ax.set_xlim(-.9, .9); ax.set_ylim(y + .3, .8)
 ax.set_xlabel("size-controlled rank correlation; + = better athlete, better result\nfilled dot = estimate, 95% interval; hollow = before size control")
 fig.subplots_adjust(left=.43, right=.97, top=.90, bottom=.09)
-fig.suptitle("Scorecard: one test per result, picked for the smallest p (so optimistic)", x=.01, y=.985, ha="left", va="top", fontweight="bold", fontsize=10.5)
+fig.suptitle("Scorecard: one test per result, the one with the smallest p (so optimistic)", x=.01, y=.985, ha="left", va="top", fontweight="bold", fontsize=10.5)
 fig.legend([ml.Line2D([], [], marker="o", color=VCOL[k], lw=0) for k in ["TRANSLATES", "LEANS", "SIZE, NOT SPEED", ND, "TOO FEW TO TELL"]], ["TRANSLATES", "LEANS", "SIZE, NOT SPEED", "NOT DETECTED (low power)", "TOO FEW TO TELL"], loc="upper left", bbox_to_anchor=(.01, .955), ncol=3, fontsize=8.5, frameon=False)
 fig.savefig(SAVE / "fig7_scorecard.png"); plt.show()
