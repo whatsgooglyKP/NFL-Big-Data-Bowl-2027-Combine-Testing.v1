@@ -6,7 +6,7 @@ from matplotlib.lines import Line2D
 from dl_recheck import OUT
 
 c = pd.read_csv(OUT / "scorecard.csv")
-COL = {"TRANSLATES": "#1a9850", "LEANS": "#f1a340", "SIZE, NOT SPEED": "#d95f02", "DOESN'T TRANSLATE": "#7f7f7f", "TOO FEW TO TELL": "#bdbdbd"}
+COL = {"TRANSLATES": "#1a9850", "LEANS": "#f1a340", "SIZE, NOT SPEED": "#d95f02", "NOT DETECTED (low power)": "#7f7f7f", "TOO FEW TO TELL": "#bdbdbd"}
 SHORT_T = {"forty": "40", "ten_yd_split": "10-yd", "vertical": "Vertical", "broad_jump": "Broad jump", "three_cone": "3-cone", "short_shuttle": "Shuttle",
            "c_top_mph": "Top speed (tracked)", "burst_0_100": "Burst Score", "c_decel": "DB-drill braking", "c_accel": "DB-drill re-burst"}
 SHORT_O = {"sunday_speed_mph": "deep-route game speed", "sep_all_mean": "separation (all routes)", "break_y": "separation (break routes)",
@@ -36,7 +36,7 @@ for ax, g in zip(axs, ["WR", "TE", "DB", "DL"]):
             if sg == "All":
                 ax.text(1.02, yy + 0.03, x.verdict, color=col if x.verdict != "TOO FEW TO TELL" else "#8a8a8a", ha="left", va="bottom", fontsize=8.2, fontweight="bold",
                         transform=ax.get_yaxis_transform())
-                ax.text(1.02, yy - 0.04, f"n {int(x.n)}  q {("<0.01" if x.fdr_q < 0.01 else format(x.fdr_q, ".2f"))}  held-out {x.classes_helped}", ha="left", va="top", fontsize=7.2, color="#444",
+                ax.text(1.02, yy - 0.04, f"n {int(x.n)}  q {("<0.01" if x.fdr_q < 0.01 else format(x.fdr_q, ".2f"))}  held-out {x.classes_helped}  MDE ±{x.mde80:.2f}", ha="left", va="top", fontsize=6.8, color="#444",
                         transform=ax.get_yaxis_transform())
         ticks.append(y - (0.28 if g == "DL" else 0)); labs.append(f"{SHORT_T[r.test]} → {SHORT_O[r.outcome]}")
         y -= 1.45 if g == "DL" else 1.0
@@ -51,10 +51,10 @@ leg = [Line2D([0], [0], marker="o", color="w", mfc=COL[k], ms=10, label=k) for k
       [Line2D([0], [0], marker="D", color="w", mfc="none", mec="#444", ms=7, label="year-controlled ρ (before size control)"),
        Line2D([0], [0], marker="^", color="w", mfc="#777", ms=8, label="DL Edge"), Line2D([0], [0], marker="s", color="w", mfc="#777", ms=8, label="DL Interior")]
 fig.legend(handles=leg, loc="lower center", ncol=8, fontsize=8.5, frameon=False, bbox_to_anchor=(0.5, 0.025))
-fig.suptitle("What translates from the Combine to regular-season games, and what doesn't", fontsize=15, fontweight="bold", x=0.01, ha="left")
+fig.suptitle("What the Combine tells you about regular-season games, position by position", fontsize=15, fontweight="bold", x=0.01, ha="left")
 fig.text(0.01, 0.945, "Filled dot = size-controlled ρ with 95% CI (draft year, weight, height held fixed). Hollow diamond = year-controlled ρ before size control: the gap is size (and role). Green band = better athlete goes with better result.",
          fontsize=9, color="#333")
-fig.text(0.01, 0.006, "One row per outcome: the test with the smallest permutation p (n ≥ 25). q = BH false-discovery rate over the full family. 'held-out' = draft classes where adding the test beat a size-only model on unseen data. "
+fig.text(0.01, 0.006, "One row per outcome: the test with the smallest permutation p (n ≥ 25). q = BH false-discovery rate over the full family. 'MDE' = smallest |ρ| detectable with 80% power at this n (alpha 0.05): a gray row means not detected, not no effect. 'held-out' = draft classes where adding the test beat a size-only model on unseen data. "
          "Draft slot never used. Source: out/scorecard.csv.", fontsize=7.3, color="#444", wrap=True)
-fig.subplots_adjust(left=0.165, right=0.865, wspace=1.0, hspace=0.22, top=0.905, bottom=0.115)
+fig.subplots_adjust(left=0.16, right=0.845, wspace=1.45, hspace=0.22, top=0.905, bottom=0.115)
 fig.savefig(OUT / "figs" / "fig22_scorecard.png", dpi=150); print("wrote fig22")

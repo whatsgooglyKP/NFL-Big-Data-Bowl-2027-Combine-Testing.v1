@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""Builds notebook/bdb2027_writeup.ipynb (competition-rules rebuild, 11/2026).
+"""Builds notebook/bdb2027_writeup.ipynb and notebook/writeup_for_kaggle.md (11/2026, reframed: 'The Combine works, but read it right').
 
-Prose lives here. Every number in the prose is read from the audited outputs in out/*.csv at build time
-(scorecard_full.csv, scorecard.csv, scorecard_weight.csv, wr_route_lead_cells.csv, wr_route_lead_contrasts.csv).
-The notebook itself recomputes the receiver gate link from the competition tracking files when they are attached,
-and draws every figure except Figures 4 and 6 (pre-rendered PNGs) from the same CSVs.
-
-Official limits (Kaggle 'Submission Requirements', checked via the Kaggle API 11/2026): <= 2,000 words, < 10 tables or figures,
-a Public Kaggle Notebook attached, Combine tracking explicitly linked to regular-season performance, player tracking data used.
-Visual budget here: 6 figures + 1 table = 7.  Word budget: see the count printed at the end of the build.
+Structure (Kevin, 11/2026): hook + gate, then exactly five findings, each its own section with its own figure:
+  1 WR speed carries to Sunday deep routes   2 DL drills predict pass rush, mostly through body size   3 Consistent leads that need more seasons
+  4 DB: the Combine alone is a weak guide at this n (not detected, with MDE)   5 Weight is the variable scouts must adjust for
+then a short scout-use section, compact methods, limitations.
+Every number in the prose is read from the audited outputs at build time (scorecard_full.csv, scorecard.csv, scorecard_weight.csv,
+wr_route_lead_cells.csv, wr_route_lead_contrasts.csv, power_simulation.csv) and key counts are asserted.
+Official limits (Kaggle 'Submission Requirements'): <= 2,000 words, < 10 tables or figures, public notebook attached,
+Combine tracking linked to regular-season performance, player tracking data used.
+Visuals: 7 figures + 1 table = 8.
 """
-import json, re, pathlib
+import json, re, pathlib, shutil, hashlib
 import numpy as np, pandas as pd
+from scipy.stats import norm
 
 HERE = pathlib.Path(__file__).resolve().parent
 OUTD = HERE.parent / "out"
@@ -20,105 +22,124 @@ card = pd.read_csv(OUTD / "scorecard.csv")
 wt = pd.read_csv(OUTD / "scorecard_weight.csv")
 rl = pd.read_csv(OUTD / "wr_route_lead_cells.csv")
 rc = pd.read_csv(OUTD / "wr_route_lead_contrasts.csv")
+sim = pd.read_csv(OUTD / "power_simulation.csv")
+ND = "NOT DETECTED (low power)"
+assert "DOESN'T TRANSLATE" not in set(full.verdict) and ND in set(full.verdict)
 
-# ---------------------------------------------------------------- number helpers
+# ---------------------------------------------------------------- helpers
 sg = lambda x, d=2: f"{x:+.{d}f}"
 qf = lambda q: "<0.01" if q < 0.01 else f"{q:.2f}"
 def F(group, test, outcome, sub="All"):
     r = full[(full.group == group) & (full.subgroup == sub) & (full.test == test) & (full.outcome == outcome)]
-    assert len(r) == 1, (group, test, outcome, sub, len(r))
-    return r.iloc[0]
+    assert len(r) == 1, (group, test, outcome, sub, len(r)); return r.iloc[0]
 def W(group, outcome):
     r = wt[(wt.group == group) & (wt.outcome == outcome)]; assert len(r) == 1, (group, outcome); return r.iloc[0]
 def CI(r, lo="ci_lo", hi="ci_hi"): return f"{sg(r[lo])} to {sg(r[hi])}"
 def RC(hyp, test, contrast=None):
     r = rc[(rc.hyp == hyp) & (rc.test == test)]
     if contrast: r = r[r.contrast == contrast]
-    assert len(r) == 1, (hyp, test); return r.iloc[0]
+    assert len(r) == 1; return r.iloc[0]
 def RL(split, test):
     r = rl[(rl.group == "S1") & (rl.test == test) & (rl.split == split)]; assert len(r) == 1; return r.iloc[0]
+pc = lambda x: f"{100 * x:.0f}%"
 
-# WR gate + control rows
-w40 = F("WR", "forty", "sunday_speed_mph"); wtop = F("WR", "c_top_mph", "sunday_speed_mph")
-wvert = F("WR", "vertical", "break_y"); wburst = F("WR", "burst_0_100", "break_y")
+# The power table: ONE code string, executed here (for the prose) and pasted in the notebook cell (so they cannot disagree).
+POWER_CODE = '''
+def power_table(full):
+    g = full[full.n >= 25]
+    spec = [("Receivers", g[g.group == "WR"]),
+            ("Defensive line, all", g[(g.group == "DL") & (g.subgroup == "All")]),
+            ("   edge only", g[(g.group == "DL") & (g.subgroup == "Edge")]),
+            ("   interior only", g[(g.group == "DL") & (g.subgroup == "Interior")]),
+            ("Defensive backs", g[g.group == "DB"]),
+            ("Tight ends (n 15+)", full[(full.group == "TE") & (full.n >= 15)])]
+    rows = [dict(Group=lab, **{"Typical n": int(d.n.median()), "Smallest |rho| seen 8 times in 10": round(float(d.mde80.median()), 2),
+                               "...after multiple-test correction": round(float(d.mde80_bh.median()), 2),
+                               "Chance to see a true rho of 0.30": float(d.power_rho03.median()),
+                               "...after correction": float(d.power_rho03_bh.median())}) for lab, d in spec]
+    return pd.DataFrame(rows)
+'''
+_ns = {"pd": pd, "np": np}; exec(POWER_CODE, _ns); PT = _ns["power_table"](full).set_index("Group")
+P = lambda lab, col: PT.loc[lab, col]
+n_db, mde_db, pw_db, pwbh_db = int(P("Defensive backs", "Typical n")), P("Defensive backs", "Smallest |rho| seen 8 times in 10"), P("Defensive backs", "Chance to see a true rho of 0.30"), P("Defensive backs", "...after correction")
+mde_wr, mde_dl = P("Receivers", "Smallest |rho| seen 8 times in 10"), P("Defensive line, all", "Smallest |rho| seen 8 times in 10")
+n_te, mde_te, pw_te = int(P("Tight ends (n 15+)", "Typical n")), P("Tight ends (n 15+)", "Smallest |rho| seen 8 times in 10"), P("Tight ends (n 15+)", "Chance to see a true rho of 0.30")
+mde_ed, mde_in = P("   edge only", "Smallest |rho| seen 8 times in 10"), P("   interior only", "Smallest |rho| seen 8 times in 10")
+
+# ---------------------------------------------------------------- numbers by finding
+w40, wtop = F("WR", "forty", "sunday_speed_mph"), F("WR", "c_top_mph", "sunday_speed_mph")
 assert w40.verdict == wtop.verdict == "TRANSLATES"
-# audit counts
+wr_other = full[(full.group == "WR") & (full.outcome == "sunday_speed_mph") & (full.n >= 25) & ~full.test.isin(["forty", "c_top_mph"])]
+assert (wr_other.verdict == ND).all()
 g = full[full.n >= 25]
-N_CELLS, N_P05, N_Q05 = len(g), int((g.p_perm < 0.05).sum()), int((g.fdr_q < 0.05).sum())
-N_EXP = int(round(N_CELLS * 0.05))
-assert (N_CELLS, N_P05, N_Q05) == (164, 28, 2), (N_CELLS, N_P05, N_Q05)
-# DL mirage
+N_CELLS, N_P05, N_Q05 = len(g), int((g.p_perm < 0.05).sum()), int((g.fdr_q < 0.05).sum()); N_EXP = int(round(N_CELLS * 0.05))
+assert (N_CELLS, N_P05, N_Q05) == (164, 28, 2)
+wrp = pd.read_csv(OUTD / "wr_te_robust_players.csv").query("pos_group == 'WR'")[["c_top_mph", "sunday_speed_mph"]].dropna()
+SLOPE = float(np.polyfit(wrp.c_top_mph, wrp.sunday_speed_mph, 1)[0])
+
 DL_OUT = ["speed_1s_mph", "pressure_rate", "sack_rate", "tfl_rate"]
 dl = g[(g.group == "DL") & (g.subgroup == "All") & g.outcome.isin(DL_OUT)]
-DL_N, DL_RAW, DL_SIZE = len(dl), dl.rho_raw.median(), dl.rho_size.median()
+DL_N, DL_RAW, DL_SIZE = len(dl), dl.rho_raw.median(), dl.rho_size.median(); DL_SHARE = 1 - DL_SIZE / DL_RAW
 DL_SNS = int((dl.verdict == "SIZE, NOT SPEED").sum())
-big = g[(g.group == "DL") & (g.subgroup == "All") & (g.rho_raw.abs() >= 0.30)]
-BIG_N, BIG_HALF = len(big), int((big.rho_size.abs() <= 0.5 * big.rho_raw.abs()).sum())
-dl40s, dl40p = F("DL", "forty", "sack_rate"), F("DL", "forty", "pressure_rate")
-dl10g = F("DL", "ten_yd_split", "speed_1s_mph")
-# weight
+dl40p, dl40s, dl10g = F("DL", "forty", "pressure_rate"), F("DL", "forty", "sack_rate"), F("DL", "ten_yd_split", "speed_1s_mph")
+dl40p_e, dl40p_i = F("DL", "forty", "pressure_rate", "Edge"), F("DL", "forty", "pressure_rate", "Interior")
+assert dl40p.verdict == "LEANS" and dl40p_e.verdict == "LEANS" and dl40p_i.verdict == "LEANS"
+big = g[(g.group == "DL") & (g.subgroup == "All") & (g.rho_raw.abs() >= 0.30)]; BIG_N, BIG_HALF = len(big), int((big.rho_size.abs() <= 0.5 * big.rho_raw.abs()).sum())
+
+LEADS = [("WR", "All", "vertical", "break_y", "WR: vertical jump -> separation, break routes"),
+         ("WR", "All", "burst_0_100", "break_y", "WR: Burst Score -> separation, break routes"),
+         ("DL", "All", "forty", "pressure_rate", "DL: 40 -> pressure rate"),
+         ("DL", "All", "ten_yd_split", "speed_1s_mph", "DL: 10-yd split -> get-off speed"),
+         ("DL", "All", "burst_0_100", "tfl_rate", "DL: Burst Score -> tackles for loss")]
+lead = [F(a, c, d, b) for a, b, c, d, _ in LEADS]
+assert all(r.verdict == "LEANS" and r.classes_helped == "3/3" for r in lead)
+def need(rho, alpha, k=4): return int(np.ceil(1.06 * ((norm.ppf(1 - alpha / 2) + norm.ppf(0.8)) / np.arctanh(rho)) ** 2 + k + 3))
+cls_needed = [(need(r.rho_size, r.alpha_bh) - r.n) / (r.n / 3) for r in lead]
+CLS_LO, CLS_HI = int(round(min(cls_needed))), int(np.ceil(max(cls_needed)))
+wvert, wburst, dlb = lead[0], lead[1], lead[4]
+h1c, h1s, h3t = RC("H1", "three_cone"), RC("H1", "short_shuttle"), RC("H3", "ten_yd_split")
+wr3c, wrsh = F("WR", "three_cone", "sunday_speed_mph"), F("WR", "short_shuttle", "sunday_speed_mph")
+
+OTH = g[g.group.isin(['WR', 'DB']) & (g.subgroup == 'All') & (g.rho_raw.abs() >= 0.30)]
+OTH_BIG = len(OTH); assert int((OTH.rho_size.abs() <= 0.5 * OTH.rho_raw.abs()).sum()) == 0
+db = g[g.group == "DB"]; DB_N, DB_NO, DB_LEAN = len(db), int((db.verdict == ND).sum()), int((db.verdict == "LEANS").sum()); assert DB_NO + DB_LEAN == DB_N
+DB_QMIN = db.fdr_q.min(); db40 = F("DB", "forty", "pfr_yds_tgt"); dbbj = F("DB", "broad_jump", "pfr_yds_tgt")
+db_missed, db_tackle = F("DB", "forty", "pfr_mtkl_pct"), F("DB", "c_decel", "tackle_rate")
+SIM_LO, SIM_HI = int(round(100 * sim.simulated_power_at_mde.min())), int(round(100 * sim.simulated_power_at_mde.max()))
+
 gw, gb = W("DL", "player_get_off"), W("DL", "speed_1s_mph"); wpr = W("DL", "pressure_rate")
 wsun, wss = W("WR", "sunday_speed_mph"), W("WR", "ssoe_mph")
 s_scr, s_cro, s_brk, s_ver = RL("screen", "combine_weight"), RL("crosser", "combine_weight"), RL("break", "combine_weight"), RL("vertical", "combine_weight")
-# DB
-db = g[g.group == "DB"]
-DB_N, DB_NO, DB_LEAN = len(db), int((db.verdict == "DOESN'T TRANSLATE").sum()), int((db.verdict == "LEANS").sum())
-assert DB_NO + DB_LEAN == DB_N
-db40 = F("DB", "forty", "pfr_yds_tgt")
-dbbj = F("DB", "broad_jump", "pfr_yds_tgt")
-oth = g[(g.group.isin(['WR','DB'])) & (g.subgroup == 'All') & (g.rho_raw.abs() >= 0.30)]
-OTH_BIG = len(oth)
-assert int((oth.rho_size.abs() <= 0.5 * oth.rho_raw.abs()).sum()) == 0
-DB_QMIN = db.fdr_q.min()
 te_n = int(full[full.group == "TE"].n.max())
-# H1/H3
-h1c, h1s = RC("H1", "three_cone"), RC("H1", "short_shuttle")
-h3t, h3c = RC("H3", "ten_yd_split"), RC("H3", "three_cone")
-h2v = RC("H2-ctx", "vertical")
-# exchange rate (needs per-player file, which stays in the repo; the notebook recomputes it live)
-wrp = pd.read_csv(OUTD / "wr_te_robust_players.csv").query("pos_group == 'WR'")[["c_top_mph", "sunday_speed_mph"]].dropna()
-SLOPE = float(np.polyfit(wrp.c_top_mph, wrp.sunday_speed_mph, 1)[0])
-# scout lines (verbatim coach lines from the scorecard)
-def coach(group, test, outcome):
-    return F(group, test, outcome).coach_line
-L_WR = coach("WR", "forty", "sunday_speed_mph"); L_DL = coach("DL", "forty", "pressure_rate"); L_DB = coach("DB", "forty", "pfr_yds_tgt")
+L_WR = F("WR", "forty", "sunday_speed_mph").coach_line; L_DL = F("DL", "forty", "pressure_rate").coach_line
 
 md = lambda s: {"cell_type": "markdown", "metadata": {}, "source": s.strip("\n").splitlines(True)}
 code = lambda s: {"cell_type": "code", "metadata": {"jupyter": {"source_hidden": True}, "tags": ["hide-input"]}, "execution_count": None, "outputs": [], "source": s.strip("\n").splitlines(True)}
 C = []
 
-# =====================================================================================  TITLE + HOOK + GATE
+# =====================================================================================  HOOK + GATE
 C.append(md(f"""
-# Body size in a stopwatch costume: what the Combine really tells you about NFL play
+# Read the Combine through body size: three positions, three different stories
 *NFL Big Data Bowl 2027 · Open Track · Combine tracking linked to regular-season game tracking · WR, TE, DB, DL*
 
-**Most Combine signal is body size wearing a stopwatch. Here is the one place speed is real, and where scouts get fooled.**
+**Read Combine numbers through body size, and three positions tell three different stories.** Receivers: speed is real and shows up on Sunday. Linemen: the drills predict pass rush, mostly through body size, so read them size-adjusted. Defensive backs: the Combine alone is a weak guide at this sample size.
 
-**The required link, stated plainly.** We connect each rookie's 10 Hz Combine tracking (2023 to 2025 classes) to his regular-season NFL game tracking and ask which Combine measures show up on Sundays. The link holds in one place. A receiver's tracked Combine top speed predicts his regular-season speed on deep routes (ρ {sg(wtop.rho_raw)} year-controlled, **{sg(wtop.rho_size)} with body size held fixed**, n {int(wtop.n)}). The cell below recomputes that from the raw tracking files.
+**The required link, stated plainly.** We connect each rookie's 10 Hz Combine tracking (2023 to 2025 classes) to his regular-season game tracking. A receiver's tracked Combine top speed predicts his regular-season speed on deep routes (ρ {sg(wtop.rho_raw)} year-controlled, **{sg(wtop.rho_size)} with body size held fixed**, n {int(wtop.n)}). The cell below recomputes that from the raw tracking files.
 
-In four lines:
-- **Weight is the hidden variable** behind defensive-line get-off and receiver game speed.
-- **Defensive-line speed is mostly a mirage.** Hold size fixed and the link shrinks.
-- **Agility drills do not do what scouts assume**, and defensive backs barely translate.
-- **Receiver 40 and tracked top speed are the control.** They clear every check, so the method can find real signal.
-"""))
-
-C.append(md("""
-## Data used
-Competition files: `combine_tracking`, `game_tracking_2023/24/25`, `player_play`, `players`, `combine_results`, `games`. Two defensive-back outcomes (yards allowed per target, missed-tackle rate) come from free public Pro-Football-Reference season stats distributed through nflverse. We use no draft-position information; draft *year* is a control only. Running backs are excluded.
-
-**Sunday Speed** is a player's 90th-percentile top speed per play on the plays his job asks for speed (deep routes for receivers, man or deep coverage for defensive backs), regular season only. **Burst Score** is a 0 to 100 within-position blend of the tracked 20-yard time and the jumps.
+Data: the competition's Combine tracking, game tracking, play, player and game files, plus free public Pro-Football-Reference season stats for two defensive-back outcomes. No draft-position information is used; draft *year* is a control only. Running backs are excluded. **Sunday Speed** is a player's 90th-percentile top speed per play where his job asks for speed (deep routes for receivers; man or deep coverage for defensive backs), regular season. **Burst Score** is a 0 to 100 within-position blend of the tracked 20-yard time and the jumps. ρ is a rank correlation; positive means the better athlete does better.
 """))
 
 C.append(code('''
 from pathlib import Path
-import numpy as np, pandas as pd, matplotlib.pyplot as plt
+import numpy as np, pandas as pd, matplotlib.pyplot as plt, matplotlib.lines as ml
 from scipy import stats
+from scipy.stats import norm
 from IPython.display import Image, display
 
 plt.rcParams.update({"font.size": 9, "axes.spines.top": False, "axes.spines.right": False, "axes.grid": True, "grid.alpha": .25})
-OKABE = {"blue": "#0072B2", "orange": "#E69F00", "red": "#D55E00", "green": "#009E73", "grey": "#8a8a8a", "sky": "#56B4E9", "pink": "#CC79A7"}
-VCOL = {"TRANSLATES": OKABE["green"], "LEANS": OKABE["orange"], "SIZE, NOT SPEED": OKABE["red"], "DOESN'T TRANSLATE": OKABE["grey"], "TOO FEW TO TELL": "#c8c8c8"}
+OKABE = {"blue": "#0072B2", "orange": "#E69F00", "red": "#D55E00", "green": "#009E73", "grey": "#8a8a8a"}
+ND = "NOT DETECTED (low power)"
+VCOL = {"TRANSLATES": OKABE["green"], "LEANS": OKABE["orange"], "SIZE, NOT SPEED": OKABE["red"], ND: OKABE["grey"], "TOO FEW TO TELL": "#c8c8c8"}
 
 def find_out():
     for p in [Path("out"), Path("../out"), Path("/kaggle/working/out")]:
@@ -140,10 +161,11 @@ OUT, COMP = find_out(), find_comp()
 FIGS = OUT / "figs"
 SAVE = Path("/kaggle/working/writeup_figs") if Path("/kaggle/working").exists() else Path("writeup_figs")
 SAVE.mkdir(parents=True, exist_ok=True)
-card = pd.read_csv(OUT / "scorecard.csv")
 full = pd.read_csv(OUT / "scorecard_full.csv")
+card = pd.read_csv(OUT / "scorecard.csv")
 wt = pd.read_csv(OUT / "scorecard_weight.csv")
 g25 = full[full.n >= 25]
+qtxt = lambda q: "<0.01" if q < .01 else f"{q:.2f}"
 print("audited outputs:", OUT, "| competition data:", COMP)
 '''))
 
@@ -193,18 +215,144 @@ ok = (gate.verdict == "TRANSLATES") and (gate.rho_raw > 0)
 print(f"Audited: size-controlled rho {gate.rho_size:+.2f} (95% CI {gate.ci_lo:+.2f} to {gate.ci_hi:+.2f}), q {gate.fdr_q:.3f}, better on held-out draft classes in {gate.classes_helped}")
 print("GATE (Combine tracking -> regular-season performance):", "PASS" if ok else "FAIL")
 '''))
-C.append(md("*Figure 1. Each dot is a receiver. Fast at the Combine means fast on deep routes on Sundays.*"))
 
-# =====================================================================================  1 WEIGHT
+# =====================================================================================  1 WR
 C.append(md(f"""
-## 1. Weight is the hidden variable
-Heavier players are slower, and a stopwatch cannot tell weight from talent. Holding height and draft year fixed:
+## 1. Receivers: speed is real, and it carries to Sunday
+Two Combine measures clear every check, and both are receiver straight-line speed. The 40-yard dash goes with faster game speed on deep routes (ρ {sg(w40.rho_size)} with size held fixed, 95% CI {CI(w40)}, n {int(w40.n)}, q {qf(w40.fdr_q)}). The tracked Combine top speed does so even more strongly ({sg(wtop.rho_size)}, {CI(wtop)}, n {int(wtop.n)}, q {qf(wtop.fdr_q)}). Both improve predictions on held-out draft classes ({w40.classes_helped} each).
 
-- **Defensive line.** Heavier linemen get off the ball slower (ρ {sg(gw.rho_height_ctrl)}, 95% CI {CI(gw)}, q {qf(gw.fdr_q)}) and reach a lower speed one second after the snap ({sg(gb.rho_height_ctrl)}, q {qf(gb.fdr_q)}).
+Each extra mph of Combine top speed goes with about {SLOPE:.2f} mph more on a deep route in a game (Figure 1). Size barely moves this result ({sg(wtop.rho_raw)} before size control, {sg(wtop.rho_size)} after), unlike the defensive line. The other receiver tests (10-yard split, jumps, shuttle, Burst Score) were not detected against deep-route speed (about {mde_wr:.2f} or more was needed to see them).
+
+Figure 2 is the proof of method. Of {N_CELLS} tests with at least 25 players, {N_P05} reach p < 0.05 against about {N_EXP} expected by chance (cells share players, so that overstates independent findings). After false-discovery correction exactly {N_Q05} remain, both receiver rows. The method finds real signal where it exists.
+"""))
+C.append(md("*Figure 1. Each dot is a receiver: faster at the Combine, faster on Sunday deep routes.*"))
+C.append(code('''
+fig, (a1, a2) = plt.subplots(1, 2, figsize=(11.5, 4.0), gridspec_kw={"width_ratios": [1.15, 1]})
+tl = [("forty", "40"), ("c_top_mph", "Top speed (tracked)"), ("ten_yd_split", "10-yd split"), ("burst_0_100", "Burst Score"), ("vertical", "Vertical"), ("broad_jump", "Broad jump"), ("short_shuttle", "Short shuttle"), ("three_cone", "3-cone")]
+for i, (t, lab) in enumerate(tl[::-1]):
+    r = full[(full.group == "WR") & (full.subgroup == "All") & (full.test == t) & (full.outcome == "sunday_speed_mph")].iloc[0]; col = VCOL[r.verdict]
+    a1.plot([r.ci_lo, r.ci_hi], [i, i], color=col, lw=2.2); a1.scatter(r.rho_size, i, s=48, color=col, zorder=3); a1.scatter(r.rho_raw, i, s=34, facecolor="white", edgecolor=col, marker="D", zorder=3)
+    a1.text(.98, i, f"n {int(r.n)}  q {qtxt(r.fdr_q)}  held-out {r.classes_helped}", va="center", ha="left", fontsize=7.5, color=col)
+a1.set_yticks(range(len(tl))); a1.set_yticklabels([x[1] for x in tl[::-1]]); a1.axvline(0, color="k", lw=.8); a1.set_xlim(-.9, .98)
+a1.set_title("Receivers, deep-route game speed: every Combine test", loc="left", fontsize=9.5, fontweight="bold")
+a1.set_xlabel("rank correlation (filled = size held fixed, 95% CI; hollow = before)")
+p = g25.sort_values("p_perm").reset_index(drop=True); k = np.arange(1, len(p) + 1)
+pass_ = p.fdr_q < .05
+a2.scatter(k[~pass_], p.p_perm[~pass_], s=14, color="#9a9a9a", alpha=.8); a2.scatter(k[pass_], p.p_perm[pass_], s=60, color=OKABE["green"], zorder=3, label="clears false-discovery bar")
+a2.plot(k, k / len(p), color="k", ls=":", lw=1, label="if nothing were real"); a2.axhline(.05, color=OKABE["red"], ls="--", lw=1, label="p = 0.05")
+a2.set_yscale("log"); a2.set_xlabel(f"the {len(p)} tests, ranked by p-value"); a2.set_ylabel("permutation p-value")
+a2.set_title(f"{int((p.p_perm < .05).sum())} under p=0.05 (about {round(len(p) * .05)} by chance); {int(pass_.sum())} survive", loc="left", fontsize=9.5, fontweight="bold"); a2.legend(fontsize=8, frameon=False, loc="lower right")
+fig.tight_layout(); fig.savefig(SAVE / "fig2_wr_control.png", dpi=170); plt.show()
+'''))
+C.append(md("*Figure 2. Left: every receiver test against deep-route speed. Right: all 164 tests; only two survive correction.*"))
+
+# =====================================================================================  2 DL
+C.append(md(f"""
+## 2. Defensive line: the drills predict pass rush, mostly through body size
+Linemen's Combine numbers do carry information: faster linemen get off quicker, rush more and sack more. The catch is how much is body size. Across the four outcomes with a strong raw link (get-off, pressure, sack, tackle for loss), {DL_N} test-by-outcome cells have at least 25 players. Their median year-controlled link is ρ {sg(DL_RAW)}. Hold weight, height and role (edge or interior) fixed and the median is {sg(DL_SIZE)}, so about {pc(DL_SHARE)} of the raw link runs through body size (Figure 3).
+
+What remains is still positive and still useful:
+- The 40 against **pressure rate** goes from {sg(dl40p.rho_raw)} to {sg(dl40p.rho_size)} (95% CI {CI(dl40p)}, q {dl40p.fdr_q:.2f}).
+- The 10-yard split against **get-off speed** goes from {sg(dl10g.rho_raw)} to {sg(dl10g.rho_size)} (q {dl10g.fdr_q:.2f}).
+- The 40 against **sack rate** goes from {sg(dl40s.rho_raw)} to {sg(dl40s.rho_size)}, and its interval ({CI(dl40s)}) now touches zero.
+
+**How scouts should read it:** a lineman's 40 is a size-adjusted signal. Compare him with linemen of the same weight and role, not the whole group. The pressure lean appears separately for edge ({sg(dl40p_e.rho_size)}, n {int(dl40p_e.n)}) and interior ({sg(dl40p_i.rho_size)}, n {int(dl40p_i.n)}) rushers. Of {BIG_N} defensive-line cells with a raw link of at least 0.30, {BIG_HALF} lose half or more to size; none of {OTH_BIG} receiver or DB cells do.
+"""))
+C.append(code('''
+tests = [("ten_yd_split", "10-yd split"), ("forty", "40"), ("c_top_mph", "Top speed (tracked)"), ("burst_0_100", "Burst Score"), ("vertical", "Vertical"), ("broad_jump", "Broad jump")]
+outs = [("speed_1s_mph", "Get-off speed (1 s)"), ("pressure_rate", "Pressure rate"), ("sack_rate", "Sack rate"), ("tfl_rate", "Tackles for loss")]
+fig, axes = plt.subplots(1, 4, figsize=(12.5, 3.7), sharey=True, sharex=True)
+for ax, (oc, ol) in zip(axes, outs):
+    for i, (t, tl_) in enumerate(tests[::-1]):
+        r = g25[(g25.group == "DL") & (g25.subgroup == "All") & (g25.test == t) & (g25.outcome == oc)]
+        if r.empty: continue
+        r = r.iloc[0]; col = VCOL[r.verdict]
+        ax.annotate("", xy=(r.rho_size, i), xytext=(r.rho_raw, i), arrowprops=dict(arrowstyle="->", color=col, lw=1.2, alpha=.7))
+        ax.plot([r.ci_lo, r.ci_hi], [i, i], color=col, lw=2.2, alpha=.55, solid_capstyle="round")
+        ax.scatter(r.rho_raw, i, s=34, facecolor="white", edgecolor=col, marker="D", zorder=3); ax.scatter(r.rho_size, i, s=44, color=col, zorder=4)
+    ax.set_yticks(range(len(tests))); ax.set_yticklabels([t[1] for t in tests[::-1]]); ax.axvline(0, color="k", lw=.8); ax.set_xlim(-.45, .95); ax.set_title(ol, fontsize=9.5, fontweight="bold")
+fig.supxlabel("hollow diamond = raw link (year-controlled); filled dot = size- and role-adjusted with 95% CI; + = faster athlete does better", fontsize=8.5)
+fig.legend([ml.Line2D([], [], marker="o", color=VCOL[k], lw=0) for k in ["SIZE, NOT SPEED", "LEANS"]], ["Mostly size (interval includes 0)", "Survives size adjustment (a lead)"], loc="upper right", ncol=2, fontsize=8, frameon=False)
+fig.tight_layout(rect=(0, .03, 1, .95)); fig.savefig(SAVE / "fig3_dl_size.png", dpi=170); plt.show()
+'''))
+C.append(md("*Figure 3. Defensive-line tests, raw to size-adjusted. The gap is body size. 3-cone and shuttle (under 36 linemen) are left out.*"))
+
+# =====================================================================================  3 LEADS
+C.append(md(f"""
+## 3. Consistent leads that need more seasons
+Five results hold in every held-out draft class ({lead[0].classes_helped} each) but do not clear the false-discovery bar. We call them leads and show the honest q:
+- **Receivers:** a higher vertical jump ({sg(wvert.rho_size)}, n {int(wvert.n)}, q {wvert.fdr_q:.2f}) and Burst Score ({sg(wburst.rho_size)}, n {int(wburst.n)}, q {wburst.fdr_q:.2f}) go with more separation on break routes.
+- **Defensive line:** the 40 goes with pressure rate ({sg(lead[2].rho_size)}, q {lead[2].fdr_q:.2f}), the 10-yard split with get-off speed ({sg(lead[3].rho_size)}, q {lead[3].fdr_q:.2f}), and Burst Score with tackles for loss ({sg(dlb.rho_size)}, q {dlb.fdr_q:.2f}).
+
+Each estimate is at or below what these samples reliably detect even before correction (about {mde_wr:.2f} for receivers, {mde_dl:.2f} for linemen), and well below what the correction demands (about {P("Receivers","...after multiple-test correction"):.2f} and {P("Defensive line, all","...after multiple-test correction"):.2f}). If the true links equal today's estimates, confirming them needs roughly {CLS_LO} to {CLS_HI} more draft classes (Figure 4). That is optimistic: leads are the best-looking tests.
+
+The textbook agility stories were not detected. We pre-declared that 3-cone and shuttle matter more on break than vertical routes (differences {sg(h1c['diff'])} and {sg(h1s['diff'])}, intervals include zero) and that quickness matters more against man than zone (10-yard difference {sg(h3t['diff'])}, CI {CI(h3t,'lo','hi')}). Only 22 to 30 receivers ran those drills, so only effects of about {wrsh.mde80:.2f} or more were visible. Not detected is not ruled out.
+"""))
+C.append(code('''
+def players_needed(rho, alpha, k=4):
+    return int(np.ceil(1.06 * ((norm.ppf(1 - alpha / 2) + norm.ppf(.8)) / np.arctanh(rho)) ** 2 + k + 3))
+LEADS = [("WR", "All", "vertical", "break_y", "Receivers: vertical jump -> break separation"),
+         ("WR", "All", "burst_0_100", "break_y", "Receivers: Burst Score -> break separation"),
+         ("DL", "All", "forty", "pressure_rate", "Linemen: 40 -> pressure rate"),
+         ("DL", "All", "ten_yd_split", "speed_1s_mph", "Linemen: 10-yd split -> get-off speed"),
+         ("DL", "All", "burst_0_100", "tfl_rate", "Linemen: Burst Score -> tackles for loss")]
+fig, ax = plt.subplots(figsize=(9.6, 3.9))
+for i, (grp, sub, t, oc, lab) in enumerate(LEADS[::-1]):
+    r = full[(full.group == grp) & (full.subgroup == sub) & (full.test == t) & (full.outcome == oc)].iloc[0]
+    col = OKABE["blue"] if grp == "WR" else OKABE["red"]
+    ax.fill_betweenx([i - .32, i + .32], -r.mde80, r.mde80, color="#cfcfcf", alpha=.45, zorder=0)
+    ax.plot([r.ci_lo, r.ci_hi], [i, i], color=col, lw=2.4); ax.scatter(r.rho_size, i, s=56, color=col, zorder=3)
+    need = players_needed(r.rho_size, r.alpha_bh)
+    ax.text(.97, i, f"q {qtxt(r.fdr_q)} | held-out {r.classes_helped} | n {int(r.n)}, ~{need} needed", va="center", fontsize=7.8, color="#333")
+ax.set_yticks(range(len(LEADS))); ax.set_yticklabels([x[4] for x in LEADS[::-1]]); ax.axvline(0, color="k", lw=.8); ax.set_xlim(-.55, .97)
+ax.set_xlabel("size-controlled rank correlation (dot, 95% CI).  Gray band: the smallest effect this n would reliably detect (80% power)")
+ax.set_title("Leads: consistent in every held-out class, not yet past the correction", loc="left", fontweight="bold", fontsize=10)
+fig.tight_layout(); fig.savefig(SAVE / "fig4_leads.png", dpi=170); plt.show()
+'''))
+C.append(md("*Figure 4. The five leads. Gray band: what each sample could reliably see. Right label: players needed to confirm the estimate after correction, if it is true.*"))
+
+# =====================================================================================  4 DB
+C.append(md(f"""
+## 4. Defensive backs: the Combine alone is a weak guide at this sample size
+{DB_N} cornerback and safety cells have at least 25 players. {DB_NO} are **not detected** and {DB_LEAN} lean; none clears the correction (lowest q {DB_QMIN:.2f}). The Combine is not useless for defensive backs; with about {n_db} players, only links of ρ {mde_db:.2f} or more would be seen 8 times in 10, and a true link of 0.30 only {pc(pw_db)} of the time ({pc(pwbh_db)} after correction; Table 1).
+
+The intervals are wide. The 40 against missed tackles is {sg(db_missed.rho_size)} (CI {CI(db_missed)}); DB-drill braking against tackle rate is {sg(db_tackle.rho_size)} ({CI(db_tackle)}). Absence of evidence is not evidence of absence.
+
+One result runs the wrong way. A faster 40 goes with *more* yards allowed per target ({sg(db40.rho_size)}, n {int(db40.n)}, 95% CI {CI(db40)}), and broad jump agrees ({sg(dbbj.rho_size)}). We read that as coverage role, not "speed hurts", and it does not clear correction. Use the Combine for defensive backs as one input beside tape and role. Table 1 shows what every group's sample can see; tight ends (about {n_te} players, {mde_te:.2f} detectable) are too few to say anything.
+"""))
+C.append(code(POWER_CODE + '''
+pt = power_table(full)
+tbl = pt.copy()
+for c in ["Chance to see a true rho of 0.30", "...after correction"]:
+    tbl[c] = (100 * tbl[c]).round(0).astype(int).astype(str) + "%"
+display(tbl.reset_index(drop=True))
+
+db = card[card.group == "DB"]
+fig, ax = plt.subplots(figsize=(9.6, 3.9))
+for i, (_, r) in enumerate(db.iloc[::-1].iterrows()):
+    col = VCOL[r.verdict]
+    ax.fill_betweenx([i - .32, i + .32], -r.mde80, r.mde80, color="#cfcfcf", alpha=.45, zorder=0)
+    ax.plot([r.ci_lo, r.ci_hi], [i, i], color=col, lw=2.4); ax.scatter(r.rho_size, i, s=52, color=col, zorder=3)
+    ax.text(.97, i, f"n {int(r.n)}  q {qtxt(r.fdr_q)}", va="center", fontsize=7.8, color="#333")
+ax.set_yticks(range(len(db))); ax.set_yticklabels([f"{a} -> {b}" for a, b in zip(db.test_label.iloc[::-1], db.outcome_label.iloc[::-1])], fontsize=8)
+ax.axvline(0, color="k", lw=.8); ax.set_xlim(-.7, .97)
+ax.set_xlabel("size-controlled rank correlation (dot, 95% CI; orange = lead, gray = not detected)\\nGray band: smallest effect this n could reliably see", fontsize=8.5)
+ax.set_title("Defensive backs: wide intervals, mostly inside what this n can see", loc="left", fontweight="bold", fontsize=10)
+fig.tight_layout(); fig.savefig(SAVE / "fig5_db_power.png", dpi=170); plt.show()
+'''))
+C.append(md("*Table 1. What each sample can see: the smallest correlation seen 8 times in 10, and the chance of seeing a true 0.30 (medians over tests with 25+ players).*"))
+C.append(md("*Figure 5. Defensive backs, best test per result: mostly inside the gray band, so not detected, not ruled out.*"))
+
+# =====================================================================================  5 WEIGHT
+C.append(md(f"""
+## 5. Weight is the variable scouts must adjust for
+A stopwatch cannot tell weight from talent. Holding height and draft year fixed (Figure 6):
+
+- **Defensive line.** Heavier linemen get off the ball slower (ρ {sg(gw.rho_height_ctrl)}, 95% CI {CI(gw)}, q {qf(gw.fdr_q)}) and reach a lower speed one second after the snap ({sg(gb.rho_height_ctrl)}, q {qf(gb.fdr_q)}). This is why Section 2 reads linemen size-adjusted.
 - **Receivers.** Heavier receivers run slower on deep routes ({sg(wsun.rho_height_ctrl)}, q {qf(wsun.fdr_q)}) and slower than their own 40 predicts ({sg(wss.rho_height_ctrl)}, q {qf(wss.fdr_q)}).
-- **Separation.** Heavier receivers also get less separation on break routes ({sg(s_brk.rho_size)}), vertical routes ({sg(s_ver.rho_size)}) and crossers ({sg(s_cro.rho_size)}), but not on screens ({sg(s_scr.rho_size)}). That is a lead, not a finding (q {s_cro.fdr:.2f}). It appears in Figure 4, panel D.
+- **Separation.** Heavier receivers also get less separation on break ({sg(s_brk.rho_size)}), vertical ({sg(s_ver.rho_size)}) and crosser ({sg(s_cro.rho_size)}) routes, not on screens ({sg(s_scr.rho_size)}): a lead (q {s_cro.fdr:.2f}).
 
-Weight does not move every outcome: pressure and sack rates are only weakly tied to it ({sg(wpr.rho_height_ctrl)}, q {wpr.fdr_q:.2f}). Where it matters, it is large, and it is why the next section exists.
+Weight does not move everything: pressure rate is only weakly tied to it ({sg(wpr.rho_height_ctrl)}, q {wpr.fdr_q:.2f}). Scouts adjust a 40 for weight by feel; these numbers say how much.
 """))
 C.append(code('''
 rows = [("DL", "player_get_off", "DL get-off time"), ("DL", "speed_1s_mph", "DL speed 1 s after snap"), ("DL", "pen_pass_2s", "DL pass-rush depth at 2 s"),
@@ -216,190 +364,78 @@ for i, (grp, outc, lab) in enumerate(rows[::-1]):
     col = OKABE["blue"] if grp == "WR" else OKABE["red"]; col = col if clear else "#9a9a9a"
     ax.plot([r.ci_lo, r.ci_hi], [i, i], color=col, lw=2); ax.scatter(r.rho_height_ctrl, i, s=48, color=col, zorder=3)
     ax.scatter(r.rho_raw, i, s=36, facecolor="white", edgecolor=col, marker="D", zorder=3)
-    ax.text(.62, i, f"n {int(r.n)}  q {'<0.01' if r.fdr_q < .01 else f'{r.fdr_q:.2f}'}", va="center", fontsize=7.5, color=col)
+    ax.text(.62, i, f"n {int(r.n)}  q {qtxt(r.fdr_q)}", va="center", fontsize=7.5, color=col)
 ax.set_yticks(range(len(rows))); ax.set_yticklabels([r[2] for r in rows[::-1]]); ax.axvline(0, color="k", lw=.8); ax.set_xlim(-1, 1)
 ax.set_xlabel("rank correlation of weight with the result (filled = height held fixed, 95% CI; hollow = before)\\n<- heavier does worse            heavier does better ->", fontsize=8)
-ax.set_title("Weight is the hidden variable (colour = clears the correction)", loc="left", fontweight="bold", fontsize=9.5)
-fig.tight_layout(); fig.savefig(SAVE / "fig2_weight.png", dpi=170); plt.show()
+ax.set_title("Weight: where it matters (colour = clears the correction)", loc="left", fontweight="bold", fontsize=9.5)
+fig.tight_layout(); fig.savefig(SAVE / "fig6_weight.png", dpi=170); plt.show()
 '''))
-C.append(md("*Figure 2. Weight against on-field results. Left of zero: heavier players do worse.*"))
-
-# =====================================================================================  2 DL MIRAGE
-C.append(md(f"""
-## 2. Defensive-line speed is a mirage
-The raw picture looks like a gift. Faster linemen get off quicker, rush the passer more and sack more. Across the four defensive-line outcomes with a strong raw link (get-off, pressure, sack, tackle for loss), {DL_N} test-by-outcome cells have at least 25 players. Their median year-controlled link is ρ {sg(DL_RAW)}. Hold weight, height and role (edge or interior) fixed and the median falls to {sg(DL_SIZE)}. {DL_SNS} of the {DL_N} earn **SIZE, NOT SPEED**: a real raw link that is really size.
-
-- The 40 against **sack rate** goes from {sg(dl40s.rho_raw)} to {sg(dl40s.rho_size)} (95% CI {CI(dl40s)}).
-- The 40 against **pressure rate** goes from {sg(dl40p.rho_raw)} to {sg(dl40p.rho_size)} (q {dl40p.fdr_q:.2f}). It survives as a lead.
-- The 10-yard split against **get-off speed** goes from {sg(dl10g.rho_raw)} to {sg(dl10g.rho_size)}. It also survives as a lead.
-
-Across all defensive-line cells with a raw link of at least 0.30, {BIG_HALF} of {BIG_N} lose half or more of it to size. None of the {OTH_BIG} receiver and defensive-back cells with a raw link that strong do.
-
-**Where scouts get fooled:** a tackle who looks fast next to other big men still produces like a big man. Compare linemen only with linemen of the same weight.
-"""))
-C.append(code('''
-tests = [("ten_yd_split", "10-yd split"), ("forty", "40"), ("c_top_mph", "Top speed (tracked)"), ("burst_0_100", "Burst Score"), ("vertical", "Vertical"), ("broad_jump", "Broad jump")]
-outs = [("speed_1s_mph", "Get-off speed (1 s)"), ("pressure_rate", "Pressure rate"), ("sack_rate", "Sack rate"), ("tfl_rate", "Tackles for loss")]
-fig, axes = plt.subplots(1, 4, figsize=(12.5, 3.7), sharey=True, sharex=True)
-for ax, (oc, ol) in zip(axes, outs):
-    for i, (t, tl) in enumerate(tests[::-1]):
-        r = g25[(g25.group == "DL") & (g25.subgroup == "All") & (g25.test == t) & (g25.outcome == oc)]
-        if r.empty: continue
-        r = r.iloc[0]; col = VCOL[r.verdict]
-        ax.annotate("", xy=(r.rho_size, i), xytext=(r.rho_raw, i), arrowprops=dict(arrowstyle="->", color=col, lw=1.2, alpha=.7))
-        ax.plot([r.ci_lo, r.ci_hi], [i, i], color=col, lw=2.2, alpha=.55, solid_capstyle="round")
-        ax.scatter(r.rho_raw, i, s=34, facecolor="white", edgecolor=col, marker="D", zorder=3); ax.scatter(r.rho_size, i, s=44, color=col, zorder=4)
-    ax.set_yticks(range(len(tests))); ax.set_yticklabels([t[1] for t in tests[::-1]]); ax.axvline(0, color="k", lw=.8); ax.set_xlim(-.45, .95); ax.set_title(ol, fontsize=9.5, fontweight="bold")
-fig.supxlabel("hollow diamond = year-controlled rank correlation (before size); filled dot = size- and role-controlled with 95% CI; + = faster athlete does better", fontsize=8.5)
-import matplotlib.lines as ml
-fig.legend([ml.Line2D([], [], marker="o", color=VCOL[k], lw=0) for k in ["SIZE, NOT SPEED", "LEANS", "DOESN'T TRANSLATE"]], ["Size, not speed", "Leans (lead)", "Doesn't translate"], loc="upper right", ncol=3, fontsize=8, frameon=False)
-fig.tight_layout(rect=(0, .03, 1, .95)); fig.savefig(SAVE / "fig3_dl_mirage.png", dpi=170); plt.show()
-'''))
-C.append(md("*Figure 3. Defensive-line Combine tests, before and after holding size fixed. Arrows run from the raw link to the size-controlled link. 3-cone and shuttle (fewer than 36 linemen) are left out.*"))
-
-# =====================================================================================  3 AGILITY
-C.append(md(f"""
-## 3. Agility drills do not do what scouts assume
-Before looking, we wrote down two beliefs and the tests that would kill them.
-
-- **H1: the 3-cone and shuttle matter more on break routes than on vertical routes.** They do not. The break-minus-vertical difference is {sg(h1c['diff'])} for the 3-cone (95% CI {CI(h1c,'lo','hi')}) and {sg(h1s['diff'])} for the shuttle ({CI(h1s,'lo','hi')}). **Dead.**
-- **H3: quickness matters more against man coverage than zone.** It does not. For the 10-yard split the man-minus-zone difference is {sg(h3t['diff'])} (CI {CI(h3t,'lo','hi')}). The 3-cone contrast points the *opposite* way ({sg(h3c['diff'])}, n {int(h3c.n)}), and we do not trust it. **Dead.**
-
-Only 22 to 30 receivers ran the 3-cone or shuttle, so a modest effect is not ruled out. The belief just has no support here.
-
-What remains is a lead. A higher vertical jump ({sg(wvert.rho_size)}, n {int(wvert.n)}) and Burst Score ({sg(wburst.rho_size)}, n {int(wburst.n)}) go with more separation on break routes, with q {wvert.fdr_q:.2f}. We cannot show they are specific to breaks (break-minus-vertical {sg(h2v['diff'])}, CI {CI(h2v,'lo','hi')}). Treat it as something to test next season, not something to draft on.
-"""))
-C.append(code('''
-display(Image(str(FIGS / "fig21_wr_route_lead.png")))
-'''))
-C.append(md("*Figure 4. Pre-declared receiver tests. A and C: route family. B: man versus zone. D: weight by route type.*"))
-
-# =====================================================================================  4 DB
-C.append(md(f"""
-## 4. Defensive backs: the Combine mostly does not translate
-{DB_N} cornerback and safety cells have at least 25 players. {DB_NO} do not translate. {DB_LEAN} lean. None clears the false-discovery bar (lowest q {DB_QMIN:.2f}). That is a clean null, and a useful one: a defensive back's Combine tests tell you little about his tackling, tackles for loss or deep-coverage speed.
-
-One result runs the wrong way. A faster 40 goes with *more* yards allowed per target ({sg(db40.rho_size)}, n {int(db40.n)}, 95% CI {CI(db40)}), and broad jump agrees ({sg(dbbj.rho_size)}). We read that as coverage role, not "speed hurts", and it does not clear correction.
-"""))
-C.append(code('''
-t = card[card.group == "DB"].copy()
-t["Combine test"] = t.test_label; t["Result"] = t.outcome_label
-t["Year-controlled rho"] = t.rho_raw.map("{:+.2f}".format)
-t["Size-controlled rho (95% CI)"] = t.apply(lambda r: f"{r.rho_size:+.2f} ({r.ci_lo:+.2f} to {r.ci_hi:+.2f})", axis=1)
-t["q"] = t.fdr_q.map(lambda q: "<0.01" if q < .01 else f"{q:.2f}")
-t["Verdict"] = t.verdict
-display(t[["Combine test", "Result", "n", "Year-controlled rho", "Size-controlled rho (95% CI)", "q", "Verdict"]].reset_index(drop=True))
-'''))
-C.append(md("*Table 1. Defensive backs, best test per result. + means a faster or better athlete does better, so a negative yards-allowed row means the wrong way.*"))
-
-# =====================================================================================  5 CONTROL
-C.append(md(f"""
-## 5. The control: where speed is real
-If we only ever said "no", a skeptic could call the method a machine for rejecting things. Here is the test it has to pass.
-
-We ran {N_CELLS} Combine-by-outcome cells with at least 25 players. {N_P05} reach p < 0.05, against about {N_EXP} expected by chance. The cells share players and related outcomes, so that excess overstates how many are independent findings. After false-discovery correction, **{N_Q05} cells remain**, and both are receivers.
-
-- **40-yard dash to deep-route game speed:** ρ {sg(w40.rho_size)} (95% CI {CI(w40)}, n {int(w40.n)}, q {qf(w40.fdr_q)}).
-- **Tracked Combine top speed to deep-route game speed:** ρ {sg(wtop.rho_size)} ({CI(wtop)}, n {int(wtop.n)}, q {qf(wtop.fdr_q)}).
-
-Both also improve predictions on draft classes the model never saw ({w40.classes_helped} held-out classes each). Straight-line speed is the one Combine trait that survives size control, correction and held-out validation. Everything else is a lead or a mirage; Figure 6 shows the full scorecard.
-"""))
-C.append(code('''
-fig, (a1, a2) = plt.subplots(1, 2, figsize=(11.5, 4.0), gridspec_kw={"width_ratios": [1.15, 1]})
-tl = [("forty", "40"), ("c_top_mph", "Top speed (tracked)"), ("ten_yd_split", "10-yd split"), ("burst_0_100", "Burst Score"), ("vertical", "Vertical"), ("broad_jump", "Broad jump"), ("short_shuttle", "Short shuttle"), ("three_cone", "3-cone")]
-for i, (t, lab) in enumerate(tl[::-1]):
-    r = full[(full.group == "WR") & (full.subgroup == "All") & (full.test == t) & (full.outcome == "sunday_speed_mph")].iloc[0]; col = VCOL[r.verdict]
-    a1.plot([r.ci_lo, r.ci_hi], [i, i], color=col, lw=2.2); a1.scatter(r.rho_size, i, s=48, color=col, zorder=3); a1.scatter(r.rho_raw, i, s=34, facecolor="white", edgecolor=col, marker="D", zorder=3)
-    a1.text(.98, i, f"n {int(r.n)}  q {'<0.01' if r.fdr_q < .01 else f'{r.fdr_q:.2f}'}  held-out {r.classes_helped}", va="center", ha="left", fontsize=7.5, color=col)
-a1.set_yticks(range(len(tl))); a1.set_yticklabels([x[1] for x in tl[::-1]]); a1.axvline(0, color="k", lw=.8); a1.set_xlim(-.9, .98)
-a1.set_title("Receivers, deep-route game speed: every Combine test", loc="left", fontsize=9.5, fontweight="bold")
-a1.set_xlabel("rank correlation (filled = size held fixed, 95% CI; hollow = before)")
-p = g25.sort_values("p_perm").reset_index(drop=True); k = np.arange(1, len(p) + 1)
-pass_ = p.fdr_q < .05
-a2.scatter(k[~pass_], p.p_perm[~pass_], s=14, color="#9a9a9a", alpha=.8); a2.scatter(k[pass_], p.p_perm[pass_], s=60, color=OKABE["green"], zorder=3, label="clears false-discovery bar")
-a2.plot(k, k / len(p), color="k", ls=":", lw=1, label="if nothing were real"); a2.axhline(.05, color=OKABE["red"], ls="--", lw=1, label="p = 0.05")
-a2.set_yscale("log"); a2.set_xlabel(f"the {len(p)} tests, ranked by p-value"); a2.set_ylabel("permutation p-value")
-a2.set_title(f"{int((p.p_perm < .05).sum())} under p=0.05 (about {round(len(p) * .05)} by chance); {int(pass_.sum())} survive", loc="left", fontsize=9.5, fontweight="bold"); a2.legend(fontsize=8, frameon=False, loc="lower right")
-fig.tight_layout(); fig.savefig(SAVE / "fig5_control.png", dpi=170); plt.show()
-'''))
-C.append(md("*Figure 5. Left: the receiver deep-route cells. Right: all 164 tests. Only the two receiver speed rows clear the bar.*"))
-C.append(code('''
-display(Image(str(FIGS / "fig22_scorecard.png")))
-'''))
-C.append(md("*Figure 6. The scorecard: best test per result and position group. Green means translates, orange leans, red size not speed, grey no translation.*"))
-
-# =====================================================================================  METHODS
-C.append(md("""
-## Methods, in plain language
-- **Size control.** Every link is repeated holding draft year (so a strong class cannot create a link), weight and height fixed, plus cornerback versus safety and edge versus interior where relevant. Hollow marks in the figures are the link before size.
-- **Shrinkage.** Rates from few snaps are pulled toward the group average, so a hot 40-snap sample cannot top a list.
-- **Held-out draft class.** Train on two classes, predict the third, and ask whether adding the Combine test beats a size-only model. We report how many of three classes improve.
-- **False-discovery control.** Each p-value comes from 10,000 permutations, each interval from a player-level bootstrap, and each result carries a Benjamini-Hochberg q across its whole family of tests.
-- **Pre-declaration.** Verdict rules and the receiver hypotheses were written down first.
-- **Audit.** We re-checked every p-value and interval with a second method. The numbers here are the audited ones.
-
-**Verdicts.** TRANSLATES: q below 0.05, interval excludes zero, same sign, held-out classes agree. LEANS: interval excludes zero or p below 0.05, but q does not clear. SIZE, NOT SPEED: raw link of at least 0.30 that falls by half or more and whose interval includes zero. TOO FEW: under 25 players. Otherwise DOESN'T TRANSLATE.
-"""))
+C.append(md("*Figure 6. Weight against on-field results. Left of zero: heavier players do worse.*"))
 
 # =====================================================================================  SCOUT USE
 C.append(md(f"""
 ## How a scout uses this
-A scorecard, not a ranking. It powers a lookup dashboard: enter a prospect's Combine line and each test returns its tag and a one-line read. Three lines from it:
-
+A scorecard, not a ranking (Figure 7), behind a lookup dashboard: enter a Combine line and each test returns a tag and a one-line read. Two examples:
 - **{L_WR}**
 - **{L_DL}**
-- **A faster 40 goes with *more* yards allowed per target (ρ {sg(db40.rho_size)}, n {int(db40.n)}), and it does not clear the false-discovery bar.**
 
-Each line carries its n and interval, so nobody mistakes a lean for a verdict. In practice: trust a receiver's 40 and tracked top speed, compare linemen only with linemen of their weight, and do not lean on a defensive back's 40.
+Rules of thumb: trust a receiver's 40 and tracked top speed; compare linemen only with linemen of their weight and role; treat defensive-back numbers as one input among several. Every line carries its n and interval, so a lead is never mistaken for a verdict.
 """))
+C.append(code('''
+display(Image(str(FIGS / "fig22_scorecard.png")))
+'''))
+C.append(md("*Figure 7. The scorecard, with the smallest detectable effect (MDE). Green translates, orange leans, red mostly size, gray not detected.*"))
 
-# =====================================================================================  LIMITS
+# =====================================================================================  METHODS + LIMITS
+C.append(md(f"""
+## Methods, in plain language
+- **Size control.** Every link is repeated holding draft year, weight and height fixed (plus CB versus S, edge versus interior). Hollow marks are the link before size.
+- **Shrinkage and held-out classes.** Rates from few snaps are pulled toward the group average. We train on two draft classes, predict the third, and ask whether adding the test beats a size-only model.
+- **False-discovery control.** Each p comes from 10,000 permutations, each interval from a player-level bootstrap, and each result carries a Benjamini-Hochberg q across its whole family of tests. Verdict rules and receiver hypotheses were written first, and every p and interval was re-checked with a second method.
+- **Power.** The smallest detectable effect (MDE, 80% power) is a Fisher-z approximation, checked by simulation ({SIM_LO}% to {SIM_HI}% power at the MDE).
+
+**Verdicts.** TRANSLATES: q below 0.05, interval excludes zero, held-out classes agree. LEANS: interval excludes zero or p below 0.05, but q does not clear. SIZE, NOT SPEED: a raw link of at least 0.30 that falls by half or more. TOO FEW: under 25 players. **NOT DETECTED (low power):** enough players, none of the above; no link larger than the MDE, not no link.
+"""))
 C.append(md(f"""
 ## Limitations
-- Rookies only: 2023 to 2025 classes, players who logged tracked snaps. Skipped drills are not random.
-- Counts are small: receivers about 60, defensive backs about 70, linemen about 72, tight ends {te_n}. Tight ends are all "too few to tell". "Doesn't translate" means no evidence, not proof of zero.
-- The same players produced the leads and test them. The three held-out draft classes are the only out-of-sample check. Treat every LEANS row, including the defensive-line pressure lead and the break-route lead, as a hypothesis. Each position's Burst Score recipe was chosen using game results, so its numbers are optimistic.
-- Pooled defensive-line size may partly mean role. Edge and interior splits have only 39 and 33 players.
-- No blocker or quarterback tracks are linked, so pressure and sack results are association, not causation. Man versus zone is a team-level play label.
+- Rookies only (2023 to 2025 classes) with tracked snaps; skipped drills are not random.
+- Counts are small: receivers about 60, defensive backs about {n_db}, linemen about 70, tight ends about {te_n}. Tight ends are all too few to tell ({mde_te:.2f} detectable, {pc(pw_te)} power at 0.30).
+- The same players produced the leads and test them; three held-out classes are the only out-of-sample check. Burst Score recipes were chosen using game results, so those numbers are optimistic.
+- Pooled defensive-line size may partly mean role; edge and interior splits have only 39 and 33 players (about {mde_ed:.2f} and {mde_in:.2f} detectable).
+- No blocker or quarterback tracks are linked: pressure and sack results are association, not causation.
 """))
-
 C.append(md("""
 ## Appendix
-Code cells above are collapsed and show every calculation. The notebook reads the audited result tables from the `bdb2027-outputs` dataset and the raw competition files, which must be attached.
+Code cells are collapsed. The notebook reads the audited result tables from the `bdb2027-outputs` dataset and the raw competition files; attach both.
 """))
 
-import hashlib
 for i, c in enumerate(C):
     c["id"] = hashlib.md5(f"bdb2027-{i}".encode()).hexdigest()[:8]
 NB = {"cells": C, "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
       "language_info": {"name": "python"}}, "nbformat": 4, "nbformat_minor": 5}
-p = HERE / "bdb2027_writeup.ipynb"; p.write_text(json.dumps(NB, indent=1, ensure_ascii=False) + "\n")
+(HERE / "bdb2027_writeup.ipynb").write_text(json.dumps(NB, indent=1, ensure_ascii=False) + "\n")
 words, per = 0, []
 for c in C:
     if c["cell_type"] == "markdown":
-        t = re.sub(r"<!--.*?-->", "", "".join(c["source"]), flags=re.S)
-        n = len(re.findall(r"\S+", t)); words += n; per.append(n)
+        n = len(re.findall(r"\S+", "".join(c["source"]))); words += n; per.append(n)
 print("markdown words:", words, per)
-print(f"slope {SLOPE:.3f}; DL cells {DL_N} sns {DL_SNS} raw {DL_RAW:.2f} size {DL_SIZE:.2f}; big {BIG_HALF}/{BIG_N}; DB {DB_N}/{DB_NO}/{DB_LEAN}")
+assert words < 2000, words
 
 # ---------------------------------------------------------------- paste-ready markdown for the Kaggle Writeup form
-import shutil
 FIGD = HERE / "writeup_figs"; FIGD.mkdir(exist_ok=True)
-shutil.copy(OUTD / "figs" / "fig21_wr_route_lead.png", FIGD / "fig4_wr_route_lead.png")
-shutil.copy(OUTD / "figs" / "fig22_scorecard.png", FIGD / "fig6_scorecard.png")
-IMG = {"Figure 1": "fig1_gate_wr.png", "Figure 2": "fig2_weight.png", "Figure 3": "fig3_dl_mirage.png",
-       "Figure 4": "fig4_wr_route_lead.png", "Figure 5": "fig5_control.png", "Figure 6": "fig6_scorecard.png"}
-dbt = card[card.group == "DB"]
-tbl = ["| Combine test | Result | n | Year-controlled ρ | Size-controlled ρ (95% CI) | q | Verdict |", "|---|---|---:|---:|---|---:|---|"]
-for _, r in dbt.iterrows():
-    tbl.append(f"| {r.test_label} | {r.outcome_label} | {int(r.n)} | {sg(r.rho_raw)} | {sg(r.rho_size)} ({CI(r)}) | {qf(r.fdr_q)} | {r.verdict} |")
+shutil.copy(OUTD / "figs" / "fig22_scorecard.png", FIGD / "fig7_scorecard.png")
+IMG = {"Figure 1": "fig1_gate_wr.png", "Figure 2": "fig2_wr_control.png", "Figure 3": "fig3_dl_size.png", "Figure 4": "fig4_leads.png",
+       "Figure 5": "fig5_db_power.png", "Figure 6": "fig6_weight.png", "Figure 7": "fig7_scorecard.png"}
+tbl = ["| Group | Typical n | Smallest ρ seen 8 times in 10 | ...after multiple-test correction | Chance to see a true ρ of 0.30 | ...after correction |", "|---|---:|---:|---:|---:|---:|"]
+for lab, r in PT.iterrows():
+    tbl.append(f"| {lab.strip()} | {int(r['Typical n'])} | {r['Smallest |rho| seen 8 times in 10']:.2f} | {r['...after multiple-test correction']:.2f} | {pc(r['Chance to see a true rho of 0.30'])} | {pc(r['...after correction'])} |")
 parts = []
 for c in C:
     if c["cell_type"] != "markdown": continue
-    t = "".join(c["source"])
-    m = re.match(r"\*(Figure \d|Table 1)\.", t)
-    if m:
-        parts.append("\n".join(tbl) if m.group(1) == "Table 1" else f"![{m.group(1)}](writeup_figs/{IMG[m.group(1)]})")
+    t = "".join(c["source"]); m = re.match(r"\*(Figure \d|Table 1)\.", t)
+    if m: parts.append("\n".join(tbl) if m.group(1) == "Table 1" else f"![{m.group(1)}](writeup_figs/{IMG[m.group(1)]})")
     parts.append(t)
 (HERE / "writeup_for_kaggle.md").write_text("\n\n".join(parts) + "\n")
-print("exported writeup_for_kaggle.md; visuals:", len(IMG) + 1)
+print(f"exported writeup_for_kaggle.md; visuals: {len(IMG)} figures + 1 table = {len(IMG) + 1}")
+print(f"slope {SLOPE:.3f}; DL share {DL_SHARE:.2f}; classes needed {cls_needed}; DB n {n_db} mde {mde_db} pw {pw_db:.2f}/{pwbh_db:.2f}; sim {SIM_LO}-{SIM_HI}")
+print(PT.round(2).to_string())

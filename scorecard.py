@@ -8,6 +8,7 @@ Writes out/scorecard_full.csv, out/scorecard.csv, out/scorecard_weight.csv, out/
 from __future__ import annotations
 import numpy as np, pandas as pd
 from scipy import stats
+from scipy.stats import norm
 import robust as R
 from dl_recheck import OUT
 
@@ -41,6 +42,40 @@ GROUP_OUTCOMES = {
     "DL": ["pressure_rate", "sack_rate", "tfl_rate", "run_stop_rate", "speed_1s_mph"],
 }
 MIN_CARD, MAX_CARD, MIN_N = 4, 8, 25
+NOT_DETECTED = "NOT DETECTED (low power)"   # renamed 11/2026 from "DOESN'T TRANSLATE"; same rule, kinder and more accurate wording
+RANK_VAR = 1.06                              # Fieller-Hartley-Pearson variance factor for a rank (Spearman) correlation
+
+
+# ---------------------------------------------------------------- power / minimum detectable effect (11/2026)
+def _se(n, k):
+    """Fisher-z standard error of a rank partial correlation with k controls: sqrt(1.06 / (n - k - 3))."""
+    df = np.asarray(n, float) - np.asarray(k, float) - 3
+    return np.where(df > 1, np.sqrt(RANK_VAR / np.where(df > 1, df, np.nan)), np.nan)
+
+
+def mde(n, k, alpha=0.05, power=0.80):
+    """Smallest |rho| detected with the given power by a two-sided test at `alpha` (Fisher-z approximation)."""
+    return np.tanh((norm.ppf(1 - alpha / 2) + norm.ppf(power)) * _se(n, k))
+
+
+def power_at(rho, n, k, alpha=0.05):
+    za = norm.ppf(1 - alpha / 2); z = np.arctanh(rho) / _se(n, k)
+    return norm.cdf(z - za) + norm.cdf(-z - za)
+
+
+def add_power(t: pd.DataFrame) -> pd.DataFrame:
+    """MDE columns. k = controls actually fit (draft year dummies, weight, height, role). alpha_bh = the BH cutoff the family actually uses:
+    0.05 * R / m with m the family size and R the number of rejections (at least 1)."""
+    t = t.copy()
+    k = t.n_controls.fillna(4).to_numpy(float)
+    fam = t.group.astype(str) + "|" + t.fdr_basis.astype(str)
+    m = t.fdr_basis.str.extract(r"(\d+)")[0].astype(float)
+    R = t.groupby(fam).fdr.transform(lambda v: max(1, int((v < 0.05).sum())))
+    t["alpha_bh"] = 0.05 * R / m
+    n = t.n.to_numpy(float)
+    t["mde80"] = mde(n, k); t["mde80_bh"] = mde(n, k, alpha=t.alpha_bh.to_numpy(float))
+    t["power_rho03"] = power_at(0.30, n, k); t["power_rho03_bh"] = power_at(0.30, n, k, alpha=t.alpha_bh.to_numpy(float))
+    return t
 
 
 # ---------------------------------------------------------------- "raw" = year-controlled only (corrected 11/2026)
@@ -168,7 +203,7 @@ def verdict(r) -> str:
         return "SIZE, NOT SPEED"
     if (ci0 or r.p_perm < 0.05) and same:
         return "LEANS"
-    return "DOESN'T TRANSLATE"
+    return NOT_DETECTED
 
 
 def coach(r) -> str:
@@ -186,7 +221,8 @@ def coach(r) -> str:
         return f"{tp} looks tied to {op} (year-controlled {r.rho_raw_o:+.2f}), but that is body size: it drops to {r.rho_o:+.2f} once weight, height{' and role' if r.subgroup == 'All' and r.card_group in ('DL', 'DB') else ''} are held fixed."
     if r.verdict == "TOO FEW TO TELL":
         return f"Only {int(r.n)} players. Too few to say whether {tl} goes with {op}."
-    return f"No sign that {tl} shows up as {op} ({rs}, CI {r.lo_o:+.2f} to {r.hi_o:+.2f}, n {int(r.n)})."
+    return (f"Not detected: no clear link between {tl.replace('a faster ', 'a faster ')} and {op} ({rs}, CI {r.lo_o:+.2f} to {r.hi_o:+.2f}, n {int(r.n)}). "
+            f"At this n only links of about {r.mde80:.2f} or more can be seen, so a smaller effect is not ruled out.")
 
 
 def prep(t: pd.DataFrame) -> pd.DataFrame:
@@ -200,6 +236,7 @@ def prep(t: pd.DataFrame) -> pd.DataFrame:
     t["classes_helped"] = t.apply(lambda r: f"{int(r.loso_pos_folds)}/{int(r.loso_folds)}" if np.isfinite(r.loso_folds) and r.loso_folds > 0 else "", axis=1)
     t["combine_source"] = np.where(t.test.isin(TRACKING_TESTS), "tracking", "official")
     t["test_label"] = t.test.map(TEST_LABEL); t["outcome_label"] = t.outcome.map(lambda o: OUT_INFO[o][0])
+    t = add_power(t)
     t["coach_line"] = t.apply(coach, axis=1)
     return t
 
@@ -236,7 +273,7 @@ def pick_rows(full: pd.DataFrame) -> pd.DataFrame:
 def main() -> None:
     full = prep(load()).reset_index(drop=True)
     cols = ["card_group", "subgroup", "test", "test_label", "combine_source", "outcome", "outcome_label", "n", "rho_raw_o", "raw_lo_o", "raw_hi_o", "rho_unadj_o",
-            "rho_o", "lo_o", "hi_o", "p_perm", "fdr", "fdr_basis", "rho_asrep_o", "loso_dr2", "classes_helped", "verdict", "coach_line"]
+            "rho_o", "lo_o", "hi_o", "p_perm", "fdr", "fdr_basis", "rho_asrep_o", "loso_dr2", "classes_helped", "verdict", "coach_line", "mde80", "mde80_bh", "alpha_bh", "power_rho03", "power_rho03_bh"]
     ren = {"rho_asrep_o": "rho_asreported_yearctrl", "card_group": "group", "rho_unadj_o": "rho_unadjusted_pooled_shrunk", "rho_raw_o": "rho_raw", "raw_lo_o": "raw_lo", "raw_hi_o": "raw_hi", "rho_o": "rho_size",
            "lo_o": "ci_lo", "hi_o": "ci_hi", "fdr": "fdr_q", "loso_dr2": "oos_delta_r2"}
     full[cols].rename(columns=ren).to_csv(OUT / "scorecard_full.csv", index=False)
@@ -278,7 +315,7 @@ def fq(q: float) -> str:
 
 def fmt_row(r) -> str:
     q = "" if not np.isfinite(r.fdr) else fq(r.fdr)
-    return (f"| {r.test_label} | {r.outcome_label} | {int(r.n)} | {r.rho_raw_o:+.2f} | {r.rho_o:+.2f} ({r.lo_o:+.2f} to {r.hi_o:+.2f}) | {fp(r.p_perm)} | {q} | "
+    return (f"| {r.test_label} | {r.outcome_label} | {int(r.n)} | {r.rho_raw_o:+.2f} | {r.rho_o:+.2f} ({r.lo_o:+.2f} to {r.hi_o:+.2f}) | ±{r.mde80:.2f} | {fp(r.p_perm)} | {q} | "
             f"{r.loso_dr2:+.2f} ({r.classes_helped}) | **{r.verdict}** | {r.coach_line} |")
 
 
@@ -287,7 +324,7 @@ def write_md(card, w, full) -> None:
          "Generated by `scorecard.py` from the saved robust outputs (METRICS.md §9). ρ is oriented so **+ = a better athlete goes with a better result**. "
          "Year-controlled ρ is the raw link: both sides demeaned within draft year, on the same outcome as the size-controlled fit (shrunk rate where one exists), nothing else held fixed (METRICS.md §9, audit fix 11/2026; the as-reported-rate version is in `scorecard_full.csv` as `rho_asreported_yearctrl`). Size-controlled ρ also holds weight and height fixed (DB also CB vs S; DL also Edge vs Interior). q = BH false-discovery rate over the full family; "
          "ΔR² = held-out-draft-class gain over a size-only model (classes that improved). Draft slot is never used.", ""]
-    H = "| Test | Result | n | year-controlled ρ | size-controlled ρ (95% CI) | perm p | q | out-of-sample ΔR² | Verdict | Coach line |\n|---|---|---:|---:|---|---:|---:|---|---|---|"
+    H = "| Test | Result | n | year-controlled ρ | size-controlled ρ (95% CI) | MDE (80% power) | perm p | q | out-of-sample ΔR² | Verdict | Coach line |\n|---|---|---:|---:|---|---:|---:|---:|---|---|---|"
     for g, title in [("WR", "Wide receivers"), ("TE", "Tight ends"), ("DB", "Defensive backs (CB + S)"), ("DL", "Defensive line (all DL)")]:
         L += [f"## {title}", "", H]
         main_rows = card[(card.card_group == g) & (~card.breakout)]
@@ -316,7 +353,8 @@ def write_md(card, w, full) -> None:
           "- Confidence intervals are 2,000-resample percentile bootstraps over players (the whole fit is redone in each resample). Below n = 15 the bootstrap is unreliable and the dashboard hides the interval.",
           "- WR break-route separation comes from the pre-declared re-test (METRICS.md §8); the broader break family in the first robust pass is not used.",
           "- Same 2023–25 players generated the leads and test them; held-out draft classes are the only out-of-sample check, and there are three.",
-          "- A TOO FEW or DOESN'T TRANSLATE verdict is absence of evidence at this sample size, not proof of no effect."]
+          "- A TOO FEW or NOT DETECTED (low power) verdict is absence of evidence at this sample size, not evidence of absence. The MDE column is the smallest |ρ| a test at this n would detect 80% of the time (alpha 0.05, Fisher-z with the rank-correlation variance factor 1.06); `scorecard_full.csv` also carries the MDE under the BH cutoff actually used (`mde80_bh`) and power for a true ρ of 0.30.",
+          "- The renamed verdict (was DOESN'T TRANSLATE until 11/2026) applies the same rule: enough players, none of the TRANSLATES / SIZE, NOT SPEED / LEANS conditions met."]
     (OUT / "scorecard.md").write_text("\n".join(L) + "\n")
 
 

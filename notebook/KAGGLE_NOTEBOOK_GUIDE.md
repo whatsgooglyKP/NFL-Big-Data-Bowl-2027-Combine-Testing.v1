@@ -1,4 +1,4 @@
-# How to submit the Big Data Bowl 2027 writeup (rebuilt 11/2026)
+# How to submit the Big Data Bowl 2027 writeup (rebuilt 11/2026, reframed: "the Combine works, but read it right")
 
 Rules checked against the official Kaggle pages (Overview, Evaluation, Submission Requirements, Rules) via the Kaggle API on 11/2026. Re-read the competition's **Rules** and **Submission Requirements** tabs yourself before you submit; those tabs are the source of truth.
 
@@ -7,7 +7,7 @@ Rules checked against the official Kaggle pages (Overview, Evaluation, Submissio
 ## What the rules require (and where we stand)
 | Rule | Our status |
 |---|---|
-| Writeup at most 2,000 words, fewer than 10 tables or figures | 1,790 markdown words; 6 figures + 1 table = 7 |
+| Writeup at most 2,000 words, fewer than 10 tables or figures | 1,832 markdown words (about 1,950 if a counter also counts the table's markup); 7 figures + 1 table = 8 |
 | Explicitly link Combine tracking to regular-season game performance (pass/fail gate) | Stated at the top and recomputed in the GATE cell |
 | Readable markdown, embedded visuals, attached **public** Kaggle notebook (pass/fail gate) | Notebook ready; you make it public and attach it |
 | Must use the provided player tracking data (otherwise not scored) | GATE cell reads `combine_tracking`, `game_tracking_2023/24/25`, `player_play` |
@@ -24,7 +24,6 @@ Kaggle: **Datasets, New Dataset**, name it `bdb2027-outputs`. Upload a folder na
 - `out/scorecard.csv`
 - `out/scorecard_full.csv`
 - `out/scorecard_weight.csv`
-- `out/figs/fig21_wr_route_lead.png`
 - `out/figs/fig22_scorecard.png`
 - `out/figs/fig1_translation_scatter.png` (fallback only, used if the competition data is not attached)
 
@@ -38,9 +37,12 @@ The notebook finds `scorecard_full.csv` anywhere under `/kaggle/input`, so the f
 
 ## Step 3. Create the Writeup
 1. Competition page, **Writeups** tab, **New Writeup**.
-2. Title: *Body size in a stopwatch costume: what the Combine really tells you about NFL play*. Subtitle: *Most Combine signal is body size wearing a stopwatch. Here is the one place speed is real, and where scouts get fooled.*
-3. Paste `notebook/writeup_for_kaggle.md` into the body. Upload the six PNGs from `notebook/writeup_figs/` where the image lines are. Figure 1 is the receiver gate scatter; Table 1 is already a markdown table.
-4. Select the **Open Track**, attach your public notebook, and add any cover image the form offers (use `fig6_scorecard.png` or `fig1_gate_wr.png`).
+2. Title: *Read the Combine through body size: three positions, three different stories*. Subtitle: *Receiver speed is real and shows up on Sunday; linemen's drills work mostly through body size; for defensive backs the Combine alone is a weak guide at this sample size.* First line of the body is the hook: **Read Combine numbers through body size, and three positions tell three different stories.**
+3. Paste `notebook/writeup_for_kaggle.md` into the body. Upload the seven PNGs from `notebook/writeup_figs/` where the image lines are (fig1 to fig7, in order). Figure 1 is the receiver gate scatter; Table 1 is already a markdown table.
+4. Select the **Open Track**, attach your public notebook, and add any cover image the form offers (use `fig7_scorecard.png` or `fig1_gate_wr.png`).
 5. Check the word count the form shows, then press **Submit**. Confirm it says Submitted, not Draft.
 
 Optional: a short YouTube video link. Any external link must be viewable without logging in.
+
+## Writeup structure (five findings)
+Hook and gate; 1 Receivers (Fig 1, Fig 2); 2 Defensive line, raw vs size-adjusted (Fig 3); 3 Consistent leads, honest q (Fig 4); 4 Defensive backs, not detected with MDE and power (Table 1, Fig 5); 5 Weight (Fig 6); how a scout uses it (Fig 7); methods; limitations. The verdict once called "DOESN'T TRANSLATE" is now "NOT DETECTED (low power)" (same rule; see METRICS 9 and 12).

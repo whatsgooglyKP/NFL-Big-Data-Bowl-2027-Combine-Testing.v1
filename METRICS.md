@@ -281,7 +281,9 @@ Module: `robust.py` (generic), `dl_robust.py` (DL), `pos_robust.py` (WR / TE / D
 2. **TRANSLATES**: the §7 "survives all checks" rule: size-controlled bootstrap CI excludes 0, BH q < 0.05, raw and size-controlled signs agree, shrunk and unshrunk signs agree, leave-one-class-out ΔR² > 0 with permutation p < 0.10 and a gain in ≥ 2 of 3 classes.
 3. **SIZE, NOT SPEED**: |raw ρ| ≥ 0.30, size-controlled |ρ| ≤ half of raw |ρ|, and the size-controlled CI includes 0 (the effect collapsed). In pooled DL and DB the controlled model also holds role (edge/interior, CB/S) fixed, so a collapse can be size or role. 
 4. **LEANS**: size-controlled CI excludes 0 **or** permutation p < 0.05, same sign as raw, but q ≥ 0.05. Rows where more than half of the year-controlled effect disappears after size (and role) control say so in the coach line.
-5. **DOESN'T TRANSLATE**: everything else with adequate n (a null, not a proof of zero; the CI is shown).
+5. **NOT DETECTED (low power)**: everything else with adequate n. Same rule as before; only the label changed (see the rename note below). It means "no link larger than the row's minimum detectable effect (`mde80`) was seen", not "no link". Absence of evidence is not evidence of absence; the CI and the MDE are shown beside the tag.
+
+**Rename (11/2026, Kevin, 11/19/2026).** The verdict formerly called "DOESN'T TRANSLATE" is now "NOT DETECTED (low power)". The rule is unchanged (rule 5 above: enough players, none of rules 2 to 4 met). The old wording read as a finding of no effect, which the data cannot support at these sample sizes: a typical group (n about 60) can only see |ρ| of about 0.37 or more with 80% power before multiple-test correction, and about 0.51 to 0.56 under the correction actually used (§12). The mentions of the old name in §11 and in older log entries are historical and are left as written.
 
 **Out-of-sample column.** ΔR² of adding the test to a size-only ridge model, trained on two draft classes and scored on the third, plus how many of the three classes improved.
 
@@ -317,3 +319,14 @@ Removed: `athletic_comps.py`, `out/athletic_comps*.csv`, the comps pool and z-sc
 - The card shows the best-p test per result, so card ρ is optimistic by construction.
 - WR break-route cells use their own pre-declared 14-cell BH family (§8), smaller than the 68-cell WR family; the best two rows have q 0.185 there and about 0.21 under one BH over the whole displayed grid. Neither clears 0.05.
 - All 25 SIZE, NOT SPEED rows are DL. In the pooled DL rows the raw link is largely the Edge-vs-Interior gap (raw ρ does not control role), which the size-controlled fit removes.
+
+## 12. Power and minimum detectable effect (11/2026, Kevin, 11/19/2026)
+
+**Why.** A "not detected" row is only informative if the sample could have detected something. Every row of `out/scorecard_full.csv` now carries its own minimum detectable effect.
+
+**Formula (Fisher-z with the rank-correlation variance factor).** For a row with n players and k controls (draft year, weight, height and role terms; k = 4 when not recorded), se = sqrt(1.06 / (n − k − 3)). The 1.06 factor is the usual large-sample variance inflation of a Spearman/rank correlation over Pearson. The minimum detectable effect at 80% power is
+`mde80 = tanh((z(1 − α/2) + z(0.80)) · se)` with α = 0.05 two-sided (`mde80`), and the same with α replaced by the Benjamini-Hochberg threshold actually used for the row's family, `alpha_bh = 0.05 · R / m` (R = number of rejections in the family, at least 1; m = family size from `fdr_basis`), as `mde80_bh`. Power at a true ρ is `Φ(atanh(ρ)/se − z(1 − α/2)) + Φ(−atanh(ρ)/se − z(1 − α/2))`, reported for ρ = 0.30 as `power_rho03` and `power_rho03_bh`.
+
+**Check by simulation (`power_check.py`, `out/power_simulation.csv`).** Rank-partial-correlation data were simulated with 4 controls at n = 21, 33, 38, 60 and 64 and at α = 0.05 and 0.0018 (about the BH cutoff used for DL and DB; WR's is about 0.0015). Simulated power at the analytic MDE was 77% to 82%, against the 80% target.
+
+**Reading it.** Medians over rows with n ≥ 25 are in Table 1 of the writeup (the pooled 'All' rows per group; Edge and Interior are separate). Examples: receivers (typical n 62) 0.37, defensive line (64) 0.37, edge only (38) 0.48, interior only (33) 0.51, defensive backs (59) 0.38; under the BH threshold 0.51 to 0.73. Tight ends (about 20) are near 0.66. The MDE does not change any verdict; it is shown so that a gray row is read as "not seen above this size", not "zero".

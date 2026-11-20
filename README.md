@@ -82,6 +82,7 @@ About 2.3 GB total. Licensed CC BY-NC 4.0. Column notes and gotchas are in [`DAT
 |---|---|
 | `METRICS.md` | Frozen official definitions (Sunday Speed, translation, SSOE, and gameplay success) |
 | `audit_stats.py` | Independent recomputation of every scorecard ρ, p, q-check and bootstrap interval (METRICS.md §11); writes `out/audit_stats.csv` |
+| `power_check.py` | Simulation check of the minimum-detectable-effect formula (`out/power_simulation.csv`); MDE and power columns live in `scorecard.py` (METRICS §12) |
 | `RESULTS_LOG.md` | Append-only working-session results |
 | `PHASE2_RESULTS.md` | Skill-drill tests vs the 40 |
 | `STRATEGY.md` | Concept, writeup plan, past-winner framing |

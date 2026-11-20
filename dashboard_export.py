@@ -37,14 +37,15 @@ def _f(v) -> str:
 
 
 def js_line(x) -> str:
-    """Python mirror of the dashboard's template for DOESN'T TRANSLATE / SIZE, NOT SPEED / TOO FEW rows (checked against scorecard.csv)."""
+    """Python mirror of the dashboard's template for NOT DETECTED (low power) / SIZE, NOT SPEED / TOO FEW rows (checked against scorecard.csv)."""
     tp, op = SC.TEST_PHRASE[x.test], SC.OUT_INFO[x.outcome][1]
     tl = tp[0].lower() + tp[1:]
     if x.verdict == "SIZE, NOT SPEED":
         return f"{tp} looks tied to {op} (year-controlled {_f(x.rho_raw)}), but that is body size: it drops to {_f(x.rho_size)} once weight, height{' and role' if x.subgroup == 'All' and x.group in ('DL', 'DB') else ''} are held fixed."
     if x.verdict == "TOO FEW TO TELL":
         return f"Only {int(x.n)} players. Too few to say whether {tl} goes with {op}."
-    return f"No sign that {tl} shows up as {op} (ρ {_f(x.rho_size)}, CI {_f(x.ci_lo)} to {_f(x.ci_hi)}, n {int(x.n)})."
+    return (f"Not detected: no clear link between {tl} and {op} (ρ {_f(x.rho_size)}, CI {_f(x.ci_lo)} to {_f(x.ci_hi)}, n {int(x.n)}). "
+            f"At this n only links of about {round(float(x.mde80), 2):.2f} or more can be seen, so a smaller effect is not ruled out.")
 
 
 def scorecard_blocks():
@@ -56,13 +57,13 @@ def scorecard_blocks():
     for x in full.itertuples():
         is_card = (x.group, x.subgroup, x.test, x.outcome) in cardkeys
         coach = x.coach_line
-        if not is_card and x.verdict in ("DOESN'T TRANSLATE", "SIZE, NOT SPEED", "TOO FEW TO TELL") and js_line(x) == x.coach_line:
+        if not is_card and x.verdict in ("NOT DETECTED (low power)", "SIZE, NOT SPEED", "TOO FEW TO TELL") and js_line(x) == x.coach_line:
             coach = ""  # the page rebuilds this line from the row's own numbers with the same template (verified equal here)
         elif x.verdict == "TOO FEW TO TELL" and not is_card:
             coach = ""
         okci = x.n >= 15  # bootstrap CIs are degenerate (endpoints at +-1) below n = 15: hide them
         rows.append([x.group, x.subgroup, x.test, x.outcome, int(x.n), r(x.rho_size), r(x.ci_lo) if okci else None, r(x.ci_hi) if okci else None, r(x.rho_raw), r(x.p_perm, 4), r(x.fdr_q, 3),
-                     x.verdict, x.classes_helped if isinstance(x.classes_helped, str) else "", coach, 1 if is_card else 0])
+                     x.verdict, x.classes_helped if isinstance(x.classes_helped, str) else "", coach, 1 if is_card else 0, r(x.mde80), r(x.mde80_bh)])
     cardrows = []
     w4 = w.sort_values(["group", "fdr_q", "p_perm"]).groupby("group").head(4)  # top 4 weight rows per group (smallest q)
     wrows = [[x.group, x.outcome_label, int(x.n), r(x.rho_raw), r(x.rho_height_ctrl), r(x.ci_lo), r(x.ci_hi), r(x.fdr_q)] for x in w4.itertuples()]
