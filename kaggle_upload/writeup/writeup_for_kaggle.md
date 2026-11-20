@@ -1,11 +1,10 @@
-# Read the Combine through body size: three positions, three different stories
 *NFL Big Data Bowl 2027 · Open Track · Combine tracking linked to regular-season game tracking · WR, TE, DB, DL*
 
 **Three positions, three stories.** Receivers: speed is real and shows up on Sunday. Linemen: the drills predict pass rush, mostly through body size, so read them size-adjusted. Defensive backs: the Combine alone is a weak guide at this sample size.
 
-**The required link, stated plainly.** We connect each rookie's 10 Hz Combine tracking (2023 to 2025 classes) to his regular-season game tracking. A receiver's tracked Combine top speed predicts his regular-season speed on deep routes (ρ +0.63 year-controlled, **+0.58 with body size held fixed**, n 62). The cell below recomputes that from the raw tracking files.
+**The required link, stated plainly.** We connect each rookie's 10 Hz Combine tracking (2023 to 2025 classes) to his regular-season game tracking. A receiver's tracked Combine top speed predicts his regular-season speed on deep routes (ρ +0.63 year-controlled, **+0.58 with body size held fixed**, n 62). The attached public notebook recomputes that from the raw tracking files.
 
-Data: the competition's Combine, game-tracking, play, player and game files, plus public Pro-Football-Reference stats (two DB outcomes). No draft-position information is used; draft *year* is a control only. Running backs are excluded. **Sunday Speed** is a player's 90th-percentile top speed per play where his job asks for speed (deep routes for receivers; man or deep coverage for defensive backs), regular season. **Burst Score** is a 0 to 100 within-position blend of the tracked 20-yard time and the jumps. ρ is a rank correlation; positive means the better athlete does better.
+Data: the competition's Combine, game-tracking, play, player and game files, plus public Pro-Football-Reference stats via nflverse (two DB outcomes). Source: NFL Big Data Bowl 2027 (CC BY-NC 4.0). No draft-position information is used; draft *year* is a control only. Running backs are excluded. **Sunday Speed** is a player's 90th-percentile top speed per play where his job asks for speed (deep routes for receivers; man or deep coverage for defensive backs), regular season. **Burst Score** is a 0 to 100 within-position blend of the tracked 20-yard time and the jumps. ρ is a rank correlation; positive means the better athlete does better.
 
 ![Figure 1](writeup_figs/fig1_gate_wr.png)
 
@@ -85,7 +84,7 @@ Weight does not move everything: pressure rate is only weakly tied to it (-0.20,
 *Figure 6. Weight against on-field results. Left of zero: heavier players do worse.*
 
 ## How a scout uses this
-A scorecard, not a ranking (Figure 7), behind a lookup dashboard: enter a Combine line and each test returns a tag and a one-line read. One example:
+A scorecard, not a ranking (Figure 7), built for lookup: for each Combine test it returns a tag and a one-line read. One example:
 - **A faster 40 shows up as faster game speed on deep routes. It holds after size control and on a held-out draft class (ρ +0.52, n 63).**
 
 Rules of thumb: trust a receiver's 40 and tracked top speed; compare linemen only with linemen of their weight and role; treat defensive-back numbers as one input among several. Every line carries its n and interval.
@@ -111,4 +110,4 @@ Rules of thumb: trust a receiver's 40 and tracked top speed; compare linemen onl
 - No blocker or quarterback tracks are linked: pressure and sack results are association, not causation.
 
 ## Appendix
-Code cells are collapsed. Attach the `bdb2027-outputs` dataset (audited result tables) and the competition data.
+Code: the attached public Kaggle notebook (competition data plus the public `bdb2027-outputs` result tables). All code is open source.

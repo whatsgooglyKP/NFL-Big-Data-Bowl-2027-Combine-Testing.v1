@@ -11,3 +11,5 @@ Alternatives:
 
 **Body:** paste `writeup_for_kaggle.md`; upload `writeup_figs/fig1 ... fig7` in that order where the `![Figure n]` lines sit (the table is plain markdown).
 **Attach:** the public notebook (kernel package) as the writeup's notebook.
+
+**Figures must be uploaded (11/2026).** The 7 `![Figure n](writeup_figs/...)` lines in `writeup_for_kaggle.md` are local placeholders and will not render on Kaggle. In the Writeup, upload each figure from `writeup_figs/` in place of its `writeup_figs` link (Figure 1 = fig1_gate_wr.png ... Figure 7 = fig7_scorecard.png), then check the preview shows all 7 inline. The body has no H1: the title goes in the Writeup's title field.

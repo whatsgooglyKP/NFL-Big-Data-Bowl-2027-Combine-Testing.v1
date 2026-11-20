@@ -326,7 +326,29 @@ for c in C:
     t = "".join(c["source"]); m = re.match(r"\*(Figure \d|Table 1)\.", t)
     if m: parts.append("\n".join(tbl) if m.group(1) == "Table 1" else f"![{m.group(1)}](writeup_figs/{IMG[m.group(1)]})")
     parts.append(t)
-(HERE / "writeup_for_kaggle.md").write_text("\n\n".join(parts) + "\n")
+# Writeup-only wording (audit 11/2026, F2-F6; approved by Kevin). Notebook cells above are left as published on Kaggle (v2).
+_md_out = "\n\n".join(parts) + "\n"
+WRITEUP_EDITS = [
+    # F6: the Writeup form's title field carries the title, so the body drops the H1
+    ("# Read the Combine through body size: three positions, three different stories\n", ""),
+    # F2: no code cells in a Writeup
+    ("The cell below recomputes that from the raw tracking files.",
+     "The attached public notebook recomputes that from the raw tracking files."),
+    # F5: explicit data credit
+    ("plus public Pro-Football-Reference stats (two DB outcomes).",
+     "plus public Pro-Football-Reference stats via nflverse (two DB outcomes). Source: NFL Big Data Bowl 2027 (CC BY-NC 4.0)."),
+    # F4: judges cannot open a dashboard
+    ("behind a lookup dashboard: enter a Combine line and each test returns a tag and a one-line read.",
+     "built for lookup: for each Combine test it returns a tag and a one-line read."),
+    # F3: notebook language out of the Appendix
+    ("Code cells are collapsed. Attach the `bdb2027-outputs` dataset (audited result tables) and the competition data.",
+     "Code: the attached public Kaggle notebook (competition data plus the public `bdb2027-outputs` result tables). All code is open source."),
+]
+for _old, _new in WRITEUP_EDITS:
+    assert _md_out.count(_old) == 1, ("writeup edit target not found exactly once", _old[:60])
+    _md_out = _md_out.replace(_old, _new)
+assert _md_out.count("](writeup_figs/") == 7
+(HERE / "writeup_for_kaggle.md").write_text(_md_out.lstrip("\n"))
 print(f"exported writeup_for_kaggle.md; visuals: {len(IMG)} figures + 1 table = {len(IMG) + 1}")
 _md = (HERE / "writeup_for_kaggle.md").read_text()
 STRICT = len(re.findall(r"\S+", _md))   # strictest count: every token of the paste-ready markdown, table pipes and image lines included
@@ -336,5 +358,7 @@ print(f"word counts: markdown cells {words}; paste-ready md, words only {PLAIN};
 assert STRICT <= 1900, STRICT
 _bad = re.findall(r"(?i)\b(pick\w*|round\w*|slot\w*)\b", _md + "".join("".join(c["source"]) for c in C))
 assert not _bad, _bad
+_comps = re.findall(r"(?i)\bcomps\b|athletic comp", _md + "".join("".join(c["source"]) for c in C if c["cell_type"] == "markdown"))
+assert not _comps, _comps   # no athletic comps (dropped 11/19/2026)
 print(f"slope {SLOPE:.3f}; DL share {DL_SHARE:.2f}; classes needed {cls_needed}; DB n {n_db} mde {mde_db} pw {pw_db:.2f}/{pwbh_db:.2f}; sim {SIM_LO}-{SIM_HI}")
 print(PT.round(2).to_string())
