@@ -1,0 +1,2 @@
+# per-player derived tables (from Kaggle data) are never committed
+cache/
