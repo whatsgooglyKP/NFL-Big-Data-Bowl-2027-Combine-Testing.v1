@@ -1,0 +1,20 @@
+@page { size: Letter; margin: 0.9in 0.85in 0.9in 0.85in; @bottom-center { content: counter(page); font-size: 9pt; color:#555; } }
+body { font-family: "DejaVu Serif", Georgia, serif; font-size: 10.5pt; line-height: 1.42; color:#111; max-width: none; margin:0; }
+header#title-block-header { text-align:center; margin-bottom: 1.2em; }
+h1.title { font-size: 18pt; line-height:1.25; margin: 0 0 0.4em; }
+p.author { font-size: 12pt; margin: 0.2em 0; text-align:center; } p.date { font-size: 10pt; color:#444; margin:0; text-align:center; }
+h1 { font-size: 13.5pt; margin: 1.3em 0 0.4em; border-bottom: 1px solid #bbb; padding-bottom: 2px; page-break-after: avoid; }
+h2 { font-size: 11.5pt; margin: 1.1em 0 0.3em; page-break-after: avoid; }
+p { margin: 0.45em 0; text-align: justify; hyphens: auto; }
+figure { margin: 1em 0; text-align:center; page-break-inside: avoid; break-inside: avoid; }
+figure img { max-width: 100%; max-height: 8.3in; height:auto; }
+figcaption { font-size: 9pt; text-align: left; color:#222; margin-top: 0.35em; }
+table { border-collapse: collapse; margin: 0.8em auto; font-size: 9pt; page-break-inside: avoid; }
+th, td { border-top: 1px solid #999; border-bottom: 1px solid #999; padding: 3px 6px; }
+th { background:#eee; } caption { caption-side: top; font-size: 9pt; text-align:left; margin-bottom: 0.3em; }
+blockquote { margin: 0.6em 1.5em; font-style: italic; color:#333; }
+a { color: #1a4f8b; word-break: break-all; }
+li { margin: 0.15em 0; }
+math[display="block"] { margin: 0.6em 0; }
+td:first-child, th:first-child { white-space: nowrap; text-align:left; }
+#references p, h1#references ~ p { text-align: left; }
