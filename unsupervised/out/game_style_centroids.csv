@@ -1,0 +1,84 @@
+group,k,style,n_style,feature,label,z,raw_mean
+WR,3,0,24,game_wr_peak_decel_mag,Brakes into the cut,0.6479212956651401,5.558333333333334
+WR,3,0,24,game_wr_peak_accel,Re-accel out of the cut,0.18820581122889538,2.872916666666665
+WR,3,0,24,game_wr_speed_lost,Speed lost in the cut,0.7097994531262514,2.9111458333333338
+WR,3,0,24,game_wr_time_through,Time through the cut,0.7402164049985814,1.3041666666666665
+WR,3,0,24,g_deep_speed,Deep-route game speed,0.9065259866876553,19.191136460238695
+WR,3,0,24,cushion_mean,Defender cushion,0.38796143004606587,6.317592629893878
+WR,3,0,24,slot_share,Slot share,-0.25388517585471054,0.29346997412344483
+WR,3,0,24,deep_route_share,Deep-route share,0.7904221597023038,0.4816132931706079
+WR,3,0,24,short_route_share,Short-route share,-0.6265699143544229,0.229416220667208
+WR,3,1,16,game_wr_peak_decel_mag,Brakes into the cut,-0.9360886188132191,4.503125000000001
+WR,3,1,16,game_wr_peak_accel,Re-accel out of the cut,-0.8357282838563562,2.371875
+WR,3,1,16,game_wr_speed_lost,Speed lost in the cut,-0.9925953039939347,2.2359375000000004
+WR,3,1,16,game_wr_time_through,Time through the cut,-0.44127370252970083,1.1625
+WR,3,1,16,g_deep_speed,Deep-route game speed,-0.18827347690631024,18.492050599810057
+WR,3,1,16,cushion_mean,Defender cushion,-0.8968120780505531,5.577850219388935
+WR,3,1,16,slot_share,Slot share,-0.876710071256181,0.1913120162890252
+WR,3,1,16,deep_route_share,Deep-route share,0.3396141671810925,0.43955111814185255
+WR,3,1,16,short_route_share,Short-route share,-0.17261638260477247,0.25932943694475413
+WR,3,2,33,game_wr_peak_decel_mag,Brakes into the cut,-0.017354339240964394,5.115151515151515
+WR,3,2,33,game_wr_peak_accel,Re-accel out of the cut,0.2683246385517668,2.912121212121213
+WR,3,2,33,game_wr_speed_lost,Speed lost in the cut,-0.03495945488263982,2.615757575757576
+WR,3,2,33,game_wr_time_through,Time through the cut,-0.32438831756032543,1.1765151515151515
+WR,3,2,33,g_deep_speed,Deep-route game speed,-0.6383064546520646,18.15783754532722
+WR,3,2,33,cushion_mean,Defender cushion,0.1526642099304023,6.1821140169737365
+WR,3,2,33,slot_share,Slot share,0.6097153139579382,0.4351208025913662
+WR,3,2,33,deep_route_share,Deep-route share,-0.7395138941743258,0.338864186791501
+WR,3,2,33,short_route_share,Short-route share,0.5393800020055308,0.30624635762513897
+TE,3,0,10,game_wr_peak_decel_mag,Brakes into the cut,0.3327653516429658,4.485
+TE,3,0,10,game_wr_peak_accel,Re-accel out of the cut,-0.5172184121306932,2.624999999999999
+TE,3,0,10,game_wr_speed_lost,Speed lost in the cut,0.1397225545069192,2.2819999999999996
+TE,3,0,10,game_wr_time_through,Time through the cut,0.23630839569675727,1.1874999999999998
+TE,3,0,10,cushion_mean,Defender cushion,0.09166500990524137,5.904860299248965
+TE,3,0,10,slot_share,Slot share,0.9628236810445095,0.510339001175875
+TE,3,0,10,deep_route_share,Deep-route share,0.5425812110620033,0.2960671529585492
+TE,3,0,10,short_route_share,Short-route share,-0.8722185157026934,0.38991055978336703
+TE,3,1,15,game_wr_peak_decel_mag,Brakes into the cut,-0.434497582833697,4.105
+TE,3,1,15,game_wr_peak_accel,Re-accel out of the cut,0.15136674434107247,2.9916666666666667
+TE,3,1,15,game_wr_speed_lost,Speed lost in the cut,-0.338030015657129,2.0943333333333336
+TE,3,1,15,game_wr_time_through,Time through the cut,-0.23473300639211475,1.1300000000000001
+TE,3,1,15,cushion_mean,Defender cushion,-0.0330024227406025,5.8395914266744615
+TE,3,1,15,slot_share,Slot share,-0.6479440261421849,0.269547820814802
+TE,3,1,15,deep_route_share,Deep-route share,-0.4197417703581136,0.22579314241798534
+TE,3,1,15,short_route_share,Short-route share,0.5617458642037222,0.5004937741731414
+TE,3,2,1,game_wr_peak_decel_mag,Brakes into the cut,3.189810226075797,5.899999999999999
+TE,3,2,1,game_wr_peak_accel,Re-accel out of the cut,2.9016829561908297,4.499999999999997
+TE,3,2,1,game_wr_speed_lost,Speed lost in the cut,3.6732246897877294,3.67
+TE,3,2,1,game_wr_time_through,Time through the cut,1.1579111389141181,1.2999999999999998
+TE,3,2,1,cushion_mean,Defender cushion,-0.42161375794332795,5.636136336760088
+TE,3,2,1,slot_share,Slot share,0.09092358168767893,0.38
+TE,3,2,1,deep_route_share,Deep-route share,0.8703144447516686,0.32
+TE,3,2,1,short_route_share,Short-route share,0.2959971939711071,0.48
+DB,2,0,35,game_db_peak_decel_mag,Brakes in coverage,-0.5485167062943247,3.6228571428571423
+DB,2,0,35,game_db_peak_accel,Re-accel in coverage,-0.1386823966075028,3.309285714285715
+DB,2,0,35,game_db_speed_lost,Speed lost in coverage cut,-0.6054043203862473,1.6605714285714288
+DB,2,0,35,game_db_time_through,Time through coverage cut,-0.6066148037258583,0.8771428571428572
+DB,2,0,35,close_speed_at_arrival,Speed arriving at tackle,-0.5696643447647479,4.349654508705383
+DB,2,0,35,close_max_s_0p5,Peak closing speed,-0.6204244877469616,4.690424757540398
+DB,2,0,35,g_cov_speed,Coverage game speed,-0.8145507532549262,16.170955850326273
+DB,2,0,35,cushion_mean,Defender cushion,0.6984729203040629,7.919887900281628
+DB,2,0,35,man_share,Man-coverage share,-0.8760145333856226,0.13151868914375972
+DB,2,0,35,slot_share,Slot share,-0.0636840189719379,0.17454615992062414
+DB,2,0,35,high_safety_share,High-safety share,0.8333689042007084,0.6112050386117757
+DB,2,1,41,game_db_peak_decel_mag,Brakes in coverage,0.4682459687878371,4.092682926829268
+DB,2,1,41,game_db_peak_accel,Re-accel in coverage,0.11838741173811226,3.4170731707317077
+DB,2,1,41,game_db_speed_lost,Speed lost in coverage cut,0.5168085661833843,1.9602439024390246
+DB,2,1,41,game_db_time_through,Time through coverage cut,0.5178419056196374,0.9896341463414635
+DB,2,1,41,close_speed_at_arrival,Speed arriving at tackle,0.486298830896732,4.645164414817769
+DB,2,1,41,close_max_s_0p5,Peak closing speed,0.5296306602718013,5.021855244193602
+DB,2,1,41,g_cov_speed,Coverage game speed,0.6785142742301318,17.304929944557895
+DB,2,1,41,cushion_mean,Defender cushion,-0.5962573709912741,5.871038218593939
+DB,2,1,41,man_share,Man-coverage share,0.747817284597483,0.34563588110521937
+DB,2,1,41,slot_share,Slot share,0.05436440643945912,0.20240105633537903
+DB,2,1,41,high_safety_share,High-safety share,-0.7114124791957271,0.04943159498836432
+DL,2,0,41,g_speed_1s,Speed 1 s after snap,0.9249682470661976,7.185192913982927
+DL,2,0,41,g_get_off,NGS get-off time,-0.7708533020747799,0.8634756112970957
+DL,2,0,41,pen_pass_2s,Penetration at 2 s (pass),0.8919077672311772,4.422805158103385
+DL,2,0,41,pen_run_2s,Penetration at 2 s (run),0.7832073539737227,0.7086584393571063
+DL,2,0,41,edge_share,Edge alignment share,1.0193527927738637,0.9266806168157228
+DL,2,1,45,g_speed_1s,Speed 1 s after snap,-0.842748847326983,5.288526634086503
+DL,2,1,45,g_get_off,NGS get-off time,0.7650085619186544,1.0170681781389492
+DL,2,1,45,pen_pass_2s,Penetration at 2 s (pass),-0.8126270768106288,2.9989998075697155
+DL,2,1,45,pen_run_2s,Penetration at 2 s (run),-0.7251107709883132,-0.12284116311506792
+DL,2,1,45,edge_share,Edge alignment share,-0.9287436556384091,0.08720683517457074

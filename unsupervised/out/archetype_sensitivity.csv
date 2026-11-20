@@ -1,0 +1,9 @@
+group,fset,n_imputed_set,n_complete,method,k,ari_complete_vs_imputed
+WR,ALL,96,84,kmeans,2,1.0
+WR,SIZEADJ,93,84,kmeans,2,0.9521873757539042
+TE,ALL,34,25,kmeans,2,0.8398291510945008
+TE,SIZEADJ,30,25,kmeans,2,0.6933333333333334
+DB,ALL,99,78,kmeans,2,1.0
+DB,SIZEADJ,90,78,kmeans,2,1.0
+DL,ALL,94,69,kmeans,2,0.8857208914791243
+DL,SIZEADJ,94,69,kmeans,2,0.9406554947458641

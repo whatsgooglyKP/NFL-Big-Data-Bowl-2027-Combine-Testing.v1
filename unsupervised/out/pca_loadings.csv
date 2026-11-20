@@ -1,0 +1,425 @@
+group,fset,pc,feature,label,loading
+WR,ALL,1,forty,40 speed,-0.33638312596221775
+WR,ALL,1,ten_yd_split,10-yd burst,-0.2600330241966027
+WR,ALL,1,vertical,Vertical,-0.10004323061612984
+WR,ALL,1,broad_jump,Broad jump,-0.07720927883331011
+WR,ALL,1,combine_height,Height,0.4298320233605772
+WR,ALL,1,combine_weight,Weight,0.4309262884886332
+WR,ALL,1,arm_length,Arm length,0.4059561832493047
+WR,ALL,1,hand_size,Hand size,0.3744544075439093
+WR,ALL,1,f40_top,Top speed (trk),-0.2859025913560507
+WR,ALL,1,f40_acc,Peak accel (trk),-0.08935430047298908
+WR,ALL,1,f40_s1,Speed at 1 s (trk),-0.06371846061328179
+WR,ALL,1,f40_t90,Quick to top speed (trk),-0.05166742154007252
+WR,ALL,1,f40_hold,Holds speed to finish (trk),-0.12534953170058263
+WR,ALL,1,drill_acc,Drill accel (trk),-0.1249927404873655
+WR,ALL,2,forty,40 speed,0.21753031556292002
+WR,ALL,2,ten_yd_split,10-yd burst,0.09977838316783574
+WR,ALL,2,vertical,Vertical,0.29125892501707695
+WR,ALL,2,broad_jump,Broad jump,0.2731423772606042
+WR,ALL,2,combine_height,Height,0.17482895057147144
+WR,ALL,2,combine_weight,Weight,0.1445692186757034
+WR,ALL,2,arm_length,Arm length,0.19254017804589274
+WR,ALL,2,hand_size,Hand size,0.12976547024912727
+WR,ALL,2,f40_top,Top speed (trk),0.09165986259679983
+WR,ALL,2,f40_acc,Peak accel (trk),0.47485240440125026
+WR,ALL,2,f40_s1,Speed at 1 s (trk),0.42470558382451
+WR,ALL,2,f40_t90,Quick to top speed (trk),0.43052633801902135
+WR,ALL,2,f40_hold,Holds speed to finish (trk),-0.20954691152516144
+WR,ALL,2,drill_acc,Drill accel (trk),0.1854348749886433
+WR,ALL,3,forty,40 speed,0.30264650543203914
+WR,ALL,3,ten_yd_split,10-yd burst,0.21299633932667295
+WR,ALL,3,vertical,Vertical,0.34662217589027
+WR,ALL,3,broad_jump,Broad jump,0.39661080848792235
+WR,ALL,3,combine_height,Height,0.13162470146041141
+WR,ALL,3,combine_weight,Weight,0.17958247493671528
+WR,ALL,3,arm_length,Arm length,0.20665739048032974
+WR,ALL,3,hand_size,Hand size,0.06762192186528487
+WR,ALL,3,f40_top,Top speed (trk),0.3572967495217744
+WR,ALL,3,f40_acc,Peak accel (trk),-0.2824742577852166
+WR,ALL,3,f40_s1,Speed at 1 s (trk),-0.34700276665139423
+WR,ALL,3,f40_t90,Quick to top speed (trk),-0.3865575648480603
+WR,ALL,3,f40_hold,Holds speed to finish (trk),-0.10681353759757325
+WR,ALL,3,drill_acc,Drill accel (trk),-0.006015056924427184
+WR,ALL,4,forty,40 speed,0.29006550794344466
+WR,ALL,4,ten_yd_split,10-yd burst,0.09731817360154077
+WR,ALL,4,vertical,Vertical,-0.38984982974599036
+WR,ALL,4,broad_jump,Broad jump,-0.2112212058955861
+WR,ALL,4,combine_height,Height,0.21256780343142195
+WR,ALL,4,combine_weight,Weight,0.17166403444040348
+WR,ALL,4,arm_length,Arm length,0.16866147090119218
+WR,ALL,4,hand_size,Hand size,-0.0509371071213865
+WR,ALL,4,f40_top,Top speed (trk),0.4317585999898441
+WR,ALL,4,f40_acc,Peak accel (trk),0.11361923255938736
+WR,ALL,4,f40_s1,Speed at 1 s (trk),0.26179700984421544
+WR,ALL,4,f40_t90,Quick to top speed (trk),-0.07798795031128104
+WR,ALL,4,f40_hold,Holds speed to finish (trk),0.409398469429665
+WR,ALL,4,drill_acc,Drill accel (trk),-0.40317151931887535
+WR,SIZEADJ,1,forty,40 speed,0.44262310289240187
+WR,SIZEADJ,1,ten_yd_split,10-yd burst,0.26396713937507765
+WR,SIZEADJ,1,vertical,Vertical,0.33504718606323397
+WR,SIZEADJ,1,broad_jump,Broad jump,0.32167881718311414
+WR,SIZEADJ,1,arm_length,Arm length,0.038328725601488985
+WR,SIZEADJ,1,hand_size,Hand size,-0.08629456660930276
+WR,SIZEADJ,1,f40_top,Top speed (trk),0.32778072468712804
+WR,SIZEADJ,1,f40_acc,Peak accel (trk),0.38696569295057076
+WR,SIZEADJ,1,f40_s1,Speed at 1 s (trk),0.3254292404227406
+WR,SIZEADJ,1,f40_t90,Quick to top speed (trk),0.3026491685540466
+WR,SIZEADJ,1,f40_hold,Holds speed to finish (trk),-0.1289408939583266
+WR,SIZEADJ,1,drill_acc,Drill accel (trk),0.19607983448028676
+WR,SIZEADJ,2,forty,40 speed,-0.3043749616485168
+WR,SIZEADJ,2,ten_yd_split,10-yd burst,-0.22112178907683971
+WR,SIZEADJ,2,vertical,Vertical,-0.15858422660478277
+WR,SIZEADJ,2,broad_jump,Broad jump,-0.23096798622435002
+WR,SIZEADJ,2,arm_length,Arm length,-0.03375458282757158
+WR,SIZEADJ,2,hand_size,Hand size,0.15878450749522888
+WR,SIZEADJ,2,f40_top,Top speed (trk),-0.38798559037669167
+WR,SIZEADJ,2,f40_acc,Peak accel (trk),0.4055510186701188
+WR,SIZEADJ,2,f40_s1,Speed at 1 s (trk),0.43783221186371774
+WR,SIZEADJ,2,f40_t90,Quick to top speed (trk),0.4922211975439585
+WR,SIZEADJ,2,f40_hold,Holds speed to finish (trk),-0.05876683576910624
+WR,SIZEADJ,2,drill_acc,Drill accel (trk),0.03431088338221482
+WR,SIZEADJ,3,forty,40 speed,-0.18438947909664352
+WR,SIZEADJ,3,ten_yd_split,10-yd burst,-0.21528567186816933
+WR,SIZEADJ,3,vertical,Vertical,0.3939969072315993
+WR,SIZEADJ,3,broad_jump,Broad jump,0.3671453535574144
+WR,SIZEADJ,3,arm_length,Arm length,0.49211505507006265
+WR,SIZEADJ,3,hand_size,Hand size,0.4561650907567793
+WR,SIZEADJ,3,f40_top,Top speed (trk),-0.18010785075964145
+WR,SIZEADJ,3,f40_acc,Peak accel (trk),-0.024483438824095302
+WR,SIZEADJ,3,f40_s1,Speed at 1 s (trk),-0.12240166327683479
+WR,SIZEADJ,3,f40_t90,Quick to top speed (trk),-0.07834626435871837
+WR,SIZEADJ,3,f40_hold,Holds speed to finish (trk),-0.35304788591060937
+WR,SIZEADJ,3,drill_acc,Drill accel (trk),-0.023624515833369032
+WR,SIZEADJ,4,forty,40 speed,-0.04428538203956454
+WR,SIZEADJ,4,ten_yd_split,10-yd burst,-0.005640224387497738
+WR,SIZEADJ,4,vertical,Vertical,0.12356372289260678
+WR,SIZEADJ,4,broad_jump,Broad jump,-0.05455686419096525
+WR,SIZEADJ,4,arm_length,Arm length,-0.38728148173993554
+WR,SIZEADJ,4,hand_size,Hand size,-0.14495432897943647
+WR,SIZEADJ,4,f40_top,Top speed (trk),-0.22057106215972605
+WR,SIZEADJ,4,f40_acc,Peak accel (trk),-0.12793734132040832
+WR,SIZEADJ,4,f40_s1,Speed at 1 s (trk),-0.30025932600467314
+WR,SIZEADJ,4,f40_t90,Quick to top speed (trk),0.10237543085703171
+WR,SIZEADJ,4,f40_hold,Holds speed to finish (trk),-0.4605492786877755
+WR,SIZEADJ,4,drill_acc,Drill accel (trk),0.6565076218981004
+TE,ALL,1,forty,40 speed,0.4464448428119026
+TE,ALL,1,ten_yd_split,10-yd burst,0.33028630221988137
+TE,ALL,1,vertical,Vertical,0.3745739579979284
+TE,ALL,1,broad_jump,Broad jump,0.4080108273519463
+TE,ALL,1,combine_height,Height,-0.12983263387377947
+TE,ALL,1,combine_weight,Weight,-0.1096082381905843
+TE,ALL,1,arm_length,Arm length,0.15066568205375946
+TE,ALL,1,hand_size,Hand size,0.14340918865527072
+TE,ALL,1,f40_top,Top speed (trk),0.3935220366800392
+TE,ALL,1,f40_acc,Peak accel (trk),0.2721975040153752
+TE,ALL,1,f40_s1,Speed at 1 s (trk),0.12045142877879879
+TE,ALL,1,f40_t90,Quick to top speed (trk),-0.02121102044333475
+TE,ALL,1,f40_hold,Holds speed to finish (trk),-0.06401546219750111
+TE,ALL,1,drill_turn,Drill turn rate (trk),0.254313086136199
+TE,ALL,2,forty,40 speed,0.03873844432412407
+TE,ALL,2,ten_yd_split,10-yd burst,0.00442376628711442
+TE,ALL,2,vertical,Vertical,-0.06903596808709699
+TE,ALL,2,broad_jump,Broad jump,0.14798947981671412
+TE,ALL,2,combine_height,Height,0.26761964488266266
+TE,ALL,2,combine_weight,Weight,0.43053547025443517
+TE,ALL,2,arm_length,Arm length,0.4145107145612937
+TE,ALL,2,hand_size,Hand size,0.4178137189245411
+TE,ALL,2,f40_top,Top speed (trk),0.12980325026104486
+TE,ALL,2,f40_acc,Peak accel (trk),-0.2842119322287751
+TE,ALL,2,f40_s1,Speed at 1 s (trk),-0.3633701161504752
+TE,ALL,2,f40_t90,Quick to top speed (trk),-0.3346518237601259
+TE,ALL,2,f40_hold,Holds speed to finish (trk),-0.08206387931644908
+TE,ALL,2,drill_turn,Drill turn rate (trk),-0.14161546373839512
+TE,ALL,3,forty,40 speed,-0.17743834643506803
+TE,ALL,3,ten_yd_split,10-yd burst,-0.04514735046162309
+TE,ALL,3,vertical,Vertical,0.12521384469395458
+TE,ALL,3,broad_jump,Broad jump,0.15515107349790833
+TE,ALL,3,combine_height,Height,0.28548410908998123
+TE,ALL,3,combine_weight,Weight,0.1712302440393625
+TE,ALL,3,arm_length,Arm length,0.23634067108856807
+TE,ALL,3,hand_size,Hand size,0.2704622844567486
+TE,ALL,3,f40_top,Top speed (trk),-0.2419503916553822
+TE,ALL,3,f40_acc,Peak accel (trk),0.29530152025136747
+TE,ALL,3,f40_s1,Speed at 1 s (trk),0.40756194000740736
+TE,ALL,3,f40_t90,Quick to top speed (trk),0.4907707927440636
+TE,ALL,3,f40_hold,Holds speed to finish (trk),-0.22737349950356486
+TE,ALL,3,drill_turn,Drill turn rate (trk),-0.2872191849347025
+TE,ALL,4,forty,40 speed,0.1172384012309787
+TE,ALL,4,ten_yd_split,10-yd burst,0.3429950380196922
+TE,ALL,4,vertical,Vertical,0.2543804495201505
+TE,ALL,4,broad_jump,Broad jump,-0.11369401764742862
+TE,ALL,4,combine_height,Height,0.5112816482431677
+TE,ALL,4,combine_weight,Weight,0.368291436074462
+TE,ALL,4,arm_length,Arm length,-0.1903222069532534
+TE,ALL,4,hand_size,Hand size,-0.40205200819368764
+TE,ALL,4,f40_top,Top speed (trk),0.1280920798284663
+TE,ALL,4,f40_acc,Peak accel (trk),-0.05565314082817224
+TE,ALL,4,f40_s1,Speed at 1 s (trk),0.07248638363977235
+TE,ALL,4,f40_t90,Quick to top speed (trk),0.05223557141685542
+TE,ALL,4,f40_hold,Holds speed to finish (trk),0.37916933945471176
+TE,ALL,4,drill_turn,Drill turn rate (trk),-0.15748295539470164
+TE,SIZEADJ,1,forty,40 speed,0.4238564602433151
+TE,SIZEADJ,1,ten_yd_split,10-yd burst,0.3205022475240874
+TE,SIZEADJ,1,vertical,Vertical,0.35091123677233166
+TE,SIZEADJ,1,broad_jump,Broad jump,0.42166428703772796
+TE,SIZEADJ,1,arm_length,Arm length,0.2693100063751305
+TE,SIZEADJ,1,hand_size,Hand size,0.2524394096115306
+TE,SIZEADJ,1,f40_top,Top speed (trk),0.39449536757807835
+TE,SIZEADJ,1,f40_acc,Peak accel (trk),0.25856378086346204
+TE,SIZEADJ,1,f40_s1,Speed at 1 s (trk),0.09972202356827028
+TE,SIZEADJ,1,f40_t90,Quick to top speed (trk),-0.032282019010816336
+TE,SIZEADJ,1,f40_hold,Holds speed to finish (trk),-0.09681506688913422
+TE,SIZEADJ,1,drill_turn,Drill turn rate (trk),0.19387990251549456
+TE,SIZEADJ,2,forty,40 speed,-0.16147140011401226
+TE,SIZEADJ,2,ten_yd_split,10-yd burst,0.015583273490063389
+TE,SIZEADJ,2,vertical,Vertical,0.06546524242423524
+TE,SIZEADJ,2,broad_jump,Broad jump,0.02619176848956597
+TE,SIZEADJ,2,arm_length,Arm length,-0.041319453916948794
+TE,SIZEADJ,2,hand_size,Hand size,0.03346621314182248
+TE,SIZEADJ,2,f40_top,Top speed (trk),-0.270600228151279
+TE,SIZEADJ,2,f40_acc,Peak accel (trk),0.4234513650489177
+TE,SIZEADJ,2,f40_s1,Speed at 1 s (trk),0.5605880885430982
+TE,SIZEADJ,2,f40_t90,Quick to top speed (trk),0.5962084201681342
+TE,SIZEADJ,2,f40_hold,Holds speed to finish (trk),-0.1694097098015636
+TE,SIZEADJ,2,drill_turn,Drill turn rate (trk),-0.12217397443022882
+TE,SIZEADJ,3,forty,40 speed,-0.19570850829935207
+TE,SIZEADJ,3,ten_yd_split,10-yd burst,-0.28997219913089767
+TE,SIZEADJ,3,vertical,Vertical,-0.10856425433928171
+TE,SIZEADJ,3,broad_jump,Broad jump,0.1804891700956718
+TE,SIZEADJ,3,arm_length,Arm length,0.41810557496368544
+TE,SIZEADJ,3,hand_size,Hand size,0.5703391305137304
+TE,SIZEADJ,3,f40_top,Top speed (trk),-0.1791227979122693
+TE,SIZEADJ,3,f40_acc,Peak accel (trk),-0.08568432258200667
+TE,SIZEADJ,3,f40_s1,Speed at 1 s (trk),-0.18015606079240076
+TE,SIZEADJ,3,f40_t90,Quick to top speed (trk),-0.0723742763339599
+TE,SIZEADJ,3,f40_hold,Holds speed to finish (trk),-0.42958174404855387
+TE,SIZEADJ,3,drill_turn,Drill turn rate (trk),-0.2673785205552992
+TE,SIZEADJ,4,forty,40 speed,-0.22599917790640112
+TE,SIZEADJ,4,ten_yd_split,10-yd burst,0.010829407544103737
+TE,SIZEADJ,4,vertical,Vertical,0.334708093251545
+TE,SIZEADJ,4,broad_jump,Broad jump,0.21641272930588118
+TE,SIZEADJ,4,arm_length,Arm length,0.46986207057339885
+TE,SIZEADJ,4,hand_size,Hand size,-0.04823361899161208
+TE,SIZEADJ,4,f40_top,Top speed (trk),-0.1981395296123724
+TE,SIZEADJ,4,f40_acc,Peak accel (trk),-0.3112470586985607
+TE,SIZEADJ,4,f40_s1,Speed at 1 s (trk),0.014470041582288463
+TE,SIZEADJ,4,f40_t90,Quick to top speed (trk),0.21395409442119587
+TE,SIZEADJ,4,f40_hold,Holds speed to finish (trk),0.6193043820657358
+TE,SIZEADJ,4,drill_turn,Drill turn rate (trk),-0.034476253382478346
+DB,ALL,1,forty,40 speed,0.4721641005944125
+DB,ALL,1,ten_yd_split,10-yd burst,0.4107991547860598
+DB,ALL,1,vertical,Vertical,0.3210163472855714
+DB,ALL,1,broad_jump,Broad jump,0.37345768397261286
+DB,ALL,1,combine_height,Height,-0.20364847436418798
+DB,ALL,1,combine_weight,Weight,-0.24832171639445197
+DB,ALL,1,arm_length,Arm length,-0.10606951077249449
+DB,ALL,1,hand_size,Hand size,-0.13989409492785693
+DB,ALL,1,f40_top,Top speed (trk),0.368179675537244
+DB,ALL,1,f40_acc,Peak accel (trk),0.21390916923456818
+DB,ALL,1,f40_s1,Speed at 1 s (trk),0.1280858983300541
+DB,ALL,1,f40_t90,Quick to top speed (trk),0.17992976278306402
+DB,ALL,1,f40_hold,Holds speed to finish (trk),0.03497042024560549
+DB,ALL,1,drill_top,Drill speed (trk),-0.02254886691937768
+DB,ALL,2,forty,40 speed,-0.08968155221643222
+DB,ALL,2,ten_yd_split,10-yd burst,-0.12824761879577326
+DB,ALL,2,vertical,Vertical,0.2386418635047618
+DB,ALL,2,broad_jump,Broad jump,0.1707674108086023
+DB,ALL,2,combine_height,Height,0.18284160329575466
+DB,ALL,2,combine_weight,Weight,0.36408818232272144
+DB,ALL,2,arm_length,Arm length,0.2854492209784303
+DB,ALL,2,hand_size,Hand size,0.35900703034672143
+DB,ALL,2,f40_top,Top speed (trk),-0.12222463297881159
+DB,ALL,2,f40_acc,Peak accel (trk),0.3896943423641532
+DB,ALL,2,f40_s1,Speed at 1 s (trk),0.44124569302166805
+DB,ALL,2,f40_t90,Quick to top speed (trk),0.38321417838054583
+DB,ALL,2,f40_hold,Holds speed to finish (trk),0.013674876810166336
+DB,ALL,2,drill_top,Drill speed (trk),0.06709207181417844
+DB,ALL,3,forty,40 speed,0.21121919893448776
+DB,ALL,3,ten_yd_split,10-yd burst,0.09324512979000461
+DB,ALL,3,vertical,Vertical,0.09549121716061665
+DB,ALL,3,broad_jump,Broad jump,0.1108810062361627
+DB,ALL,3,combine_height,Height,0.4807158774431634
+DB,ALL,3,combine_weight,Weight,0.19541579215567598
+DB,ALL,3,arm_length,Arm length,0.44604551107557683
+DB,ALL,3,hand_size,Hand size,0.025788959165023984
+DB,ALL,3,f40_top,Top speed (trk),0.30605225643940304
+DB,ALL,3,f40_acc,Peak accel (trk),-0.22839027233667236
+DB,ALL,3,f40_s1,Speed at 1 s (trk),-0.20535194995935044
+DB,ALL,3,f40_t90,Quick to top speed (trk),-0.29762774319020036
+DB,ALL,3,f40_hold,Holds speed to finish (trk),0.29187314330564473
+DB,ALL,3,drill_top,Drill speed (trk),0.3075876165200797
+DB,ALL,4,forty,40 speed,0.11426830984824249
+DB,ALL,4,ten_yd_split,10-yd burst,-0.048309298874983315
+DB,ALL,4,vertical,Vertical,-0.2853707671499157
+DB,ALL,4,broad_jump,Broad jump,-0.3237011927241168
+DB,ALL,4,combine_height,Height,-0.2269278686415362
+DB,ALL,4,combine_weight,Weight,0.18598092366441013
+DB,ALL,4,arm_length,Arm length,-0.339298807589284
+DB,ALL,4,hand_size,Hand size,0.1591280476568603
+DB,ALL,4,f40_top,Top speed (trk),0.3182650779517759
+DB,ALL,4,f40_acc,Peak accel (trk),0.22075744755777107
+DB,ALL,4,f40_s1,Speed at 1 s (trk),0.28048239762428556
+DB,ALL,4,f40_t90,Quick to top speed (trk),-0.1760513212086808
+DB,ALL,4,f40_hold,Holds speed to finish (trk),0.21704417631061246
+DB,ALL,4,drill_top,Drill speed (trk),0.514840093750887
+DB,SIZEADJ,1,forty,40 speed,0.4140834498526186
+DB,SIZEADJ,1,ten_yd_split,10-yd burst,0.3383609874189372
+DB,SIZEADJ,1,vertical,Vertical,0.3688969482159363
+DB,SIZEADJ,1,broad_jump,Broad jump,0.3934643290509367
+DB,SIZEADJ,1,arm_length,Arm length,0.14082475589159035
+DB,SIZEADJ,1,hand_size,Hand size,0.020489055095978214
+DB,SIZEADJ,1,f40_top,Top speed (trk),0.32966208355530896
+DB,SIZEADJ,1,f40_acc,Peak accel (trk),0.3462401119331277
+DB,SIZEADJ,1,f40_s1,Speed at 1 s (trk),0.305976353723536
+DB,SIZEADJ,1,f40_t90,Quick to top speed (trk),0.26697305325401055
+DB,SIZEADJ,1,f40_hold,Holds speed to finish (trk),0.07435942472679058
+DB,SIZEADJ,1,drill_top,Drill speed (trk),0.06254134767447027
+DB,SIZEADJ,2,forty,40 speed,0.3377692718965609
+DB,SIZEADJ,2,ten_yd_split,10-yd burst,0.26669555430392916
+DB,SIZEADJ,2,vertical,Vertical,-0.05252278535645479
+DB,SIZEADJ,2,broad_jump,Broad jump,-0.05528962787758766
+DB,SIZEADJ,2,arm_length,Arm length,-0.18344216536435834
+DB,SIZEADJ,2,hand_size,Hand size,-0.2639450704411409
+DB,SIZEADJ,2,f40_top,Top speed (trk),0.44286692480769607
+DB,SIZEADJ,2,f40_acc,Peak accel (trk),-0.3110915986195657
+DB,SIZEADJ,2,f40_s1,Speed at 1 s (trk),-0.35128035243465516
+DB,SIZEADJ,2,f40_t90,Quick to top speed (trk),-0.44271007640087584
+DB,SIZEADJ,2,f40_hold,Holds speed to finish (trk),0.2249462490593061
+DB,SIZEADJ,2,drill_top,Drill speed (trk),0.2067650298313578
+DB,SIZEADJ,3,forty,40 speed,-0.0731449766861532
+DB,SIZEADJ,3,ten_yd_split,10-yd burst,-0.02036917208462171
+DB,SIZEADJ,3,vertical,Vertical,0.44010571712906266
+DB,SIZEADJ,3,broad_jump,Broad jump,0.34238454414242864
+DB,SIZEADJ,3,arm_length,Arm length,0.46060812650482863
+DB,SIZEADJ,3,hand_size,Hand size,0.3097186336253052
+DB,SIZEADJ,3,f40_top,Top speed (trk),-0.15187939094394085
+DB,SIZEADJ,3,f40_acc,Peak accel (trk),-0.38897608009195433
+DB,SIZEADJ,3,f40_s1,Speed at 1 s (trk),-0.4379659771803746
+DB,SIZEADJ,3,f40_t90,Quick to top speed (trk),-0.055100582865825955
+DB,SIZEADJ,3,f40_hold,Holds speed to finish (trk),0.06600234011134458
+DB,SIZEADJ,3,drill_top,Drill speed (trk),-0.040655775761338796
+DB,SIZEADJ,4,forty,40 speed,-0.022725956802394615
+DB,SIZEADJ,4,ten_yd_split,10-yd burst,-0.32825542465749746
+DB,SIZEADJ,4,vertical,Vertical,-0.12097070683431323
+DB,SIZEADJ,4,broad_jump,Broad jump,-0.1577905368720303
+DB,SIZEADJ,4,arm_length,Arm length,0.23797546866521294
+DB,SIZEADJ,4,hand_size,Hand size,0.41626195451256104
+DB,SIZEADJ,4,f40_top,Top speed (trk),0.1530684385669607
+DB,SIZEADJ,4,f40_acc,Peak accel (trk),0.10755088579912762
+DB,SIZEADJ,4,f40_s1,Speed at 1 s (trk),0.18775722228930375
+DB,SIZEADJ,4,f40_t90,Quick to top speed (trk),-0.10677867113118629
+DB,SIZEADJ,4,f40_hold,Holds speed to finish (trk),0.40530552715112206
+DB,SIZEADJ,4,drill_top,Drill speed (trk),0.6134897177458228
+DL,ALL,1,forty,40 speed,0.37042816811491247
+DL,ALL,1,ten_yd_split,10-yd burst,0.3545037445528203
+DL,ALL,1,vertical,Vertical,0.2954410731664343
+DL,ALL,1,broad_jump,Broad jump,0.3443737324705037
+DL,ALL,1,combine_height,Height,-0.030394557362462726
+DL,ALL,1,combine_weight,Weight,-0.349024079962476
+DL,ALL,1,arm_length,Arm length,-0.0183221833017815
+DL,ALL,1,hand_size,Hand size,-0.0770603932084028
+DL,ALL,1,f40_top,Top speed (trk),0.35543130548619273
+DL,ALL,1,f40_acc,Peak accel (trk),0.20265896449344256
+DL,ALL,1,f40_s1,Speed at 1 s (trk),0.18747517634636182
+DL,ALL,1,f40_t90,Quick to top speed (trk),-0.0035892257964246646
+DL,ALL,1,f40_hold,Holds speed to finish (trk),0.13131825573925177
+DL,ALL,1,drill_top,Drill speed (trk),0.3143698903316528
+DL,ALL,1,drill_acc,Drill accel (trk),0.28910365370874036
+DL,ALL,2,forty,40 speed,-0.09406864938293119
+DL,ALL,2,ten_yd_split,10-yd burst,-0.07402643079822549
+DL,ALL,2,vertical,Vertical,-0.13251727473470729
+DL,ALL,2,broad_jump,Broad jump,-0.1355923689478644
+DL,ALL,2,combine_height,Height,-0.3356268140902936
+DL,ALL,2,combine_weight,Weight,0.024900126717797868
+DL,ALL,2,arm_length,Arm length,-0.30797760313373784
+DL,ALL,2,hand_size,Hand size,-0.1248605041551527
+DL,ALL,2,f40_top,Top speed (trk),-0.13802792917382714
+DL,ALL,2,f40_acc,Peak accel (trk),0.44619588725656634
+DL,ALL,2,f40_s1,Speed at 1 s (trk),0.5165323392398395
+DL,ALL,2,f40_t90,Quick to top speed (trk),0.44893512161619353
+DL,ALL,2,f40_hold,Holds speed to finish (trk),0.08480382532184555
+DL,ALL,2,drill_top,Drill speed (trk),-0.14877635306787476
+DL,ALL,2,drill_acc,Drill accel (trk),0.1010067423021032
+DL,ALL,3,forty,40 speed,-0.02842730631790669
+DL,ALL,3,ten_yd_split,10-yd burst,-0.04326906755390989
+DL,ALL,3,vertical,Vertical,0.02014525674009827
+DL,ALL,3,broad_jump,Broad jump,0.08133343053713658
+DL,ALL,3,combine_height,Height,0.5355736009761417
+DL,ALL,3,combine_weight,Weight,0.020987544152626436
+DL,ALL,3,arm_length,Arm length,0.552322644002822
+DL,ALL,3,hand_size,Hand size,0.2668837706443188
+DL,ALL,3,f40_top,Top speed (trk),-0.037612749545329144
+DL,ALL,3,f40_acc,Peak accel (trk),0.26433586227438605
+DL,ALL,3,f40_s1,Speed at 1 s (trk),0.22920149796247846
+DL,ALL,3,f40_t90,Quick to top speed (trk),0.34550685122049046
+DL,ALL,3,f40_hold,Holds speed to finish (trk),-0.2723462077936187
+DL,ALL,3,drill_top,Drill speed (trk),-0.0654452925891209
+DL,ALL,3,drill_acc,Drill accel (trk),0.07127332902192093
+DL,ALL,4,forty,40 speed,0.027501157953813648
+DL,ALL,4,ten_yd_split,10-yd burst,0.03461573931455688
+DL,ALL,4,vertical,Vertical,0.053790509545554484
+DL,ALL,4,broad_jump,Broad jump,0.045496526470370086
+DL,ALL,4,combine_height,Height,-0.09905693460683812
+DL,ALL,4,combine_weight,Weight,0.06074360352152944
+DL,ALL,4,arm_length,Arm length,-0.12114869055181055
+DL,ALL,4,hand_size,Hand size,0.8429207015499759
+DL,ALL,4,f40_top,Top speed (trk),0.03357277307877492
+DL,ALL,4,f40_acc,Peak accel (trk),-0.06370792715247446
+DL,ALL,4,f40_s1,Speed at 1 s (trk),0.04044315823130078
+DL,ALL,4,f40_t90,Quick to top speed (trk),0.10967576969102391
+DL,ALL,4,f40_hold,Holds speed to finish (trk),0.4505575868951855
+DL,ALL,4,drill_top,Drill speed (trk),0.03948705834797973
+DL,ALL,4,drill_acc,Drill accel (trk),-0.17600024606052836
+DL,SIZEADJ,1,forty,40 speed,0.49261329903460244
+DL,SIZEADJ,1,ten_yd_split,10-yd burst,0.4042052115668587
+DL,SIZEADJ,1,vertical,Vertical,0.2740430666525536
+DL,SIZEADJ,1,broad_jump,Broad jump,0.36764796382251685
+DL,SIZEADJ,1,arm_length,Arm length,0.02616071870824292
+DL,SIZEADJ,1,hand_size,Hand size,0.07431675461569354
+DL,SIZEADJ,1,f40_top,Top speed (trk),0.4576985209518009
+DL,SIZEADJ,1,f40_acc,Peak accel (trk),0.048160943490878176
+DL,SIZEADJ,1,f40_s1,Speed at 1 s (trk),0.013890770001936226
+DL,SIZEADJ,1,f40_t90,Quick to top speed (trk),-0.08046072322876761
+DL,SIZEADJ,1,f40_hold,Holds speed to finish (trk),0.1110577177630673
+DL,SIZEADJ,1,drill_top,Drill speed (trk),0.3392777929407494
+DL,SIZEADJ,1,drill_acc,Drill accel (trk),0.17765348902481284
+DL,SIZEADJ,2,forty,40 speed,0.013551558552080309
+DL,SIZEADJ,2,ten_yd_split,10-yd burst,0.00018911418388293087
+DL,SIZEADJ,2,vertical,Vertical,-0.040899521940195284
+DL,SIZEADJ,2,broad_jump,Broad jump,-0.009403321714605378
+DL,SIZEADJ,2,arm_length,Arm length,0.01797191727761828
+DL,SIZEADJ,2,hand_size,Hand size,0.005532115081441457
+DL,SIZEADJ,2,f40_top,Top speed (trk),-0.03908392294337165
+DL,SIZEADJ,2,f40_acc,Peak accel (trk),0.582552112467865
+DL,SIZEADJ,2,f40_s1,Speed at 1 s (trk),0.5966309599061566
+DL,SIZEADJ,2,f40_t90,Quick to top speed (trk),0.4537326371151063
+DL,SIZEADJ,2,f40_hold,Holds speed to finish (trk),0.0008585537799900431
+DL,SIZEADJ,2,drill_top,Drill speed (trk),-0.08190405008931573
+DL,SIZEADJ,2,drill_acc,Drill accel (trk),0.29707944463309643
+DL,SIZEADJ,3,forty,40 speed,-0.0912306786314891
+DL,SIZEADJ,3,ten_yd_split,10-yd burst,0.04922540458486733
+DL,SIZEADJ,3,vertical,Vertical,0.3472312945048146
+DL,SIZEADJ,3,broad_jump,Broad jump,0.3336084275771579
+DL,SIZEADJ,3,arm_length,Arm length,0.45627020283245323
+DL,SIZEADJ,3,hand_size,Hand size,0.506176006504265
+DL,SIZEADJ,3,f40_top,Top speed (trk),-0.12449206867845945
+DL,SIZEADJ,3,f40_acc,Peak accel (trk),-0.028933667305811855
+DL,SIZEADJ,3,f40_s1,Speed at 1 s (trk),-0.04215179162133829
+DL,SIZEADJ,3,f40_t90,Quick to top speed (trk),0.22900194035222338
+DL,SIZEADJ,3,f40_hold,Holds speed to finish (trk),-0.2991097750420108
+DL,SIZEADJ,3,drill_top,Drill speed (trk),-0.24845527670726986
+DL,SIZEADJ,3,drill_acc,Drill accel (trk),-0.2669124273869268
+DL,SIZEADJ,4,forty,40 speed,-0.01253989842593089
+DL,SIZEADJ,4,ten_yd_split,10-yd burst,-0.046036880990174
+DL,SIZEADJ,4,vertical,Vertical,-0.048121570608958525
+DL,SIZEADJ,4,broad_jump,Broad jump,-0.023932094436211596
+DL,SIZEADJ,4,arm_length,Arm length,-0.4486873051441507
+DL,SIZEADJ,4,hand_size,Hand size,0.5974748210483457
+DL,SIZEADJ,4,f40_top,Top speed (trk),-0.018363059136070916
+DL,SIZEADJ,4,f40_acc,Peak accel (trk),-0.0784263234087215
+DL,SIZEADJ,4,f40_s1,Speed at 1 s (trk),0.12567577136094513
+DL,SIZEADJ,4,f40_t90,Quick to top speed (trk),0.14785279378924526
+DL,SIZEADJ,4,f40_hold,Holds speed to finish (trk),0.5456285072961683
+DL,SIZEADJ,4,drill_top,Drill speed (trk),0.08382930096406407
+DL,SIZEADJ,4,drill_acc,Drill accel (trk),-0.29607078257208724
