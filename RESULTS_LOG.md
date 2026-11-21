@@ -946,3 +946,13 @@ Trigger: Kevin, "those p values and margins seem suspect". Method and full findi
 
 ## 11/2026 (11/19/2026): reframe to "The Combine works, but read it right"; power and MDE added
 Kevin approved the reframe. (1) Verdict "DOESN'T TRANSLATE" renamed "NOT DETECTED (low power)" (same rule; METRICS §9 note). (2) Every scorecard row now has `mde80`, `mde80_bh`, `alpha_bh`, `power_rho03`, `power_rho03_bh` (Fisher-z, rank variance factor 1.06; simulation check 77% to 82% power at the MDE; METRICS §12). Medians, n 25+ rows: receivers n 62 MDE 0.37 (0.51 under BH); DL all n 64 0.37 (0.56); edge n 38 0.48 (0.69); interior n 33 0.51 (0.73); DB n 59 0.38 (0.56); TE about n 20 about 0.66. Power at a true rho of 0.30: 61% WR, 61% DL, 57% DB before correction; 18%, 7%, 7% after. (3) Writeup rebuilt as five findings (WR confirmed; DL mostly through size; consistent leads with honest q; DB weak guide, not detected; weight), 1,832 words, 7 figures + 1 table, GATE PASS. No verdict changed; no numbers changed.
+
+---
+
+## 11/2026 (America/New_York) — Subgroup prelim: safeties vs corners, edge rushers vs interior linemen (new private notebook)
+
+Branch `subgroups`. Private Kaggle notebook `kevinpolymath/bdb2027-subgroups-prelim` v1, COMPLETE (competition data only). Main entry, public notebook and `bdb2027-outputs` untouched. Full summary: `subgroups/SUBGROUPS_PRELIM.md`.
+
+- Sample (players / core n / smallest detectable ρ): S 53 / 26 / 0.58; CB 60 / 32 / 0.52; EDGE 66 / 38 / 0.48; IDL 52 / 33 / 0.51. Subgroup gaps need about 0.62–0.71 to be detected.
+- 198 subgroup cells: 0 TRANSLATES, 16 LEAD, 4 SIZE, NOT SPEED, 139 NOT DETECTED (low power), 39 TOO FEW TO TELL. 99 interaction tests: 0 real differences, 3 LEAD, 75 NOT DETECTED (low power), 21 TOO FEW TO TELL.
+- Leads: EDGE get-off ← official 10-yard (+0.46, q 0.14, held-out 3/3) and broad (+0.42); IDL sacks ← tracked top speed (+0.45, q 0.29, held-out 3/3) but not EDGE (−0.08; gap p 0.03, q 0.38); pooled line dilutes get-off (broad: +0.42 / +0.39 / pooled +0.19); S vs CB peak acceleration → tackles (+0.47 vs −0.29; gap p 0.003, q 0.10; safety link alone fails held-out); coverage speed same for S and CB.
