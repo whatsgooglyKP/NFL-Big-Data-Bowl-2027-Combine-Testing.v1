@@ -1,0 +1,5 @@
+group,subgroup,players,with_size,with_40_tracking,with_official_40,n_tackle_rate,n_tfl_rate,n_cov_speed_mph,n_close_speed_mph,n_core,mde80_core,n_pressure_rate,n_sack_rate,n_getoff_mph,n_run_stop_rate
+DB,S,53,53,45,46,31.0,31,36.0,31.0,26,0.5795127038300296,,,,
+DB,CB,60,60,51,52,38.0,38,43.0,38.0,32,0.5203952947811545,,,,
+DL,EDGE,66,66,52,53,,45,,,38,0.4761975109775592,50.0,50.0,50.0,43.0
+DL,IDL,52,52,41,41,,31,,,33,0.5121788901121854,39.0,39.0,39.0,35.0

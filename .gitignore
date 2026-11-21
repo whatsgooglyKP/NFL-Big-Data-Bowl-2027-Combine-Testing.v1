@@ -67,3 +67,6 @@ out/ssoe_leaderboard.csv
 out/sunday_speed_players.csv
 out/wr_route_lead_players.csv
 out/wr_te_robust_players.csv
+
+# subgroups prelim: per-player cache stays local
+subgroups/cache/

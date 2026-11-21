@@ -1,0 +1,41 @@
+<!-- intro -->
+# Subgroup prelim: safeties vs corners, edge rushers vs interior linemen
+*NFL Big Data Bowl 2027 · exploratory companion (private) · rookies drafted or signed 2023 to 2025*
+
+**Question.** Our main entry grades defensive backs and defensive linemen as two big groups. Here we split them: safeties (S) vs cornerbacks (CB), and edge rushers (EDGE: DE and OLB) vs interior linemen (IDL: DT and NT). Does the same Combine number mean the same thing on Sunday for both halves of a pair, or does lumping them together hide real differences?
+
+**Read the Combine through body size.** Every link is a rank correlation (ρ) with draft year, weight and height held fixed. Positive ρ means the better athlete does better in games. Everything here is a **preliminary lead**, not a finding, unless it clears q < 0.05 *and* holds up on held-out draft classes. Nulls are labeled **NOT DETECTED (low power)** with the smallest effect we could have seen (MDE, 80% power).
+
+Built from scratch on the raw competition files only (Combine results, 10 Hz Combine tracking, regular-season player plays and game tracking). No draft slot, pick or round is read. Player-level tables stay in memory; only group summaries are saved.
+<!-- who -->
+## 1. Who is in each subgroup
+Players listed as CB → CB; SS and FS → S; DE and OLB → EDGE; DT and NT → IDL. The five players listed only as "DB" have no regular-season snaps in the data, so they drop out. Each game result has its own minimum: 100 defensive snaps for per-snap rates, 20 pass-rush snaps for pressure and sack rate, 20 man/deep coverage snaps for coverage speed, 10 tracked tackles for closing speed, 50 run snaps for run stops. Rates are shrunk toward the subgroup average (beta-binomial) so a hot 120-snap sample does not dominate.
+<!-- leads -->
+## 2. The strongest links inside each subgroup
+Top 15 tests (at least 25 players) by permutation p-value. **q** is the false-discovery-adjusted p within that subgroup. **held_out_ok** means adding the Combine number improved predictions on draft classes the model never saw (permutation p < 0.10 and better in at least 2 of 3 classes).
+<!-- fig_db -->
+## 3. Safeties vs corners
+Each panel is one game result; each row is one Combine number. Blue = safeties, orange = corners, hollow diamond = all defensive backs pooled with role held fixed (how the main entry reads it).
+<!-- fig_dl -->
+## 4. Edge rushers vs interior linemen
+Red = edge rushers, green = interior linemen, hollow diamond = all linemen pooled with role held fixed.
+<!-- diff -->
+## 5. Do the subgroups really differ? (interaction tests)
+For each Combine number and game result we ask: is the size-controlled link different for S than for CB (or EDGE than IDL)? Size and draft year are removed *inside* each subgroup first, so a corner being lighter than a safety cannot fake a difference. The test is a Freedman–Lane permutation of the interaction term (10,000 permutations), with a stratified player bootstrap for the interval and BH-FDR within each pair. The grey band is the smallest gap these sample sizes can reliably detect. The table after the figure flags links that are at least 0.30 in *both* subgroups but weaker when pooled.
+<!-- findings -->
+## 6. Preliminary findings
+*Numbers below are from the run dated 11/2026. Nothing reaches q < 0.05 with held-out support, so every item is a preliminary lead, not a finding.*
+
+1. **Edge rushers: the explosive tests show up in get-off.** With size held fixed, a faster official 10-yard split goes with a faster first second off the snap (ρ +0.46, 95% CI +0.05 to +0.75, n 39, q 0.14; held-out classes agree, 3 of 3). The broad jump (+0.42, n 42, q 0.14, held-out 2 of 3), the 40 (+0.43) and the vertical (+0.40) say the same thing. **LEAD.**
+2. **Interior linemen: straight-line speed shows up in sacks, but not for edges.** Tracked Combine top speed goes with a higher sack rate for interior linemen (ρ +0.45, CI +0.06 to +0.70, n 33, q 0.29; held-out 3 of 3), and so does the 40 (+0.41, q 0.29, held-out 3 of 3). For edge rushers, top speed shows nothing for sacks (−0.08). The gap (−0.53) is the biggest lineman difference we see (interaction p 0.03, q 0.38), but these samples can only reliably detect gaps of about 0.65. **LEAD, difference NOT DETECTED (low power) after correction.**
+3. **Pooling the line hides some of the get-off signal.** Explosiveness relates to get-off about equally inside each subgroup (10-yard split: EDGE +0.46, IDL +0.42; broad jump: +0.42 and +0.39), but the pooled lineman reading is weaker (+0.32 and +0.19), even with role held fixed. The slopes do not differ between edge and interior, so the lesson is to rank a lineman's Combine against his own sub-position, not against every lineman.
+4. **Safeties vs corners: one possible split, on tackling.** A safety's peak acceleration in the 40 leans toward more tackles per snap (ρ +0.47, n 26), while a corner's leans the other way (−0.29). The gap (+0.76, CI +0.05 to +1.32) is the strongest interaction in the whole notebook (p 0.003, q 0.10), but the safety link alone has an interval that crosses zero, q 0.90, and fails the held-out check. **LEAD for the difference only; treat as a question to chase, not an answer.**
+5. **Coverage speed reads the same for both DB groups.** The 40 and top speed relate to game speed in man or deep coverage at about +0.1 to +0.2 for both safeties (n 30 to 31) and corners (n 37 to 38), and the gap between them is near zero (+0.01 and −0.07). NOT DETECTED (low power): safeties need about 0.53 and corners about 0.48 to detect, and a safety-vs-corner gap needs about 0.66. No sign that pooling defensive backs hides anything here.
+
+**Real vs not detected.** Of 99 interaction tests, **none** clears q < 0.05, so no S-vs-CB or EDGE-vs-IDL difference is established. Three are leads at p < 0.05 (safety-vs-corner peak acceleration to tackles; edge-vs-interior top speed to sacks; edge-vs-interior *tracked* 10-yard split to get-off, which rests on an odd negative interior link from a tracked split that agrees only loosely with the official one). Everything else is NOT DETECTED (low power): with 26 to 38 players per side, only gaps of about **0.62 to 0.65 (EDGE vs IDL)** and **0.66 to 0.73 (S vs CB)** are reliably detectable. 21 tests (mostly 3-cone and shuttle) have too few players to tell.
+<!-- methods -->
+## 7. Methods and limits
+- **Combine side.** Official 40, 10-yard split, vertical, broad, 3-cone and shuttle. From the 10 Hz Combine sensor (best 40 attempt = highest top speed): top speed, tracked 10- and 20-yard splits, and peak acceleration. **Burst Score** = 0 to 100 within-subgroup blend of the tracked 20-yard time and the two jumps.
+- **Game side (regular season, plays that stood).** DB: tackles and tackles for loss per defensive snap, game speed in man or deep coverage (90th percentile of per-play top speed), and speed over the last second into a tackle. DL: pressure and sack rate per pass-rush snap, get-off (speed 1.0 s after the snap, median), tackles for loss per snap, and run stops (a tackle at 2 yards or less) per run snap.
+- **Statistics.** Rank partial correlation holding draft year, weight and height fixed; 2,000-draw player bootstrap; Freedman–Lane permutation p (10,000); BH-FDR within each subgroup; leave-one-draft-class-out ridge check (1,000 permutations); MDE by Fisher-z (rank variance factor 1.06). Verdicts: **TRANSLATES** = q < 0.05, interval excludes zero and held-out classes agree. **LEAD (preliminary)** = interval excludes zero or p < 0.05, but q does not clear. **SIZE, NOT SPEED** = a year-only link of 0.30+ that halves once size is held fixed. **TOO FEW TO TELL** = under 25 players. **NOT DETECTED (low power)** = none of the above; not proof of no link.
+- **Limits.** Subgroups hold 26 to 50 players per test, so only links of about 0.45 to 0.60 are reliably detectable, and *differences* between subgroups need gaps of about 0.62 to 0.73. Same players generate and test the leads; held-out draft classes are the only out-of-sample check. Tracked 10-yard splits track the official 10-yard split only loosely (ρ about 0.3), so trust the official split first. No blocker, ball-carrier or quarterback tracks are linked, so these are associations, not causes.
