@@ -55,17 +55,19 @@ After merging duplicates (tracked and laser 40; one pooled DL group), the famili
 
 ![Figure 6](figs/fig6_best_of_n_null.png)
 
-Table 2 reports held-out effect sizes. For each outcome, the best Combine test is chosen inside two draft classes and scored on the third; 300 shuffles give the luck range.
+Table 2 asks the scouting question directly: choose the best Combine test using two draft classes, then predict the third. A negative gain means that choice made predictions worse than size alone; 300 shuffles give the luck range.
 
-| Outcome (n) | Held-out R² gain | Luck 95th percentile | p |
-|---|---:|---:|---:|
-| Receiver Sunday Speed (62) | **+0.190** | +0.070 | 0.003 |
-| Receiver separation, break routes (71) | +0.066 | +0.044 | 0.030 |
-| Receiver separation, all routes (71) | +0.045 | +0.033 | 0.050 |
-| Defensive-line pressure rate (78) | −0.171 | +0.030 | 0.947 |
-| Offensive-line pressures allowed (56) | −0.083 | +0.102 | 0.322 |
+| Outcome (n) | Held-out R² gain | Luck range (95th pct) | p | Read |
+|---|---:|---:|---:|---|
+| Receiver Sunday Speed (62) | **+0.190** | +0.062 | 0.003 | Holds up out of sample |
+| Receiver separation, break routes (71) | +0.066 | +0.026 | 0.017 | Small; holds up, below the strict bar |
+| Receiver separation, all routes (71) | +0.045 | +0.028 | 0.047 | Small; holds up, below the strict bar |
+| Defensive-line pressure rate (78) | −0.070 | +0.034 | 0.857 | Does not hold up out of sample yet |
+| Offensive-line pressures allowed (66) | −0.131 | +0.102 | 0.638 | Does not hold up out of sample yet |
 
-*Table 2. Held-out gain in R² from adding the best Combine test to a size-only model. With 5 outcomes, only bold rows clear 0.05/5.*
+*Table 2. Held-out gain in R² from adding the best Combine test to a size-only model (tests that run the expected way, measured for 80%+ of players). With 5 outcomes, only bold rows clear 0.05/5.*
+
+The line rows are negative, and that is real, not a glitch: the test chosen in two classes points the other way in the third. For the defensive line, the 40's pressure link sits mostly in the 2023 class (+0.40 within class, against +0.15 and +0.10). For the offensive line, the slide drill carries over when 2023 is held out but not to 2025, and when 2024 is held out a different drill gets chosen and reverses. Naming one test in advance does only a little better (+0.03 for the DL 40; +0.07 for the slide drill, which was itself chosen after seeing all three classes). Read the line drills as leads that do not hold up out of sample yet; the 2026 class is the test.
 
 ## 4. Defensive backs and tight ends
 None of the 8 DB cells (tackle and tackle-for-loss rates; n about 62) reaches p < 0.05 (best q 0.53): **NOT DETECTED (low power)**. With about 62 backs, only links of ρ 0.37 or more are seen 8 times in 10. Tight ends: 25 of 42 have a tracked 40 and 20+ routes, so only links of about 0.58 could be seen; not analysed further.

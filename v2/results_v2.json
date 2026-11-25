@@ -418,33 +418,193 @@
   "Receiver Sunday Speed": {
    "gain": 0.18972624439008923,
    "n": 62,
-   "luck95": 0.07043133682568807,
-   "p": 0.0033222591362126247
+   "luck95": 0.06216667036938064,
+   "p": 0.0033222591362126247,
+   "folds": [
+    {
+     "held_out": 2023,
+     "test": "c_top_mph",
+     "train_rho": 0.7010217486571437,
+     "n_train": 39,
+     "n_test": 23,
+     "test_rho": 0.20962593131695134,
+     "fold_gain": 0.06292171458016851
+    },
+    {
+     "held_out": 2024,
+     "test": "forty",
+     "train_rho": 0.4586815898763693,
+     "n_train": 40,
+     "n_test": 23,
+     "test_rho": 0.6387980601020975,
+     "fold_gain": 0.3230084218659876
+    },
+    {
+     "held_out": 2025,
+     "test": "c_top_mph",
+     "train_rho": 0.5738585016109629,
+     "n_train": 46,
+     "n_test": 16,
+     "test_rho": 0.5984912952743587,
+     "fold_gain": 0.2099217431832957
+    }
+   ],
+   "fixed_test": "c_top_mph",
+   "fixed_gain": 0.23612127373099978
   },
   "Receiver separation, break routes": {
    "gain": 0.06599775943641507,
    "n": 71,
-   "luck95": 0.043759532815150576,
-   "p": 0.029900332225913623
+   "luck95": 0.026452951011755408,
+   "p": 0.016611295681063124,
+   "folds": [
+    {
+     "held_out": 2023,
+     "test": "vertical",
+     "train_rho": 0.3606504892698383,
+     "n_train": 45,
+     "n_test": 26,
+     "test_rho": 0.16091721938762532,
+     "fold_gain": -0.030131424327917947
+    },
+    {
+     "held_out": 2024,
+     "test": "vertical",
+     "train_rho": 0.25735549856691464,
+     "n_train": 44,
+     "n_test": 27,
+     "test_rho": 0.32449598560120396,
+     "fold_gain": 0.11905319984645847
+    },
+    {
+     "held_out": 2025,
+     "test": "vertical",
+     "train_rho": 0.2384747682705377,
+     "n_train": 53,
+     "n_test": 18,
+     "test_rho": 0.4315660253309391,
+     "fold_gain": 0.11647856081527277
+    }
+   ],
+   "fixed_test": "vertical",
+   "fixed_gain": 0.06599775943641507
   },
   "Receiver separation, all routes": {
    "gain": 0.04531102979189915,
    "n": 71,
-   "luck95": 0.03325582793539477,
-   "p": 0.04983388704318937
+   "luck95": 0.028216435815654063,
+   "p": 0.046511627906976744,
+   "folds": [
+    {
+     "held_out": 2023,
+     "test": "vertical",
+     "train_rho": 0.45968121949686663,
+     "n_train": 45,
+     "n_test": 26,
+     "test_rho": 0.1431459216427138,
+     "fold_gain": -0.054388032494865554
+    },
+    {
+     "held_out": 2024,
+     "test": "vertical",
+     "train_rho": 0.29133514164316104,
+     "n_train": 44,
+     "n_test": 27,
+     "test_rho": 0.3382723185908797,
+     "fold_gain": 0.0666296130138247
+    },
+    {
+     "held_out": 2025,
+     "test": "vertical",
+     "train_rho": 0.2057963486051854,
+     "n_train": 53,
+     "n_test": 18,
+     "test_rho": 0.6524417640232396,
+     "fold_gain": 0.14021490629805894
+    }
+   ],
+   "fixed_test": "vertical",
+   "fixed_gain": 0.04531102979189915
   },
   "Defensive-line pressure rate": {
-   "gain": -0.17079589620975097,
+   "gain": -0.06993826084668965,
    "n": 78,
-   "luck95": 0.030258029655541807,
-   "p": 0.946843853820598
+   "luck95": 0.03406799089558589,
+   "p": 0.8571428571428571,
+   "folds": [
+    {
+     "held_out": 2023,
+     "test": "broad_jump",
+     "train_rho": 0.10816828233902658,
+     "n_train": 48,
+     "n_test": 28,
+     "test_rho": 0.1909502902753691,
+     "fold_gain": -0.005446343342480165
+    },
+    {
+     "held_out": 2024,
+     "test": "vertical",
+     "train_rho": 0.2851535063579413,
+     "n_train": 52,
+     "n_test": 26,
+     "test_rho": -0.17314739992287706,
+     "fold_gain": -0.03060939076483142
+    },
+    {
+     "held_out": 2025,
+     "test": "vertical",
+     "train_rho": 0.27340713218124235,
+     "n_train": 54,
+     "n_test": 24,
+     "test_rho": -0.15433528364180185,
+     "fold_gain": -0.1850222943500832
+    }
+   ],
+   "fixed_test": "forty",
+   "fixed_gain": 0.030257258293300848
   },
   "Offensive-line pressures allowed": {
-   "gain": -0.08261709572958681,
-   "n": 56,
-   "luck95": 0.10241459674328406,
-   "p": 0.3222591362126246
+   "gain": -0.13128149689677943,
+   "n": 66,
+   "luck95": 0.10242311230104088,
+   "p": 0.6378737541528239,
+   "folds": [
+    {
+     "held_out": 2023,
+     "test": "ol_slide_acc",
+     "train_rho": 0.4530289657884581,
+     "n_train": 43,
+     "n_test": 23,
+     "test_rho": 0.43819083807236137,
+     "fold_gain": 0.015624145472519512
+    },
+    {
+     "held_out": 2024,
+     "test": "ol_screen_dec",
+     "train_rho": 0.35376341639037956,
+     "n_train": 41,
+     "n_test": 23,
+     "test_rho": -0.5681381931332893,
+     "fold_gain": -0.3441664481682645
+    },
+    {
+     "held_out": 2025,
+     "test": "ol_slide_acc",
+     "train_rho": 0.5322989138462062,
+     "n_train": 46,
+     "n_test": 20,
+     "test_rho": 0.04319061009664899,
+     "fold_gain": -0.0547732375579893
+    }
+   ],
+   "fixed_test": "ol_slide_acc",
+   "fixed_gain": 0.07085658774442927
   }
+ },
+ "dl_forty_by_class": {
+  "2023": 0.40054302269796416,
+  "2024": 0.15170200297466466,
+  "2025": 0.09900554998216698
  },
  "te": {
   "listed": 42,

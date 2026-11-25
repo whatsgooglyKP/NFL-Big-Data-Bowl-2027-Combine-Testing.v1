@@ -41,3 +41,25 @@ Everything here was recomputed live from the nine competition CSVs (re-downloade
   8. Changes scope from WR/TE/DB/DL to WR/DL/OL/DB (OL added, TE dropped). That needs Kevin's OK.
   - No comps. No dated text, so MM/YYYY is not at issue. No 0–100 composite (Burst Score dropped).
 - **Corrected v2** (`v2/writeup_for_kaggle_v2.md`): every number is rendered from the live `results_v2.json`. 1,702 strict tokens (1,597 words only); 6 figures + 2 tables = 8 visuals. Breaks 1–7 are fixed. The OL scope change is kept but flagged for Kevin. The cover was not regenerated.
+
+## Table 2 DL/OL negative held-out gains (11/25/2026)
+- **Verdict: real.** The 11/23 reconstruction had two weak spots, both fixed now:
+  - It chose the test by |ρ|, so it could choose one running the "wrong" way. It now chooses only in the pre-declared direction (+ = better athlete).
+  - It allowed sparsely measured drills, which cut one OL fold to 13 players. It now requires a test measured for 80%+ of players.
+  - Neither weak spot caused the negatives.
+- **Defensive line:** held-out gain **−0.070** (was −0.171), luck 95th pct +0.034, p 0.86.
+  - Hold out 2023 → chooses broad jump (training ρ +0.11), fold gain −0.005.
+  - Hold out 2024 → chooses vertical (+0.29), held-out ρ −0.17, fold gain −0.031.
+  - Hold out 2025 → chooses vertical (+0.27), held-out ρ −0.15, fold gain −0.185.
+  - The 40's pressure link sits in the 2023 class: within-class +0.40 vs +0.15 (2024) and +0.10 (2025).
+  - One test named in advance (the 40): +0.03.
+- **Offensive line:** held-out gain **−0.131** (was −0.083), luck +0.102, p 0.64.
+  - Hold out 2023 → chooses slide-drill acceleration (training +0.45), held-out +0.44, fold gain +0.016.
+  - Hold out 2024 → chooses screen-drill deceleration (+0.35), held-out −0.57, fold gain −0.344.
+  - Hold out 2025 → slide drill (+0.53), held-out +0.04, fold gain −0.055.
+  - Slide drill named in advance: +0.071, but that drill was itself chosen after seeing all three classes.
+- **Not the cause:**
+  - Sign convention: the OL outcome is negated so + = fewer pressures, and R² gain doesn't depend on sign.
+  - Leakage: normal scores are computed within class, and selection happens inside the training classes only.
+- **Receivers after the fix:** Sunday Speed +0.190 (luck +0.062, p 0.003); break-route separation +0.066 (p 0.017); all-route separation +0.045 (p 0.047).
+- **Writeup:** the line rows now read "Does not hold up out of sample yet", with the per-class explanation.
