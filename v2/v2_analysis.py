@@ -11,7 +11,7 @@ DEEP = ["GO", "POST", "CORNER", "WHEEL"]
 BREAK = ["OUT", "IN", "HITCH", "SLANT"]
 TIMES = {"forty", "ten_yd_split", "three_cone", "short_shuttle"}     # lower = better: sign flipped so + = better athlete
 
-def find_comp(cands=("data", "../data", "/workspace/bdb2027/data")):
+def find_comp(cands=("data", "../data", "../../data")):
     for p in map(Path, cands):
         if (p / "combine_tracking.csv").exists():
             return p
@@ -237,33 +237,40 @@ def _nscore(v, cls):
         m = (cls == c) & v.notna(); r = stats.rankdata(v[m]); out[m] = stats.norm.ppf((r - 0.5) / m.sum())
     return out
 
-def loco_gain(T, tests, y, size=("combine_weight", "combine_height"), extra=(), min_n=25):
-    """Best Combine test chosen inside two training classes (by |rank partial|), scored on the third.
-    Gain = R^2(size + test) - R^2(size only) on pooled held-out predictions; within-class normal scores."""
+def loco_gain(T, tests, y, size=("combine_weight", "combine_height"), extra=(), min_cov=0.8, detail=False):
+    """Nested leave-one-class-out. Inside the two training classes, pick the Combine test with the largest POSITIVE
+    size-adjusted rank partial (direction pre-declared: + = better athlete does better), among tests measured for at
+    least `min_cov` of the outcome sample (so a held-out fold is never cut to a handful of players). Score it on the third
+    class. Gain = R^2(size + test) - R^2(size only) on pooled held-out predictions; within-class normal scores.
+    (11/25/2026 fix: the 11/23 version picked by |rho|, so it could pick a test running the 'wrong' way, and allowed
+    sparsely measured drills, which cut one OL fold to 13 players.)"""
     d = T[[*tests, y, "draft_year", *size, *extra]].copy()
-    d = d[d[y].notna()]
+    d = d[d[y].notna()].dropna(subset=list(size))
+    tests = [t for t in tests if d[t].notna().mean() >= min_cov]
     for c in [*tests, y, *size]:
         d[c] = _nscore(d[c], d.draft_year).where(d[c].notna())
-    preds0, preds1, ys = [], [], []
+    if "role" in extra:
+        d["role"] = d["role"].isin(["Tackle", "Edge", "CB"]).astype(float)
+    cols0 = [*size, *extra]
+    Xm = lambda df, cols: np.column_stack([np.ones(len(df))] + [df[c].to_numpy(float) for c in cols])
+    preds0, preds1, ys, folds = [], [], [], []
     for hold in sorted(d.draft_year.unique()):
         tr, te = d[d.draft_year != hold], d[d.draft_year == hold]
-        best = max(tests, key=lambda t: abs(rank_partial(tr, t, y, ("draft_year", *size, *extra))[0]) if tr[t].notna().sum() >= min_n else -1)
-        cols0 = [*size, *[e for e in extra]]
-        trb, teb = tr.dropna(subset=[best, *size]), te.dropna(subset=[best, *size])
-        def X(df, cols):
-            parts = [np.ones(len(df))] + [df[c].to_numpy(float) if c != "role" else (df[c] == df[c].iloc[0]).to_numpy(float) for c in cols]
-            return np.column_stack(parts)
-        if "role" in extra:
-            for df in (trb, teb):
-                df["role"] = (df["role"] == "Tackle") | (df["role"] == "Edge") | (df["role"] == "CB")
-            cols0 = [*size, "role"]
-        def Xm(df, cols): return np.column_stack([np.ones(len(df))] + [df[c].to_numpy(float) for c in cols])
+        sc = {t: rank_partial(tr, t, y, ("draft_year", *size, *extra))[0] for t in tests}
+        best = max(sc, key=sc.get)
+        trb, teb = tr.dropna(subset=[best]), te.dropna(subset=[best])
         b0 = np.linalg.lstsq(Xm(trb, cols0), trb[y].to_numpy(float), rcond=None)[0]
         b1 = np.linalg.lstsq(Xm(trb, cols0 + [best]), trb[y].to_numpy(float), rcond=None)[0]
-        preds0.append(Xm(teb, cols0) @ b0); preds1.append(Xm(teb, cols0 + [best]) @ b1); ys.append(teb[y].to_numpy(float))
+        p0, p1, yy = Xm(teb, cols0) @ b0, Xm(teb, cols0 + [best]) @ b1, teb[y].to_numpy(float)
+        preds0.append(p0); preds1.append(p1); ys.append(yy)
+        if detail:
+            sst = ((yy - yy.mean()) ** 2).sum()
+            folds.append(dict(held_out=int(hold), test=best, train_rho=float(sc[best]), n_train=len(trb), n_test=len(teb),
+                              test_rho=float(rank_partial(teb, best, y, tuple(cols0))[0]), fold_gain=float((((yy - p0) ** 2).sum() - ((yy - p1) ** 2).sum()) / sst)))
     p0, p1, yy = map(np.concatenate, (preds0, preds1, ys))
     sst = ((yy - yy.mean()) ** 2).sum()
-    return float((((yy - p0) ** 2).sum() - ((yy - p1) ** 2).sum()) / sst), len(yy)
+    g = float((((yy - p0) ** 2).sum() - ((yy - p1) ** 2).sum()) / sst)
+    return (g, len(yy), folds) if detail else (g, len(yy))
 
 def loco_null(T, tests, y, S=300, seed=SEED, **kw):
     rng = np.random.default_rng(seed); obs, n = loco_gain(T, tests, y, **kw); sims = []

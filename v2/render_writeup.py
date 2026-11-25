@@ -22,11 +22,16 @@ t1 = ["| Sample or check (receivers) | n | ρ, Combine top speed vs Sunday Speed
 for lab, key, bold in rows1:
     v = T1[key]; cell = f"{s(v['rho'])} ({s(v['lo'])}, {s(v['hi'])})"
     t1.append(f"| {lab} | {'**' + str(v['n']) + '**' if bold else v['n']} | {'**' + cell + '**' if bold else cell} |")
-t2 = ["| Outcome (n) | Held-out R² gain | Luck 95th percentile | p |", "|---|---:|---:|---:|"]
+t2 = ["| Outcome (n) | Held-out R² gain | Luck range (95th pct) | p | Read |", "|---|---:|---:|---:|---|"]
+def read(v):
+    if v["p"] < 0.05 / len(T2): return "Holds up out of sample"
+    if v["p"] < 0.05: return "Small; holds up, below the strict bar"
+    if v["gain"] <= 0: return "Does not hold up out of sample yet"
+    return "Not above luck"
 for k, v in T2.items():
     g = f"**{s(v['gain'], 3)}**" if v["p"] < 0.05 / len(T2) else s(v["gain"], 3)
-    t2.append(f"| {k} ({v['n']}) | {g} | {s(v['luck95'], 3)} | {pv(v['p'])} |")
-bc = R["by_class"]; oc = R["ol_class"]; P = R["prod"]; ND = "**NOT DETECTED (low power)**"
+    t2.append(f"| {k} ({v['n']}) | {g} | {s(v['luck95'], 3)} | {pv(v['p'])} | {read(v)} |")
+DF = R["dl_forty_by_class"]; bc = R["by_class"]; oc = R["ol_class"]; P = R["prod"]; ND = "**NOT DETECTED (low power)**"
 
 md = f"""*NFL Big Data Bowl 2027 · Open Track · Combine tracking linked to regular-season game tracking · WR, DL, OL, DB*
 
@@ -78,11 +83,13 @@ After merging duplicates (tracked and laser 40; one pooled DL group), the famili
 
 ![Figure 6](figs/fig6_best_of_n_null.png)
 
-Table 2 reports held-out effect sizes. For each outcome, the best Combine test is chosen inside two draft classes and scored on the third; 300 shuffles give the luck range.
+Table 2 asks the scouting question directly: pick the best Combine test using two draft classes, then predict the third. A negative gain means the pick made predictions worse than size alone; 300 shuffles give the luck range.
 
 {chr(10).join(t2)}
 
-*Table 2. Held-out gain in R² from adding the best Combine test to a size-only model. With {len(T2)} outcomes, only bold rows clear 0.05/{len(T2)}.*
+*Table 2. Held-out gain in R² from adding the best Combine test to a size-only model (tests that run the expected way, measured for 80%+ of players). With {len(T2)} outcomes, only bold rows clear 0.05/{len(T2)}.*
+
+The line rows are negative, and that is real, not a glitch: the test picked in two classes points the other way in the third. For the defensive line, the 40's pressure link sits mostly in the 2023 class ({s(DF['2023'])} within class, against {s(DF['2024'])} and {s(DF['2025'])}). For the offensive line, the slide drill carries over when 2023 is held out but not to 2025, and when 2024 is held out a different drill gets picked and reverses. Naming one test in advance does only a little better ({s(T2['Defensive-line pressure rate']['fixed_gain'], 2)} for the DL 40; {s(T2['Offensive-line pressures allowed']['fixed_gain'], 2)} for the slide drill, which was itself chosen after seeing all three classes). Read the line drills as leads that do not hold up out of sample yet; the 2026 class is the test.
 
 ## 4. Defensive backs and tight ends
 None of the {FA['Defensive backs']['cells']} DB cells (tackle and tackle-for-loss rates; n about {R['db']['n_med']}) reaches p < 0.05 (best q {u(fam_best('Defensive backs')['q'])}): {ND}. With about {R['db']['n_med']} backs, only links of ρ {u(R['db']['mde'])} or more are seen 8 times in 10. Tight ends: {R['te']['tracked40_and_20routes']} of {R['te']['listed']} have a tracked 40 and 20+ routes, so only links of about {u(R['te']['mde'])} could be seen; not analysed further.

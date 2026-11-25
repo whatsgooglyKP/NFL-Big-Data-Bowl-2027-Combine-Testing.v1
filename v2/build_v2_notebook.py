@@ -283,16 +283,25 @@ fig.suptitle("Only two links beat best-of-N luck: receiver speed and offensive-l
 footer(fig, "Each dot is one Combine test × outcome cell (25+ players), size-adjusted. Grey band: luck, 5th–95th percentile of the k-th best cell when the whole outcome block is shuffled within draft class (2,000 shuffles). Blue: survives best-of-N (p<.05).")
 fig.tight_layout(rect=(0, .07, 1, .93)); fig.savefig(SAVE / "fig6_best_of_n_null.png"); plt.show()
 '''))
-C.append(md("## Table 2: held-out effect sizes (best test chosen inside two classes, scored on the third; 300-shuffle luck range)"))
+C.append(md("## Table 2: held-out effect sizes. Inside two classes, pick the test with the largest positive size-adjusted link (measured for 80%+ of players), score it on the third class; 300 shuffles give the luck range. Per-fold detail is printed."))
 C.append(code(r'''
 WRT = ["c_top_mph", "forty", "vertical", "broad_jump", "short_shuttle", "ten_yd_split"]
-T2 = {"Receiver Sunday Speed": loco_null(WRALL, WRT, "sunday_speed_mph"),
-      "Receiver separation, break routes": loco_null(WRALL, WRT, "break_y"),
-      "Receiver separation, all routes": loco_null(WRALL, WRT, "sep_all_mean"),
-      "Defensive-line pressure rate": loco_null(DL, ["forty", "ten_yd_split", "c_top_mph", "vertical", "broad_jump"], "pressure_rate", extra=("role",)),
-      "Offensive-line pressures allowed": loco_null(OL, OLT, Y0, extra=("role",))}
-R["table2"] = {k: dict(gain=v[0], n=v[1], luck95=v[2], p=v[3]) for k, v in T2.items()}
-for k, v in R["table2"].items(): print(f"{k:36s} n {v['n']:3d} gain {v['gain']:+.3f} luck95 {v['luck95']:+.3f} p {v['p']:.3f}")
+SPEC = {"Receiver Sunday Speed": (WRALL, WRT, "sunday_speed_mph", {}, "c_top_mph"),
+        "Receiver separation, break routes": (WRALL, WRT, "break_y", {}, "vertical"),
+        "Receiver separation, all routes": (WRALL, WRT, "sep_all_mean", {}, "vertical"),
+        "Defensive-line pressure rate": (DL, ["forty", "ten_yd_split", "c_top_mph", "vertical", "broad_jump"], "pressure_rate", {"extra": ("role",)}, "forty"),
+        "Offensive-line pressures allowed": (OL, OLT, Y0, {"extra": ("role",)}, "ol_slide_acc")}
+R["table2"] = {}
+R["dl_forty_by_class"] = {int(c): rank_partial(DL[DL.draft_year == c], "forty", "pressure_rate", ("combine_weight", "combine_height", "role"))[0] for c in (2023, 2024, 2025)}
+print("DL 40 vs pressure, size-adjusted within each class:", {k: round(v, 2) for k, v in R["dl_forty_by_class"].items()})
+for k, (T, te, yv, kw, fixed) in SPEC.items():
+    gain, n, luck, p = loco_null(T, te, yv, **kw)
+    _, _, folds = loco_gain(T, te, yv, detail=True, **kw)
+    fx = loco_gain(T, [fixed], yv, **kw)[0]          # one test named in advance, no selection step
+    R["table2"][k] = dict(gain=gain, n=n, luck95=luck, p=p, folds=folds, fixed_test=fixed, fixed_gain=fx)
+    print(f"{k:36s} n {n:3d} gain {gain:+.3f} luck95 {luck:+.3f} p {p:.3f} | one named test ({fixed}) {fx:+.3f}")
+    for f in folds:
+        print(f"    hold out {f['held_out']}: picks {f['test']:22s} train rho {f['train_rho']:+.2f} (n {f['n_train']}) -> held-out rho {f['test_rho']:+.2f} (n {f['n_test']}), fold gain {f['fold_gain']:+.3f}")
 '''))
 C.append(md("## Tight ends, and the results file"))
 C.append(code(r'''
