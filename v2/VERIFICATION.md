@@ -63,3 +63,10 @@ Everything here was recomputed live from the nine competition CSVs (re-downloade
   - Leakage: normal scores are computed within class, and selection happens inside the training classes only.
 - **Receivers after the fix:** Sunday Speed +0.190 (luck +0.062, p 0.003); break-route separation +0.066 (p 0.017); all-route separation +0.045 (p 0.047).
 - **Writeup:** the line rows now read "Does not hold up out of sample yet", with the per-class explanation.
+
+## Kaggle run, v2 (11/2026)
+
+- Pushed `kaggle_upload/kernel_v2` as **version 4** of the public notebook `kevinpolymath/read-the-combine-through-body-size` (is_private false, competition data attached) on 11/25/2026, 6:14 PM ET.
+- Status: **COMPLETE**. Log: `GATE (Combine tracking -> regular-season performance): PASS`; 6 of 6 figures written (fig1 to fig6); notebook total 1,284 s (about 21 min).
+- The Kaggle `results_v2.json` matches the local `v2/results_v2.json` on every number (within 0.005 or 1%), so the writeup numbers match the public notebook.
+- Cover image not regenerated (Kevin's call); see `kaggle_upload/writeup_v2/TITLE_AND_COVER.md`.
